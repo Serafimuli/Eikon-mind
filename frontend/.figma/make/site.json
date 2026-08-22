@@ -1,0 +1,10 @@
+{
+  "description": "Effortlessly read and execute files with this web app, streamlining workflows for professionals who need quick access to file content and functionality.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

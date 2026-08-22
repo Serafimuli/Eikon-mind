@@ -1,0 +1,21 @@
+.auth-page { display: flex; min-height: 70vh; align-items: center; justify-content: center; padding-block: 3rem; }
+.auth-panel { width: 100%; max-width: 28rem; }
+.not-found-page { display: flex; min-height: 100vh; align-items: center; justify-content: center; background: var(--background); padding-inline: 1rem; }
+.dashboard-page { display: flex; flex-direction: column; gap: 1.5rem; }
+.stat-card { padding: 1.25rem; border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--card); }
+.stat-card__label { margin-bottom: 0.25rem; color: var(--muted-foreground); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.stat-card__value { color: var(--foreground); font-family: var(--font-display); font-size: 1.875rem; line-height: 2.25rem; font-weight: 600; }
+
+.how-it-works-grid { --step-gap: 2rem; --step-circle: 3rem; }
+.how-it-works-connector {
+  left: calc(50% + var(--step-circle) / 2);
+  width: calc(100% + var(--step-gap) - var(--step-circle));
+}
+
+@media (min-width: 640px) {
+  .app-content { padding: 1.5rem; }
+}
+
+@media (min-width: 1024px) {
+  .how-it-works-grid { --step-gap: 3rem; }
+}
