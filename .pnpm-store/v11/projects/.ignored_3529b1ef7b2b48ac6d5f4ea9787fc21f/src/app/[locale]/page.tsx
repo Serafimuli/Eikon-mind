@@ -1,0 +1,6 @@
+import Link from "next/link"
+import { HomeHeader } from "@/components/HomeHeader"
+import { PublicFooter } from "@/components/PublicFooter"
+import { locales, site, type Locale } from "@/lib/site-content"
+export function generateStaticParams(){return locales.map(locale=>({locale}))}
+export default async function Home({params}:{params:Promise<{locale:Locale}>}){const {locale}=await params;const t=site[locale];const services=["adulti","copii-si-adolescenti","familii","seniori","adictii","formare-profesionala"] as const;return <><HomeHeader locale={locale}/><main><section className="hero"><div><p className="eyebrow">{t.home.eyebrow}</p><h1 id="home-logo-threshold">EIKON <span>MIND</span></h1><p>{t.home.lead}</p><Link className="button" href={`/${locale}/programare`}>{t.home.cta}</Link></div></section><section className="section intro"><h2>{t.home.introTitle}</h2><p>{t.home.intro}</p></section><section className="quote"><p>“{t.home.quote}”</p></section><section className="section"><p className="eyebrow">{t.nav.services}</p><div className="services">{services.map(slug=><Link className="service-card" href={`/${locale}/${slug}`} key={slug}><h3>{t.pages[slug][0]}</h3></Link>)}</div></section></main><PublicFooter locale={locale}/></>}

@@ -1,8 +1,14 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
+
+const subscribe = (onStoreChange: () => void) => {
+ window.addEventListener("eikon-theme-change", onStoreChange)
+ return () => window.removeEventListener("eikon-theme-change", onStoreChange)
+}
+const getSnapshot = () => document.documentElement.classList.contains("dark")
+const getServerSnapshot = () => false
 export function ThemeToggle() {
- const [dark,setDark]=useState(false)
- useEffect(()=>setDark(document.documentElement.classList.contains("dark")),[])
- const toggle=()=>{const next=!dark;setDark(next);document.documentElement.classList.toggle("dark",next);localStorage.setItem("eikon-theme",next?"dark":"light")}
+ const dark = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+ const toggle=()=>{const next=!dark;document.documentElement.classList.toggle("dark",next);localStorage.setItem("eikon-theme",next?"dark":"light");window.dispatchEvent(new Event("eikon-theme-change"))}
  return <button className="icon-button" type="button" onClick={toggle} aria-label="Toggle theme">{dark?"☀":"☾"}</button>
 }
