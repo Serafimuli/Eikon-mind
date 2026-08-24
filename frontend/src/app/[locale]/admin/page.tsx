@@ -1,0 +1,6 @@
+import Link from "next/link"
+import { count, eq, gte } from "drizzle-orm"
+import { getDb } from "@/lib/db"
+import { appointments } from "@/lib/db/schema"
+import type { Locale } from "@/lib/site-content"
+export default async function AdminDashboard({params}:{params:Promise<{locale:Locale}>}){const {locale}=await params;const db=getDb();const [all]=await db.select({count:count()}).from(appointments);const [upcoming]=await db.select({count:count()}).from(appointments).where(gte(appointments.startsAt,new Date()));return <main className="private-shell"><div className="private-head"><div><p className="eyebrow">Eikon Mind</p><h1>{locale==="ro"?"Administrare":"Administration"}</h1></div><Link className="button" href={`/${locale}/admin/appointments/new`}>{locale==="ro"?"Adaugă programare":"Add appointment"}</Link></div><div className="card-grid"><div className="card"><h3>{locale==="ro"?"Total":"Total"}</h3><p>{all.count}</p></div><div className="card"><h3>{locale==="ro"?"Viitoare":"Upcoming"}</h3><p>{upcoming.count}</p></div><div className="card"><h3>{locale==="ro"?"Acțiuni":"Actions"}</h3><Link href={`/${locale}/admin/appointments`}>{locale==="ro"?"Vezi calendarul":"View appointments"}</Link></div></div></main>}
