@@ -3,7 +3,7 @@ import nextTypescript from "eslint-config-next/typescript"
 
 const config = [
   {
-    ignores: [".next/**", "dist/**", ".wrangler/**", "node_modules/**"],
+    ignores: [".next/**", ".open-next/**", "dist/**", ".wrangler/**", "node_modules/**"],
   },
   ...nextVitals,
   ...nextTypescript,

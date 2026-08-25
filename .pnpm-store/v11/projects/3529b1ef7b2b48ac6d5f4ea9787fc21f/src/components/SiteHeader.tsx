@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { site, type Locale } from "@/lib/site-content"
+import { ThemeToggle } from "./ThemeToggle"
 
 const serviceLinks = [
   ["adulti", "Adulți", "Adults"],
@@ -32,11 +33,12 @@ export function SiteHeader({ locale }: { locale: Locale }) {
     <div className="site-header__bar">
       <Link className="site-header__brand" href={`/${locale}`} onClick={closeMenu} aria-label="Eikon Mind">
         <Image src="/assets/eikon-mind-mark.png" alt="" width={192} height={192} sizes="48px" className="site-header__logo" />
+        <span className="site-header__wordmark">Eikon <span>Mind</span></span>
       </Link>
       <nav id="public-navigation" className={`site-nav ${menuOpen ? "site-nav--open" : ""}`} aria-label="Navigație principală">
         <Link href={`/${locale}`} className={currentPath === "/" ? "is-active" : ""} onClick={closeMenu}>{copy.home}</Link>
         <div className="service-menu">
-          <button type="button" className="service-menu__trigger" aria-expanded={servicesOpen} onClick={() => setServicesOpen((open) => !open)}>{copy.services}<span aria-hidden="true">⌄</span></button>
+          <button type="button" className="service-menu__trigger" aria-expanded={servicesOpen} onClick={() => setServicesOpen((open) => !open)}>{copy.services}<span className="service-menu__chevron" aria-hidden="true">⌄</span></button>
           <div className={`service-dropdown ${servicesOpen ? "service-dropdown--open" : ""}`}>
             {serviceLinks.map(([slug, roTitle, enTitle]) => <Link href={`/${locale}/${slug}`} key={slug} onClick={closeMenu}><span>{locale === "ro" ? roTitle : enTitle}</span><span aria-hidden="true">↗</span></Link>)}
           </div>
@@ -49,7 +51,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         <Link href={`/${locale}/login`} className="account-link" onClick={closeMenu}>{copy.login}</Link>
       </nav>
       <div className="site-header__actions">
-        <span className="header-search" aria-hidden="true">⌕</span>
+        <ThemeToggle />
         <Link className="schedule-button" href={`/${locale}/programare`} onClick={closeMenu}>{copy.scheduling}</Link>
         <button className="menu-button" type="button" aria-expanded={menuOpen} aria-controls="public-navigation" onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? "Închide" : "Meniu"}</button>
       </div>

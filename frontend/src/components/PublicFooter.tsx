@@ -16,10 +16,9 @@ export function PublicFooter({ locale }: { locale: Locale }) {
   const services = site[locale].home.services
 
   return <footer className="public-footer">
-    <div className="public-footer__backdrop" aria-hidden="true" />
     <div className="public-footer__inner">
       <div className="public-footer__brand">
-        <Image src="/assets/source/eikon-mind-logo.png" alt="Eikon Mind" width={553} height={500} sizes="170px" className="public-footer__logo" />
+        <Image src="/assets/source/eikon-mind-logo.png" alt="Eikon Mind" width={553} height={500} sizes="180px" priority className="public-footer__logo" />
         <p>{copy.strapline}</p>
         <a href="mailto:contact@eikon-mind.ro">contact@eikon-mind.ro</a>
         <a href="tel:+40744897013">+40 744 897 013</a>

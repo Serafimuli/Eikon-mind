@@ -11,5 +11,6 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const nonce = (await headers()).get("x-nonce") ?? undefined
-  return <html lang="ro" suppressHydrationWarning><head><script nonce={nonce} dangerouslySetInnerHTML={{ __html: "try{if(localStorage.getItem('eikon-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}" }} /></head><body>{children}</body></html>
+  const themeScript = "try{const theme=localStorage.getItem('eikon-theme');if(theme==='dark'){document.documentElement.classList.add('dark')}document.documentElement.style.colorScheme=theme==='dark'?'dark':'light'}catch(e){}"
+  return <html lang="ro" suppressHydrationWarning><head><script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} /></head><body>{children}</body></html>
 }

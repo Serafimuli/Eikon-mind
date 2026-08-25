@@ -10,5 +10,5 @@ const getServerSnapshot = () => false
 export function ThemeToggle() {
  const dark = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
  const toggle=()=>{const next=!dark;document.documentElement.classList.toggle("dark",next);localStorage.setItem("eikon-theme",next?"dark":"light");window.dispatchEvent(new Event("eikon-theme-change"))}
- return <button className="icon-button" type="button" onClick={toggle} aria-label="Toggle theme">{dark?"☀":"☾"}</button>
+ return <button className="icon-button theme-toggle" type="button" onClick={toggle} aria-label="Toggle theme">{dark?"☀":"☾"}</button>
 }
