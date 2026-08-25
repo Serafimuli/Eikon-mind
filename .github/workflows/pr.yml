@@ -1,0 +1,63 @@
+name: Pull request checks
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  application:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm cf:build
+      - name: Render non-secret CI bindings and validate Worker configuration
+        run: |
+          node -e 'require("fs").writeFileSync("/tmp/deployment.json", JSON.stringify({deployment:{value:{account_id:"00000000000000000000000000000000",environment:"ci",d1_database_id:"00000000-0000-0000-0000-000000000000",d1_database_name:"eikon-mind-ci",secrets_store_id:"00000000000000000000000000000000",turnstile_sitekey:"0x4AAAAAAACI",worker_name:"eikon-mind-ci",hostname:"ci.example.invalid",zone_id:"00000000000000000000000000000000",email_from_address:"noreply@ci.example.invalid",operations_mailbox:"operations@ci.example.invalid",retention:{appointment_days:30,cancelled_appointment_days:14,deidentified_record_days:30,audit_event_days:14}}}}))'
+          node scripts/render-wrangler-config.mjs ci /tmp/deployment.json
+          pnpm exec wrangler deploy --dry-run --config .wrangler/generated/ci/wrangler.jsonc
+
+  terraform:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+      - name: Format and validate dev Terraform
+        run: |
+          terraform -chdir=infra/terraform/env/dev fmt -check -recursive
+          terraform -chdir=infra/terraform/env/dev init -backend=false
+          terraform -chdir=infra/terraform/env/dev validate
+      - name: Format and validate production Terraform
+        run: |
+          terraform -chdir=infra/terraform/env/production fmt -check -recursive
+          terraform -chdir=infra/terraform/env/production init -backend=false
+          terraform -chdir=infra/terraform/env/production validate
+      - name: Protected speculative dev plan
+        env:
+          HAS_TERRAFORM_SECRETS: ${{ secrets.TF_API_TOKEN != '' && secrets.CLOUDFLARE_TERRAFORM_API_TOKEN != '' }}
+          TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_TERRAFORM_API_TOKEN }}
+        run: |
+          if [ "$HAS_TERRAFORM_SECRETS" != "true" ]; then
+            echo "Skipping remote plan: protected repository secrets are unavailable."
+            exit 0
+          fi
+          terraform -chdir=infra/terraform/env/dev init -input=false
+          terraform -chdir=infra/terraform/env/dev plan -input=false -lock=false -detailed-exitcode || test $? -eq 2

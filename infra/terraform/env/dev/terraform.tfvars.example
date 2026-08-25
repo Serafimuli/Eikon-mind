@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars locally or configure the same variables as HCP Terraform workspace variables.
+cloudflare_account_id = "replace-with-dev-account-id"
+cloudflare_zone_id    = "replace-with-existing-dev-zone-id"
+hostname              = "dev.example.com"
+email_from_address    = "noreply@dev.example.com"
+operations_mailbox    = "operations@example.com"
+
+retention = {
+  appointment_days           = 30
+  cancelled_appointment_days = 14
+  deidentified_record_days   = 30
+  audit_event_days           = 14
+}

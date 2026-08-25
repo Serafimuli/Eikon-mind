@@ -1,0 +1,60 @@
+name: Deploy development
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eikon-mind-development
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: development
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_TERRAFORM_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.15.8
+      - name: Apply approved development infrastructure
+        working-directory: infra/terraform/env/dev
+        run: |
+          terraform init -input=false
+          terraform apply -input=false -auto-approve
+          terraform output -json > "$GITHUB_WORKSPACE/deployment.json"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint && pnpm test && pnpm cf:build
+      - name: Render environment configuration
+        run: node scripts/render-wrangler-config.mjs dev "$GITHUB_WORKSPACE/deployment.json"
+      - name: Apply compatible D1 migrations
+        run: pnpm exec wrangler d1 migrations apply eikon-mind-dev --remote --config .wrangler/generated/dev/wrangler.jsonc
+      - name: Upload and promote application and maintenance versions
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
+        run: |
+          pnpm exec wrangler versions upload --config .wrangler/generated/dev/wrangler.jsonc --tag "$GITHUB_SHA" --message "development $GITHUB_SHA"
+          pnpm exec wrangler versions deploy --config .wrangler/generated/dev/wrangler.jsonc --version-tag "$GITHUB_SHA" --percentage 100 --message "development $GITHUB_SHA"
+          pnpm exec wrangler triggers deploy --config .wrangler/generated/dev/wrangler.jsonc
+          pnpm exec wrangler versions upload --config .wrangler/generated/dev/wrangler-maintenance.jsonc --tag "$GITHUB_SHA" --message "development maintenance $GITHUB_SHA"
+          pnpm exec wrangler versions deploy --config .wrangler/generated/dev/wrangler-maintenance.jsonc --version-tag "$GITHUB_SHA" --percentage 100 --message "development maintenance $GITHUB_SHA"
+          pnpm exec wrangler triggers deploy --config .wrangler/generated/dev/wrangler-maintenance.jsonc
+      - name: HTTPS smoke test
+        run: curl --fail --silent --show-error --max-time 15 "https://$(jq -r '.deployment.value.hostname' "$GITHUB_WORKSPACE/deployment.json")/"

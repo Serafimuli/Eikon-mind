@@ -10,23 +10,30 @@ export function HomeHeader({ locale }: { locale: Locale }) {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
+    let animationFrame: number | undefined
+    const updateVisibility = (next: boolean) => {
+      animationFrame = requestAnimationFrame(() => setVisible(next))
+    }
     const target = document.getElementById("home-logo-threshold")
     if (!target) {
-      setVisible(true)
-      return
+      updateVisibility(true)
+      return () => { if (animationFrame) cancelAnimationFrame(animationFrame) }
     }
 
     if (typeof IntersectionObserver === "undefined") {
-      setVisible(window.scrollY > 0)
-      return
+      updateVisibility(window.scrollY > 0)
+      return () => { if (animationFrame) cancelAnimationFrame(animationFrame) }
     }
 
     const observer = new IntersectionObserver(([entry]) => {
-      setVisible(!entry.isIntersecting)
+      updateVisibility(!entry.isIntersecting)
     }, { threshold: 0 })
 
     observer.observe(target)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      if (animationFrame) cancelAnimationFrame(animationFrame)
+    }
   }, [])
 
   return <>

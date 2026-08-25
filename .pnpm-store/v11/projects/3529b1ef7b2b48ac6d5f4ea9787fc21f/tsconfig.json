@@ -37,6 +37,8 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "scripts/**/*.ts",
+    "workers/**/*.ts",
+    "tests/**/*.ts",
     "drizzle.config.ts",
     "cloudflare-env.d.ts",
     ".next/dev/types/**/*.ts"

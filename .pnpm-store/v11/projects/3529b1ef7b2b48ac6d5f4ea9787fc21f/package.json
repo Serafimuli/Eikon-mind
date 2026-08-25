@@ -10,12 +10,15 @@
     "lint": "eslint .",
     "format": "oxfmt",
     "cf:types": "wrangler types",
+    "cf:config": "node scripts/render-wrangler-config.mjs",
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare preview",
     "cf:deploy": "opennextjs-cloudflare deploy",
     "db:migrate:local": "wrangler d1 migrations apply eikon-mind --local",
     "db:migrate:remote": "wrangler d1 migrations apply eikon-mind --remote",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "bootstrap:first-admin": "node scripts/bootstrap-first-admin.mjs",
+    "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
     "react": "^19.0.0",

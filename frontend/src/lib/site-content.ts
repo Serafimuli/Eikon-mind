@@ -329,6 +329,65 @@ const enPages: Record<PublicSlug, PageContent> = {
   "termeni-si-conditii": { kind: "legal", title: "Terms and conditions", description: "Use of this website and its services is governed by these terms and conditions.", sections: [{ title: "1. General provisions", paragraphs: ["The Eikon Mind website provides information about psychological services and a digital space for communication and bookings. By using the website, you accept these terms."] }, { title: "2. Services presented", paragraphs: ["Published information is general in nature and does not replace an individual assessment or recommendation from a specialist. Services may be offered in-office, online, or in groups, subject to availability and suitability."] }, { title: "3. Bookings and accounts", paragraphs: ["For bookings you may be directed to the secure area of the application. You are responsible for the accuracy of the information provided and for keeping access details confidential."] }, { title: "4. Cancellation and rescheduling", paragraphs: ["If you cannot attend an appointment, please inform the practice as early as possible so it can be rescheduled. Specific conditions are communicated when the appointment is arranged."] }, { title: "5. Website content", paragraphs: ["The texts, images, visual identity, and structure of the website belong to Eikon Mind or are used with permission. Reproduction without consent is prohibited."] }, { title: "6. Acceptable use", paragraphs: ["You may not use the website for illegal activity, attacks on infrastructure, abusive content, or attempts to access other users’ data."] }, { title: "7. Limitation of liability", paragraphs: ["We make reasonable efforts to keep information correct and the website available, but cannot guarantee the absence of errors or interruptions. We are not responsible for decisions based solely on general website information."] }, { title: "8. Privacy", paragraphs: ["Personal data processing is described in the Privacy policy, which forms part of the website’s terms of use."] }, { title: "9. External links", paragraphs: ["The website may include links to external resources. Eikon Mind does not control the content or policies of those websites."] }, { title: "10. Changes to the terms", paragraphs: ["The terms may be updated to reflect service or legal changes. The current version is the one published on this page."] }, { title: "11. Contact", paragraphs: ["For questions about these terms, contact contact@eikon-mind.ro or +40 744 897 013."] }] },
 }
 
+// These overrides replace legacy CMS-imported privacy/cookie text. Legal and
+// controller review is still required before publishing either policy.
+roPages["politica-de-confidentialitate"] = {
+  kind: "legal",
+  title: "Politica de confidențialitate",
+  description: "Această aplicație prelucrează date minime pentru conturi și programări; nu este un dosar medical.",
+  sections: [
+    { title: "1. Date procesate", items: ["nume și adresă de email pentru cont și verificare", "credite de autentificare, sesiuni și autentificare cu doi factori", "interval de disponibilitate, momentul programării și starea acesteia", "referință opacă la un eveniment de calendar"] },
+    { title: "2. Date care nu sunt colectate", paragraphs: ["Nu solicitați și nu introduceți în aplicație note clinice, diagnostic, istoric medical, simptome sau alte date de sănătate. Formularul de programare nu are câmp de observații."] },
+    { title: "3. Scopuri", paragraphs: ["Folosim datele pentru autentificare, prevenirea abuzului, afișarea disponibilității, gestionarea programării, confirmări/anulări și obligații legale aplicabile. Operatorul trebuie să confirme pentru fiecare scop temeiul juridic înainte de publicare."] },
+    { title: "4. Furnizori", paragraphs: ["Baza D1 este configurată cu jurisdicție UE și fără replici de citire. Cloudflare procesează infrastructura; Google Calendar primește doar un eveniment generic, fără nume, email sau detalii despre terapie. Configurarea nu garantează procesare exclusiv în UE."] },
+    { title: "5. Păstrare și ștergere", paragraphs: ["Conturile șterse sunt de-identificate și accesul este revocat imediat. Datele de programare sunt șterse conform perioadelor aprobate de operator/DPO și eventualelor obligații legale. Perioadele și excepțiile trebuie comunicate de operator."] },
+    { title: "6. Drepturi și contact", paragraphs: ["Pentru acces, rectificare, ștergere, restricționare, portabilitate sau obiecții contactează operatorul. Procedura de verificare a identității, răspuns și plângeri trebuie validată juridic de operator."] },
+  ],
+}
+enPages["politica-de-confidentialitate"] = {
+  kind: "legal",
+  title: "Privacy policy",
+  description: "This application processes the minimum data for accounts and bookings; it is not a medical record.",
+  sections: [
+    { title: "1. Data processed", items: ["name and email address for the account and verification", "authentication credentials, sessions, and two-factor authentication", "availability window, appointment time, and status", "an opaque calendar-event reference"] },
+    { title: "2. Data not collected", paragraphs: ["Do not submit clinical notes, diagnoses, medical history, symptoms, or other health information to the application. The booking form has no notes field."] },
+    { title: "3. Purposes", paragraphs: ["We use data for authentication, abuse prevention, availability display, appointment management, confirmations/cancellations, and applicable legal obligations. The controller must validate the legal basis for every purpose before publication."] },
+    { title: "4. Providers", paragraphs: ["D1 is configured with EU jurisdiction and no read replicas. Cloudflare operates infrastructure; Google Calendar receives only a generic event with no name, email, or therapy details. This configuration does not guarantee EU-only processing."] },
+    { title: "5. Retention and deletion", paragraphs: ["Deleted accounts are de-identified and access is revoked immediately. Scheduling data is removed according to controller/DPO-approved periods and any legal obligations. The controller must communicate the actual periods and exceptions."] },
+    { title: "6. Rights and contact", paragraphs: ["Contact the controller to exercise access, rectification, erasure, restriction, portability, or objection rights. The controller must legally validate its identity-verification, response, and complaint procedure."] },
+  ],
+}
+
+// These overrides replace legacy CMS-imported cookie text that referenced
+// Google Analytics and WordPress, neither of which is deployed by this app.
+// Legal/controller review is still required before publishing any policy.
+roPages["politica-de-cookies"] = {
+  kind: "legal",
+  title: "Politica de cookie-uri",
+  description: "Aplicația folosește doar tehnologii necesare pentru securitate, autentificare și funcționare.",
+  sections: [
+    { title: "1. Ce folosim", paragraphs: ["Nu folosim Google Analytics, WordPress, publicitate comportamentală sau alte cookie-uri de analiză în această versiune a aplicației."] },
+    { title: "2. Cookie-uri esențiale", paragraphs: ["Better Auth folosește cookie-uri HttpOnly, Secure în producție și SameSite=Lax pentru sesiune și, când este necesar, pentru fluxul de autentificare cu doi factori. Acestea nu sunt folosite pentru marketing."] },
+    { title: "3. Protecție anti-abuz", paragraphs: ["Cloudflare Turnstile poate folosi tehnologii de securitate pentru a preveni automatizările abuzive. Cloudflare poate seta propriile cookie-uri tehnice conform documentației sale."] },
+    { title: "4. Preferințe locale", paragraphs: ["Preferința de temă este păstrată în localStorage în browser, nu într-un cookie."] },
+    { title: "5. Gestionare", paragraphs: ["Blocarea cookie-urilor esențiale poate împiedica autentificarea. Revizuirea juridică a acestei politici, a temeiului legal și a mecanismelor de consimțământ rămâne responsabilitatea operatorului."] },
+  ],
+  table: { headers: ["Tehnologie", "Tip", "Scop", "Durată"], rows: [["Cookie-uri Better Auth de sesiune / 2FA", "Esențial", "Autentificare și securitate cont", "Sesiune / conform configurării"], ["Cloudflare Turnstile", "Securitate", "Prevenire abuz", "Conform Cloudflare"], ["eikon-theme (localStorage)", "Preferință locală", "Temă vizuală", "Până la ștergere"]] },
+}
+enPages["politica-de-cookies"] = {
+  kind: "legal",
+  title: "Cookie policy",
+  description: "The application uses only technology necessary for security, authentication, and operation.",
+  sections: [
+    { title: "1. What we use", paragraphs: ["This version of the application does not deploy Google Analytics, WordPress, behavioural advertising, or analytics cookies."] },
+    { title: "2. Essential cookies", paragraphs: ["Better Auth uses HttpOnly cookies, Secure cookies in production, and SameSite=Lax for sessions and, where needed, the two-factor authentication flow. They are not used for marketing."] },
+    { title: "3. Anti-abuse protection", paragraphs: ["Cloudflare Turnstile may use security technology to prevent abusive automation. Cloudflare may set its own technical cookies under its documentation."] },
+    { title: "4. Local preference", paragraphs: ["The theme preference is stored in browser localStorage, not a cookie."] },
+    { title: "5. Managing cookies", paragraphs: ["Blocking essential cookies can prevent sign-in. Legal review of this policy, the legal basis, and consent mechanisms remains the controller's responsibility."] },
+  ],
+  table: { headers: ["Technology", "Type", "Purpose", "Duration"], rows: [["Better Auth session / 2FA cookies", "Essential", "Account authentication and security", "Session / configured duration"], ["Cloudflare Turnstile", "Security", "Abuse prevention", "As set by Cloudflare"], ["eikon-theme (localStorage)", "Local preference", "Visual theme", "Until deleted"]] },
+}
+
 export const site: Record<Locale, LocaleSite> = {
   ro: {
     nav: { home: "Acasă", services: "Servicii", about: "Despre mine", scheduling: "Programare", contact: "Contact", login: "Autentificare", account: "Contul meu" },
