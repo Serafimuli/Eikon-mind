@@ -403,6 +403,23 @@ export const site: Record<Locale, LocaleSite> = {
   },
 }
 
+export const securityCopy = {
+  ro: {
+    captchaRequired: "Finalizează verificarea.",
+    signInFailed: "Autentificarea nu a reușit.",
+    registrationFailed: "Înregistrarea nu a reușit.",
+    passwordResetFailed: "Nu am putut procesa cererea.",
+    verificationFailed: "Verificarea nu a reușit.",
+  },
+  en: {
+    captchaRequired: "Complete the verification challenge.",
+    signInFailed: "Sign-in failed.",
+    registrationFailed: "Registration failed.",
+    passwordResetFailed: "We could not process that request.",
+    verificationFailed: "Verification failed.",
+  },
+} as const
+
 export function getPage(locale: Locale, slug: string) {
   return site[locale].pages[slug as PublicSlug]
 }

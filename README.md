@@ -23,6 +23,7 @@ Controls implemented here include:
 - verified email, 12-character minimum passwords, reset-session revocation, Turnstile on authentication, TOTP plus backup codes before staff promotion, and account-level TOTP lockouts.
 - HTTPS redirect, TLS 1.2 minimum, sensitive POST rate limiting, host-only secure Better Auth cookies in production, no-store private responses, CSP nonce, HSTS (without preload), `nosniff`, frame denial, referrer, and permissions policies.
 - atomic D1 slot claim, calendar outbox/retry, recipient-validated generic email, retention/de-identification job, and no application logging of personal or health data.
+- server-rendered account security pages cover email verification, password reset, role-aware post-login routing, staff TOTP challenges, and one-time backup-code enrolment; role changes revoke existing sessions.
 
 Important limitations: D1 EU jurisdiction constrains D1 storage/replicas; it does not by itself constrain global Worker execution. Cloudflare Regional Services and Customer Metadata Boundary require an entitled Data Localization Suite contract and commercial/manual configuration. Email and Google are separate processors/recipients and require legal review. These measures reduce risk; they do not by themselves make the controller GDPR compliant.
 
@@ -31,7 +32,7 @@ Important limitations: D1 EU jurisdiction constrains D1 storage/replicas; it doe
 | Path | Purpose |
 | --- | --- |
 | `frontend/` | Existing Next.js/OpenNext application and D1 migrations |
-| `frontend/drizzle/0001_production_security.sql` | Data-minimising schema migration |
+| `frontend/drizzle/0001_production_security.sql`, `0002_auth_consistency.sql` | Data-minimising schema and legacy-auth consistency migrations |
 | `frontend/workers/maintenance.ts` | Retention and Calendar-outbox scheduled Worker |
 | `frontend/scripts/render-wrangler-config.mjs` | Renders ignored, non-secret Wrangler configs from Terraform outputs |
 | `infra/terraform/modules/application` | Reusable Cloudflare D1/Turnstile/zone-controls module |

@@ -66,7 +66,7 @@ resource "cloudflare_ruleset" "sensitive_post_rate_limits" {
     description = "Rate limit authentication and appointment booking POSTs"
     enabled     = true
     action      = "block"
-    expression  = "(http.request.method eq \"POST\" and http.request.uri.path matches \"^/api/(auth/(sign-(in|up)/email|request-password-reset|two-factor/.*)|appointments/book)$\")"
+    expression  = "(http.request.method eq \"POST\" and http.request.uri.path matches \"^/api/(auth/(sign-(in|up)/email|request-password-reset|send-verification-email|two-factor/.*)|appointments/book)$\")"
     ratelimit = {
       characteristics     = ["cf.colo.id", "ip.src"]
       period              = 60

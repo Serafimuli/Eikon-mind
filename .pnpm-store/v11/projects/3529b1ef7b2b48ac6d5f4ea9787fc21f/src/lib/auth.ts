@@ -7,7 +7,7 @@ import { captcha, twoFactor } from "better-auth/plugins"
 import { eq } from "drizzle-orm"
 import { getDb } from "@/lib/db"
 import { securityEmail, sendTransactionalEmail } from "@/lib/integrations/email"
-import { getRuntimeEnv } from "@/lib/platform-env"
+import { getApplicationOrigin, getRuntimeEnv } from "@/lib/platform-env"
 import { sessions } from "@/lib/db/schema"
 import * as schema from "@/lib/db/schema"
 
@@ -24,10 +24,7 @@ function currentSigningKey(raw: string | undefined) {
 export const getAuth = () => {
   const env = getRuntimeEnv()
   const production = env.APP_ENV === "production"
-  const baseURL = env.BETTER_AUTH_URL ?? "http://localhost:3000"
-  if (production && !baseURL.startsWith("https://")) {
-    throw new Error("Production BETTER_AUTH_URL must use HTTPS")
-  }
+  const baseURL = getApplicationOrigin()
 
   return betterAuth({
     secret: currentSigningKey(env.BETTER_AUTH_SECRETS),
@@ -83,12 +80,13 @@ export const getAuth = () => {
       captcha({
         provider: "cloudflare-turnstile",
         secretKey: env.TURNSTILE_SECRET,
-        endpoints: ["/sign-up/email", "/sign-in/email", "/request-password-reset"],
+        endpoints: ["/sign-up/email", "/sign-in/email", "/request-password-reset", "/send-verification-email"],
         allowedHostnames: [new URL(baseURL).hostname],
       }),
       twoFactor({
         issuer: "Eikon Mind",
         accountLockout: { enabled: true, maxFailedAttempts: 5, durationSeconds: 900 },
+        twoFactorCookieMaxAge: 600,
         trustDeviceMaxAge: 0,
       }),
       nextCookies(),

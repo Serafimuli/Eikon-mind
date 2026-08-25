@@ -1,8 +1,9 @@
 import "server-only"
 
-import { and, eq, gt } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { getD1, getDb } from "@/lib/db"
 import { appointments, availabilitySlots, integrationJobs } from "@/lib/db/schema"
+import { listOpenAvailability } from "@/lib/db/repositories"
 
 const SLOT_MINUTES_MIN = 15
 const SLOT_MINUTES_MAX = 180
@@ -13,11 +14,7 @@ function validSlotWindow(startsAt: Date, endsAt: Date) {
 }
 
 export async function listOpenSlots() {
-  return getDb()
-    .select()
-    .from(availabilitySlots)
-    .where(and(eq(availabilitySlots.state, "OPEN"), gt(availabilitySlots.startsAt, new Date())))
-    .orderBy(availabilitySlots.startsAt)
+  return listOpenAvailability()
 }
 
 export async function createAvailabilitySlot(therapistId: string, startsAt: Date, endsAt: Date) {
@@ -43,7 +40,7 @@ export async function claimAvailabilitySlot(clientId: string, slotId: string) {
   // D1 batch is atomic. INSERT is conditional on the preceding UPDATE's
   // changes(), so exactly one concurrent booking can reserve an OPEN slot.
   await db.batch([
-    db.prepare("UPDATE availability_slot SET state = 'RESERVED', updated_at = ? WHERE id = ? AND state = 'OPEN' AND starts_at > ?")
+    db.prepare("UPDATE availability_slot SET state = 'RESERVED', updated_at = ? WHERE id = ? AND state = 'OPEN' AND starts_at > ? AND EXISTS (SELECT 1 FROM user WHERE user.id = availability_slot.therapist_id AND user.role = 'THERAPIST' AND user.email_verified = 1 AND user.two_factor_enabled = 1)")
       .bind(now, slotId, now),
     db.prepare(
       `INSERT INTO appointment

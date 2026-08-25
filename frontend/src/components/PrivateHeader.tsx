@@ -24,10 +24,8 @@ export function PrivateHeader({ locale, admin = false }: { locale: Locale; admin
       <nav id="private-navigation" className={`site-nav private-nav ${menuOpen ? "site-nav--open" : ""}`} aria-label={locale === "ro" ? "Navigație cont" : "Account navigation"}>
         <Link className={isActive(base)} href={base} onClick={closeMenu}>{locale === "ro" ? "Panou" : "Dashboard"}</Link>
         <Link className={isActive(`${base}/appointments`)} href={`${base}/appointments`} onClick={closeMenu}>{locale === "ro" ? "Programări" : "Appointments"}</Link>
-        {!admin && <>
-          <Link className={isActive(`${base}/book`)} href={`${base}/book`} onClick={closeMenu}>{locale === "ro" ? "Rezervă" : "Book"}</Link>
-          <Link className={isActive(`${base}/profile`)} href={`${base}/profile`} onClick={closeMenu}>{locale === "ro" ? "Profil" : "Profile"}</Link>
-        </>}
+        {!admin && <Link className={isActive(`${base}/book`)} href={`${base}/book`} onClick={closeMenu}>{locale === "ro" ? "Rezervă" : "Book"}</Link>}
+        <Link className={isActive(`/${locale}/client/profile`)} href={`/${locale}/client/profile`} onClick={closeMenu}>{locale === "ro" ? "Profil" : "Profile"}</Link>
         {admin && <Link className={isActive(`${base}/appointments/new`)} href={`${base}/appointments/new`} onClick={closeMenu}>{locale === "ro" ? "Adaugă" : "Add"}</Link>}
         <LogoutButton locale={locale} />
       </nav>
