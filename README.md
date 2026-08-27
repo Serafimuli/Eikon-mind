@@ -21,8 +21,9 @@ Controls implemented here include:
 - D1 with `jurisdiction = "eu"` and disabled read replication.
 - `USER`, `THERAPIST`, and `ADMIN` server-side roles; clients cannot submit roles.
 - verified email, 12-character minimum passwords, reset-session revocation, Turnstile on authentication, TOTP plus backup codes before staff promotion, and account-level TOTP lockouts.
+- versioned scrypt password hashes using a unique 128-bit salt (`N=16384`, `r=8`, `p=5`, 64-byte output), encrypted TOTP/backup-code material, and multi-key Better Auth signing-key rotation.
 - HTTPS redirect, TLS 1.2 minimum, sensitive POST rate limiting, host-only secure Better Auth cookies in production, no-store private responses, CSP nonce, HSTS (without preload), `nosniff`, frame denial, referrer, and permissions policies.
-- atomic D1 slot claim, calendar outbox/retry, recipient-validated generic email, retention/de-identification job, and no application logging of personal or health data.
+- atomic D1 slot claim and state transitions, leased/idempotent Calendar outbox retries, recipient-validated generic email, privacy-minimal security events, retention/de-identification jobs, and no application logging of personal or health data.
 - server-rendered account security pages cover email verification, password reset, role-aware post-login routing, staff TOTP challenges, and one-time backup-code enrolment; role changes revoke existing sessions.
 
 Important limitations: D1 EU jurisdiction constrains D1 storage/replicas; it does not by itself constrain global Worker execution. Cloudflare Regional Services and Customer Metadata Boundary require an entitled Data Localization Suite contract and commercial/manual configuration. Email and Google are separate processors/recipients and require legal review. These measures reduce risk; they do not by themselves make the controller GDPR compliant.
@@ -32,7 +33,7 @@ Important limitations: D1 EU jurisdiction constrains D1 storage/replicas; it doe
 | Path | Purpose |
 | --- | --- |
 | `frontend/` | Existing Next.js/OpenNext application and D1 migrations |
-| `frontend/drizzle/0001_production_security.sql`, `0002_auth_consistency.sql` | Data-minimising schema and legacy-auth consistency migrations |
+| `frontend/drizzle/0001_production_security.sql` through `0003_security_hardening.sql` | Data minimisation, legacy-auth consistency, durable rate limits, Better Auth 1.7 compatibility, audit events, and idempotent integration jobs |
 | `frontend/workers/maintenance.ts` | Retention and Calendar-outbox scheduled Worker |
 | `frontend/scripts/render-wrangler-config.mjs` | Renders ignored, non-secret Wrangler configs from Terraform outputs |
 | `infra/terraform/modules/application` | Reusable Cloudflare D1/Turnstile/zone-controls module |
@@ -84,7 +85,7 @@ Cloudflare Email Sending domain onboarding, Google OAuth client consent, Data Lo
    pnpm exec wrangler secrets-store secret create <STORE_ID> --name <SECRET_NAME> --scopes workers --remote
    ```
 
-   Required names are `BETTER_AUTH_SECRETS`, `TURNSTILE_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, and `GOOGLE_CALENDAR_ID`. Use `BETTER_AUTH_SECRETS` as a versioned active value, e.g. `v1:<random-32+-character-key>`. The Turnstile widget secret is sensitive Terraform state: restrict HCP access and copy it only once into Secrets Store through the prompt.
+   Required names are `BETTER_AUTH_SECRETS`, `TURNSTILE_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, and `GOOGLE_CALENDAR_ID`. Better Auth uses its native comma-separated rotation format, for example `2:<new-random-32+-character-key>,1:<previous-key>`; the highest version signs new material while retained versions continue to verify existing sessions and encrypted 2FA data. Versions must be unique positive integers. The Turnstile widget secret is sensitive Terraform state: restrict HCP access and copy it only once into Secrets Store through the prompt.
 9. Run the D1 migration and deploy through the approved workflow. After a verified user has enrolled TOTP, bootstrap exactly one first administrator:
 
    ```sh
@@ -96,17 +97,25 @@ Cloudflare Email Sending domain onboarding, Google OAuth client consent, Data Lo
 
 ## Local development
 
-Copy `frontend/.dev.vars.example` to an ignored `frontend/.dev.vars` and supply development/test values. Use a separate local D1 database; never connect local development to production. The app needs a real dev/test Turnstile configuration for authentication.
+Copy `frontend/.dev.vars.example` to an ignored `frontend/.dev.vars` and supply development/test values. Use a separate local D1 database; never connect local development to production. The example contains Cloudflare's documented always-pass Turnstile test pair and must never be deployed.
 
 ```sh
 cd frontend
 pnpm install --frozen-lockfile
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm test:unit
+pnpm security:audit
 pnpm cf:build
-pnpm exec wrangler d1 migrations apply eikon-mind-dev --local --config wrangler.jsonc
-pnpm cf:preview
+pnpm test:e2e
 ```
 
-Run `pnpm lint`, `pnpm test`, and `node node_modules/typescript/bin/tsc --noEmit` before a change. The security tests cover role isolation rules, notes removal, and the D1 conditional slot claim; CI additionally validates OpenNext and generated Wrangler configuration.
+`pnpm test:e2e` applies migrations only to Wrangler's local D1 emulator, resets only fixed `e2e.*@example.invalid` fixture identities, and runs desktop/mobile Chromium accessibility checks plus authenticated client and therapist/2FA journeys. It refuses non-local bindings or non-test Turnstile credentials. Unit tests cover salted password verification and its CPU budget, role isolation, valid state transitions, strict request parsing, Bucharest DST behavior, header injection, redirect safety, and migration policies.
+
+Next.js 16 deprecates `middleware.ts` in favor of Node.js `proxy.ts`. OpenNext Cloudflare 1.20.2 still rejects Proxy builds, so the small header/CSP entry point remains Edge middleware until upstream support lands; authoritative authentication and authorization checks remain in Server Components, Actions, and Route Handlers.
+
+ESLint 9.39.5 is the final 9.x release and is retained temporarily because the `eslint-plugin-import`, `eslint-plugin-jsx-a11y`, and `eslint-plugin-react` versions supplied by the current Next.js config do not yet declare ESLint 10 compatibility. Upgrade that toolchain together once those peers support ESLint 10; forcing the major today produces an unsupported, non-terminating lint run.
 
 ## GitHub configuration and least privilege
 
@@ -122,7 +131,7 @@ Keep these secrets at repository/environment scope, never in source code:
 
 Use distinct Terraform, deploy, and secrets-rotation Cloudflare tokens. The rotation operator token requires only `Secrets Store Write` (and `Turnstile Sites Write` when rotating a widget); it must not receive Workers/D1/zone permissions. Restrict all tokens to their corresponding account and zone and set expiry/review dates.
 
-Configure GitHub `development` and `production` environments with required reviewers. The production workflow accepts a commit SHA or protected release tag, rejects `main`, serializes deployments, applies Terraform/migrations, uploads versioned Workers, promotes the reviewed tag, attaches triggers, and runs an HTTPS smoke check. A PR without protected secrets performs format/validation and reports that the remote speculative plan is skipped; trusted PRs run the dev HCP speculative plan.
+Configure GitHub `development` and `production` environments with required reviewers and a tag protection/ruleset for `release-*`. The production workflow accepts only a full 40-character commit SHA or `refs/tags/release-*`, verifies that it resolves exactly to the checked-out commit, deploys that resolved SHA (not the mutable workflow-dispatch SHA), serializes deployments, applies Terraform/migrations, promotes the reviewed Worker versions, attaches triggers, and runs an HTTPS smoke check. All third-party actions are pinned to immutable commit SHAs; Dependabot should keep those pins current. PR checks include formatting, lint, type checking, behavioral tests, dependency audit/review, responsive Playwright journeys, Terraform validation, CodeQL, Gitleaks, and a CycloneDX SBOM artifact.
 
 ## Deployment, rollback, backup, and rotation
 
@@ -131,7 +140,7 @@ The deployment order is: Terraform apply → render config → test/build → D1
 - Code rollback: identify the known-good Worker version and run `pnpm exec wrangler rollback <version-id> --config <generated-config>`. Roll back the maintenance Worker independently if necessary.
 - D1 recovery: D1 Time Travel is the short operational recovery baseline (plan availability/retention depends on Cloudflare plan). A restore overwrites the target database, so it is an incident-response/DPO-approved action, not routine application rollback.
 - Longer backup: export D1 deliberately, encrypt it, and store it only in approved EU-controlled storage with access logging and a documented restoration test. Example: `pnpm exec wrangler d1 export eikon-mind-production --remote --output approved-encrypted-transfer.sql`. Do not put exports in GitHub Actions artifacts unless the storage, retention, encryption, and access review are explicitly approved.
-- Secret rotation: add a new Secrets Store secret value using the prompt-only command; update the binding/config only if the name changes; upload and promote a Worker version; smoke-test; revoke the former credential at Google/Cloudflare. Better Auth accepts one active signing key, so rotate it as a planned session-revocation event: deploy the new versioned active key, revoke sessions, then remove the old value from the operator's secure rotation record. Rotate Turnstile through Cloudflare and update `TURNSTILE_SECRET` immediately.
+- Secret rotation: add a new Secrets Store secret value using the prompt-only command; update the binding/config only if the name changes; upload and promote a Worker version; smoke-test; revoke the former credential at Google/Cloudflare. For Better Auth, prepend a new higher `version:key` while retaining the previous key, deploy and validate authentication/2FA, allow the agreed session lifetime to elapse (or deliberately revoke sessions), then remove the retired version in a later deployment. Never reuse a version number. Rotate Turnstile through Cloudflare and update `TURNSTILE_SECRET` immediately.
 
 ## GDPR and security checklist for the controller
 

@@ -1,70 +1,85 @@
-import "server-only"
+import "server-only";
 
-import { eq } from "drizzle-orm"
-import { getD1, getDb } from "@/lib/db"
-import { appointments, availabilitySlots, integrationJobs } from "@/lib/db/schema"
-import { listOpenAvailability } from "@/lib/db/repositories"
+import { eq } from "drizzle-orm";
+import { getD1, getDb } from "@/lib/db";
+import { appointments } from "@/lib/db/schema";
+import { listOpenAvailability } from "@/lib/db/repositories";
+import { DomainError } from "@/lib/errors";
 
-const SLOT_MINUTES_MIN = 15
-const SLOT_MINUTES_MAX = 180
+const SLOT_MINUTES_MIN = 15;
+const SLOT_MINUTES_MAX = 180;
 
 function validSlotWindow(startsAt: Date, endsAt: Date) {
-  const minutes = (endsAt.getTime() - startsAt.getTime()) / 60_000
-  return startsAt.getTime() > Date.now() && minutes >= SLOT_MINUTES_MIN && minutes <= SLOT_MINUTES_MAX
+  const minutes = (endsAt.getTime() - startsAt.getTime()) / 60_000;
+  return (
+    startsAt.getTime() > Date.now() && minutes >= SLOT_MINUTES_MIN && minutes <= SLOT_MINUTES_MAX
+  );
 }
 
 export async function listOpenSlots() {
-  return listOpenAvailability()
+  return listOpenAvailability();
 }
 
 export async function createAvailabilitySlot(therapistId: string, startsAt: Date, endsAt: Date) {
-  if (!validSlotWindow(startsAt, endsAt)) throw new Error("Choose a future slot lasting 15 to 180 minutes")
-  const now = new Date()
-  await getDb().insert(availabilitySlots).values({
-    id: crypto.randomUUID(),
-    therapistId,
-    startsAt,
-    endsAt,
-    state: "OPEN",
-    createdAt: now,
-    updatedAt: now,
-  })
+  if (!validSlotWindow(startsAt, endsAt)) {
+    throw new DomainError("Choose a future slot lasting 15 to 180 minutes", "INVALID_INPUT");
+  }
+  const now = Date.now();
+  const result = await getD1()
+    .prepare(
+      `INSERT INTO availability_slot
+       (id, therapist_id, starts_at, ends_at, state, created_at, updated_at)
+       SELECT ?, ?, ?, ?, 'OPEN', ?, ?
+       WHERE NOT EXISTS (
+         SELECT 1 FROM availability_slot
+         WHERE therapist_id = ? AND state IN ('OPEN', 'RESERVED')
+           AND starts_at < ? AND ends_at > ?
+       )`,
+    )
+    .bind(
+      crypto.randomUUID(),
+      therapistId,
+      startsAt.getTime(),
+      endsAt.getTime(),
+      now,
+      now,
+      therapistId,
+      endsAt.getTime(),
+      startsAt.getTime(),
+    )
+    .run();
+  if (result.meta.changes === 0) {
+    throw new DomainError("Availability overlaps an existing slot", "CONFLICT");
+  }
 }
 
 export async function claimAvailabilitySlot(clientId: string, slotId: string) {
-  if (!/^[0-9a-f-]{36}$/i.test(slotId)) throw new Error("Invalid availability slot")
-  const appointmentId = crypto.randomUUID()
-  const now = Date.now()
-  const db = getD1()
+  if (!/^[0-9a-f-]{36}$/i.test(slotId)) throw new Error("Invalid availability slot");
+  const appointmentId = crypto.randomUUID();
+  const now = Date.now();
+  const db = getD1();
 
   // D1 batch is atomic. INSERT is conditional on the preceding UPDATE's
   // changes(), so exactly one concurrent booking can reserve an OPEN slot.
   await db.batch([
-    db.prepare("UPDATE availability_slot SET state = 'RESERVED', updated_at = ? WHERE id = ? AND state = 'OPEN' AND starts_at > ? AND EXISTS (SELECT 1 FROM user WHERE user.id = availability_slot.therapist_id AND user.role = 'THERAPIST' AND user.email_verified = 1 AND user.two_factor_enabled = 1)")
+    db
+      .prepare(
+        "UPDATE availability_slot SET state = 'RESERVED', updated_at = ? WHERE id = ? AND state = 'OPEN' AND starts_at > ? AND EXISTS (SELECT 1 FROM user WHERE user.id = availability_slot.therapist_id AND user.role = 'THERAPIST' AND user.email_verified = 1 AND user.two_factor_enabled = 1)",
+      )
       .bind(now, slotId, now),
-    db.prepare(
-      `INSERT INTO appointment
+    db
+      .prepare(
+        `INSERT INTO appointment
        (id, client_id, therapist_id, availability_slot_id, service_code, starts_at, ends_at, status, created_at, updated_at)
        SELECT ?, ?, therapist_id, id, 'STANDARD', starts_at, ends_at, 'REQUESTED', ?, ?
        FROM availability_slot WHERE id = ? AND state = 'RESERVED' AND changes() = 1`,
-    ).bind(appointmentId, clientId, now, now, slotId),
-  ])
+      )
+      .bind(appointmentId, clientId, now, now, slotId),
+  ]);
 
   const appointment = await getDb().query.appointments.findFirst({
     where: eq(appointments.id, appointmentId),
-  })
-  if (!appointment) throw new Error("That slot is no longer available")
-  return appointment
-}
-
-export async function enqueueCalendarJob(appointmentId: string, kind: "CALENDAR_UPSERT" | "CALENDAR_CANCEL") {
-  const now = new Date()
-  await getDb().insert(integrationJobs).values({
-    id: crypto.randomUUID(),
-    appointmentId,
-    kind,
-    attempts: 0,
-    notBeforeAt: now,
-    createdAt: now,
-  })
+  });
+  if (!appointment) throw new Error("That slot is no longer available");
+  return appointment;
 }

@@ -1,10 +1,10 @@
-import "server-only"
+import "server-only";
 
-import { and, asc, desc, eq, gt } from "drizzle-orm"
-import { getDb } from "@/lib/db"
-import { appointments, availabilitySlots, users } from "@/lib/db/schema"
+import { and, asc, desc, eq, gt } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { appointments, availabilitySlots, users } from "@/lib/db/schema";
 
-export const publicUserColumns = {
+const publicUserColumns = {
   id: users.id,
   name: users.name,
   email: users.email,
@@ -15,37 +15,15 @@ export const publicUserColumns = {
   twoFactorEnabled: users.twoFactorEnabled,
   createdAt: users.createdAt,
   updatedAt: users.updatedAt,
-}
-
-export type PublicUser = {
-  id: string
-  name: string
-  email: string
-  emailVerified: boolean
-  firstName: string
-  lastName: string
-  role: "USER" | "THERAPIST" | "ADMIN"
-  twoFactorEnabled: boolean
-  createdAt: Date
-  updatedAt: Date
-}
+};
 
 export async function findUserById(id: string) {
   const [user] = await getDb()
     .select(publicUserColumns)
     .from(users)
     .where(eq(users.id, id))
-    .limit(1)
-  return user ?? null
-}
-
-export async function findUserByEmail(email: string) {
-  const [user] = await getDb()
-    .select(publicUserColumns)
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1)
-  return user ?? null
+    .limit(1);
+  return user ?? null;
 }
 
 export async function findTherapistById(id: string) {
@@ -53,12 +31,12 @@ export async function findTherapistById(id: string) {
     .select(publicUserColumns)
     .from(users)
     .where(and(eq(users.id, id), eq(users.role, "THERAPIST")))
-    .limit(1)
-  return user ?? null
+    .limit(1);
+  return user ?? null;
 }
 
 export async function listStaffCandidates() {
-  return getDb().select(publicUserColumns).from(users).orderBy(asc(users.email))
+  return getDb().select(publicUserColumns).from(users).orderBy(asc(users.email));
 }
 
 export async function listEnrolledTherapists() {
@@ -72,7 +50,7 @@ export async function listEnrolledTherapists() {
         eq(users.twoFactorEnabled, true),
       ),
     )
-    .orderBy(asc(users.lastName), asc(users.firstName))
+    .orderBy(asc(users.lastName), asc(users.firstName));
 }
 
 export async function listOpenAvailability() {
@@ -97,7 +75,7 @@ export async function listOpenAvailability() {
         eq(users.twoFactorEnabled, true),
       ),
     )
-    .orderBy(asc(availabilitySlots.startsAt))
+    .orderBy(asc(availabilitySlots.startsAt));
 }
 
 export async function listUserAppointments(userId: string) {
@@ -105,7 +83,7 @@ export async function listUserAppointments(userId: string) {
     .select()
     .from(appointments)
     .where(eq(appointments.clientId, userId))
-    .orderBy(desc(appointments.startsAt))
+    .orderBy(desc(appointments.startsAt));
 }
 
 export async function findAppointmentForClient(id: string, clientId: string) {
@@ -113,6 +91,6 @@ export async function findAppointmentForClient(id: string, clientId: string) {
     .select()
     .from(appointments)
     .where(and(eq(appointments.id, id), eq(appointments.clientId, clientId)))
-    .limit(1)
-  return appointment ?? null
+    .limit(1);
+  return appointment ?? null;
 }

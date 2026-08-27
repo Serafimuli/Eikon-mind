@@ -1,23 +1,17 @@
-import Link from "next/link"
-import { listUserAppointments } from "@/lib/db/repositories"
-import { requireClient } from "@/lib/session"
-import type { Locale } from "@/lib/site-content"
+import Link from "next/link";
+import { listUserAppointments } from "@/lib/db/repositories";
+import { requireClient } from "@/lib/session";
+import type { Locale } from "@/lib/site-content";
 
-export default async function ClientDashboard({
-  params,
-}: {
-  params: Promise<{ locale: Locale }>
-}) {
-  const { locale } = await params
-  const user = await requireClient(locale)
-  const rows = (await listUserAppointments(user.id)).slice(0, 3)
+export default async function ClientDashboard({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params;
+  const user = await requireClient(locale);
+  const rows = (await listUserAppointments(user.id)).slice(0, 3);
   return (
     <main className="private-shell">
       <div className="private-head">
         <div>
-          <p className="eyebrow">
-            {locale === "ro" ? "Contul meu" : "My account"}
-          </p>
+          <p className="eyebrow">{locale === "ro" ? "Contul meu" : "My account"}</p>
           <h1>
             {locale === "ro"
               ? `Bine ai venit, ${user.firstName || user.name}`
@@ -43,9 +37,7 @@ export default async function ClientDashboard({
         </div>
       </div>
       <section className="section">
-        <h2>
-          {locale === "ro" ? "Programări recente" : "Recent appointments"}
-        </h2>
+        <h2>{locale === "ro" ? "Programări recente" : "Recent appointments"}</h2>
         <div className="appointment-list">
           {rows.length ? (
             rows.map((appointment) => (
@@ -64,13 +56,11 @@ export default async function ClientDashboard({
             ))
           ) : (
             <p>
-              {locale === "ro"
-                ? "Nu ai programări încă."
-                : "You do not have appointments yet."}
+              {locale === "ro" ? "Nu ai programări încă." : "You do not have appointments yet."}
             </p>
           )}
         </div>
       </section>
     </main>
-  )
+  );
 }

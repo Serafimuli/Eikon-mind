@@ -1,79 +1,78 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
-import { TurnstileWidget } from "@/components/TurnstileWidget"
-import { authClient } from "@/lib/auth-client"
-import type { Locale } from "@/lib/site-content"
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { useTurnstileChallenge } from "@/hooks/useTurnstileChallenge";
+import { authClient } from "@/lib/auth-client";
+import type { Locale } from "@/lib/site-content";
 
 export function ResetPasswordForm({
   locale,
   token,
   initialError = "",
 }: {
-  locale: Locale
-  token: string
-  initialError?: string
+  locale: Locale;
+  token: string;
+  initialError?: string;
 }) {
-  const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [captchaToken, setCaptchaToken] = useState("")
-  const [message, setMessage] = useState("")
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const captcha = useTurnstileChallenge();
+  const [message, setMessage] = useState("");
   const [error, setError] = useState(
     initialError
       ? locale === "ro"
         ? "Linkul de resetare este invalid sau expirat."
         : "That reset link is invalid or expired."
       : "",
-  )
-  const [busy, setBusy] = useState(false)
+  );
+  const [busy, setBusy] = useState(false);
 
   const requestReset = async () => {
-    if (!captchaToken)
+    if (!captcha.token)
       return setError(
-        locale === "ro"
-          ? "Finalizează verificarea."
-          : "Complete the verification challenge.",
-      )
-    setBusy(true)
-    setError("")
+        locale === "ro" ? "Finalizează verificarea." : "Complete the verification challenge.",
+      );
+    setBusy(true);
+    setError("");
     const result = await authClient.requestPasswordReset({
       email,
       redirectTo: `/${locale}/reset-password`,
-      fetchOptions: { headers: { "x-captcha-response": captchaToken } },
-    })
-    setBusy(false)
-    if (result.error)
+      fetchOptions: { headers: { "x-captcha-response": captcha.token } },
+    });
+    setBusy(false);
+    if (result.error) {
+      captcha.reset();
       return setError(
-        locale === "ro"
-          ? "Nu am putut procesa cererea."
-          : "We could not process that request.",
-      )
+        locale === "ro" ? "Nu am putut procesa cererea." : "We could not process that request.",
+      );
+    }
     setMessage(
       locale === "ro"
         ? "Dacă adresa există, vei primi un email cu pașii următori."
         : "If that address exists, you will receive reset instructions.",
-    )
-  }
+    );
+  };
 
   const resetPassword = async () => {
-    setBusy(true)
-    setError("")
+    setBusy(true);
+    setError("");
     const result = await authClient.resetPassword({
       newPassword: password,
       token,
-    })
-    setBusy(false)
+    });
+    setBusy(false);
     if (result.error)
       return setError(
         locale === "ro"
           ? "Linkul de resetare este invalid sau expirat."
           : "That reset link is invalid or expired.",
-      )
-    router.replace(`/${locale}/login?reset=complete`)
-  }
+      );
+    router.replace(`/${locale}/login?reset=complete`);
+  };
 
   return (
     <main className="private-shell">
@@ -135,7 +134,7 @@ export function ResetPasswordForm({
                 onChange={(event) => setEmail(event.target.value)}
               />
             </label>
-            <TurnstileWidget onToken={setCaptchaToken} />
+            <TurnstileWidget key={captcha.generation} onToken={captcha.setToken} />
             {message && (
               <p className="success" role="status">
                 {message}
@@ -149,14 +148,10 @@ export function ResetPasswordForm({
             <button
               className="button"
               type="button"
-              disabled={busy || !email || !captchaToken}
+              disabled={busy || !email || !captcha.token}
               onClick={requestReset}
             >
-              {busy
-                ? "…"
-                : locale === "ro"
-                  ? "Trimite linkul"
-                  : "Send reset link"}
+              {busy ? "…" : locale === "ro" ? "Trimite linkul" : "Send reset link"}
             </button>
           </>
         )}
@@ -167,5 +162,5 @@ export function ResetPasswordForm({
         </p>
       </section>
     </main>
-  )
+  );
 }

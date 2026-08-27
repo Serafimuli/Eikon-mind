@@ -1,22 +1,16 @@
-import { changeStaffRole } from "@/app/[locale]/actions"
-import { ActionForm } from "@/components/ActionForm"
-import { listStaffCandidates } from "@/lib/db/repositories"
-import { requireAdmin } from "@/lib/session"
-import type { Locale } from "@/lib/site-content"
+import { changeStaffRole } from "@/app/[locale]/actions";
+import { ActionForm } from "@/components/ActionForm";
+import { listStaffCandidates } from "@/lib/db/repositories";
+import { requireAdmin } from "@/lib/session";
+import type { Locale } from "@/lib/site-content";
 
-export default async function StaffManagement({
-  params,
-}: {
-  params: Promise<{ locale: Locale }>
-}) {
-  const { locale } = await params
-  const admin = await requireAdmin(locale)
-  const rows = await listStaffCandidates()
+export default async function StaffManagement({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params;
+  const admin = await requireAdmin(locale);
+  const rows = await listStaffCandidates();
   return (
     <main className="private-shell">
-      <h1>
-        {locale === "ro" ? "Administrarea personalului" : "Staff management"}
-      </h1>
+      <h1>{locale === "ro" ? "Administrarea personalului" : "Staff management"}</h1>
       <p>
         {locale === "ro"
           ? "Doar utilizatorii cu email verificat și TOTP activ pot deveni terapeuți sau administratori."
@@ -34,12 +28,7 @@ export default async function StaffManagement({
               {user.email} · {user.role} ·{" "}
               {user.twoFactorEnabled ? "TOTP enabled" : "TOTP not enrolled"}
               <ActionForm
-                action={changeStaffRole.bind(
-                  null,
-                  locale,
-                  user.id,
-                  "THERAPIST",
-                )}
+                action={changeStaffRole.bind(null, locale, user.id, "THERAPIST")}
                 errorMessage={
                   locale === "ro"
                     ? "Rolul nu a putut fi schimbat."
@@ -82,5 +71,5 @@ export default async function StaffManagement({
           ))}
       </div>
     </main>
-  )
+  );
 }

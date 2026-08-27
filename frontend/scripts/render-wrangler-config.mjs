@@ -35,10 +35,7 @@ if (deployment.environment !== environment) {
   throw new Error(`Expected ${environment} output, received ${deployment.environment}`);
 }
 
-const target = resolve(
-  targetDirectory ?? `.wrangler/generated/${environment}`,
-  "wrangler.jsonc",
-);
+const target = resolve(targetDirectory ?? `.wrangler/generated/${environment}`, "wrangler.jsonc");
 const configDirectory = dirname(target);
 // Generated configs live at frontend/.wrangler/generated/<environment>.
 const root = "../../../";

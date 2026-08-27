@@ -1,5 +1,5 @@
-import nextVitals from "eslint-config-next/core-web-vitals"
-import nextTypescript from "eslint-config-next/typescript"
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
 const config = [
   {
@@ -7,6 +7,6 @@ const config = [
   },
   ...nextVitals,
   ...nextTypescript,
-]
+];
 
-export default config
+export default config;

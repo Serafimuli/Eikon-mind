@@ -1,0 +1,13 @@
+export const E2E_FIXTURES = Object.freeze({
+  password: "EikonE2e!Password2026",
+  clientId: "11111111-1111-4111-8111-111111111111",
+  therapistId: "22222222-2222-4222-8222-222222222222",
+  adminId: "33333333-3333-4333-8333-333333333333",
+  slotId: "44444444-4444-4444-8444-444444444444",
+  appointmentId: "55555555-5555-4555-8555-555555555555",
+  clientEmail: "e2e.client@example.invalid",
+  therapistEmail: "e2e.therapist@example.invalid",
+  adminEmail: "e2e.admin@example.invalid",
+  therapistBackupCode: "THERA-PIST1",
+  adminBackupCode: "ADMIN-TEST1",
+});

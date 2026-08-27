@@ -1,7 +1,7 @@
 {
   "name": "eikon-mind-frontend",
-  "private": true,
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "eslint .",
     "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "typecheck": "tsc --noEmit",
     "cf:types": "wrangler types",
     "cf:config": "node scripts/render-wrangler-config.mjs",
     "cf:build": "opennextjs-cloudflare build",
@@ -18,31 +20,37 @@
     "db:migrate:remote": "wrangler d1 migrations apply eikon-mind --remote",
     "db:seed": "tsx scripts/seed.ts",
     "bootstrap:first-admin": "node scripts/bootstrap-first-admin.mjs",
-    "test": "tsx --test tests/**/*.test.ts"
+    "test": "pnpm run test:unit",
+    "test:unit": "tsx --test tests/**/*.test.ts",
+    "test:e2e": "node scripts/prepare-e2e.mjs && playwright test",
+    "security:audit": "pnpm audit --audit-level high"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "@opennextjs/cloudflare": "^1.17.0",
-    "@better-auth/drizzle-adapter": "^1.5.0",
-    "better-auth": "^1.5.0",
-    "drizzle-orm": "^0.44.7",
-    "next": "^16.1.0",
-    "react-dom": "^19.0.0",
-    "zod": "^3.24.0"
+    "@better-auth/drizzle-adapter": "1.7.1",
+    "@noble/hashes": "2.3.0",
+    "@opennextjs/cloudflare": "1.20.2",
+    "better-auth": "1.7.1",
+    "drizzle-orm": "0.45.2",
+    "next": "16.3.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "3.25.76"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.0.0",
-    "@types/node": "^22.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@cloudflare/workers-types": "^5.20260823.1",
-    "drizzle-kit": "^0.31.4",
-    "eslint": "^9.0.0",
-    "eslint-config-next": "^16.1.0",
-    "oxfmt": "^0.2.0",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.0",
-    "tsx": "^4.19.0",
-    "wrangler": "^4.0.0"
+    "@axe-core/playwright": "4.13.0",
+    "@cloudflare/workers-types": "5.20260827.1",
+    "@playwright/test": "1.62.1",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "22.19.17",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "drizzle-kit": "0.31.10",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.3",
+    "oxfmt": "0.65.0",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.12",
+    "typescript": "5.9.3",
+    "wrangler": "4.126.0"
   }
 }

@@ -1,35 +1,28 @@
-import { notFound } from "next/navigation"
-import { cancelOwnAppointment } from "@/app/[locale]/actions"
-import { ActionForm } from "@/components/ActionForm"
-import { findAppointmentForClient } from "@/lib/db/repositories"
-import { requireClient } from "@/lib/session"
-import type { Locale } from "@/lib/site-content"
+import { notFound } from "next/navigation";
+import { cancelOwnAppointment } from "@/app/[locale]/actions";
+import { ActionForm } from "@/components/ActionForm";
+import { findAppointmentForClient } from "@/lib/db/repositories";
+import { requireClient } from "@/lib/session";
+import type { Locale } from "@/lib/site-content";
+import { appointmentStatusLabel, formatDateTime, formatTime } from "@/lib/presentation";
 
 export default async function AppointmentDetail({
   params,
 }: {
-  params: Promise<{ locale: Locale; id: string }>
+  params: Promise<{ locale: Locale; id: string }>;
 }) {
-  const { locale, id } = await params
-  const user = await requireClient(locale)
-  const row = await findAppointmentForClient(id, user.id)
-  if (!row) notFound()
+  const { locale, id } = await params;
+  const user = await requireClient(locale);
+  const row = await findAppointmentForClient(id, user.id);
+  if (!row) notFound();
   return (
     <main className="private-shell">
-      <p className="eyebrow">{row.status}</p>
+      <p className="eyebrow">{appointmentStatusLabel(row.status, locale)}</p>
       <h1>{locale === "ro" ? "Programare" : "Appointment"}</h1>
       <div className="card">
+        <p>{formatDateTime(row.startsAt, locale)}</p>
         <p>
-          {row.startsAt.toLocaleString(locale === "ro" ? "ro-RO" : "en-GB", {
-            timeZone: "Europe/Bucharest",
-          })}
-        </p>
-        <p>
-          {locale === "ro" ? "Se termină" : "Ends"}{" "}
-          {row.endsAt.toLocaleTimeString(locale === "ro" ? "ro-RO" : "en-GB", {
-            timeZone: "Europe/Bucharest",
-            timeStyle: "short",
-          })}
+          {locale === "ro" ? "Se termină" : "Ends"} {formatTime(row.endsAt, locale)}
         </p>
         <p>
           {locale === "ro"
@@ -52,5 +45,5 @@ export default async function AppointmentDetail({
         )}
       </div>
     </main>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import { processPendingIntegrationJobs } from "../src/lib/integrations/calendar"
+import { processPendingIntegrationJobs } from "../src/lib/integrations/calendar";
 
 type MaintenanceEnv = Pick<
   CloudflareEnv,
@@ -7,51 +7,83 @@ type MaintenanceEnv = Pick<
   | "GOOGLE_CLIENT_SECRET"
   | "GOOGLE_REFRESH_TOKEN"
   | "GOOGLE_CALENDAR_ID"
+  | "OPERATIONS_EMAIL"
+  | "EMAIL_FROM_ADDRESS"
+  | "OPERATIONS_MAILBOX"
   | "APP_ENV"
   | "RETENTION_APPOINTMENT_DAYS"
   | "RETENTION_CANCELLED_APPOINTMENT_DAYS"
   | "RETENTION_DEIDENTIFIED_RECORD_DAYS"
   | "RETENTION_AUDIT_EVENT_DAYS"
->
+>;
 
 function days(value: string, name: string) {
-  const result = Number(value)
-  if (!Number.isInteger(result) || result <= 0) throw new Error(`${name} must be a positive whole number`)
-  return result
+  const result = Number(value);
+  if (!Number.isInteger(result) || result <= 0)
+    throw new Error(`${name} must be a positive whole number`);
+  return result;
 }
 
 async function runRetention(env: MaintenanceEnv) {
-  const appointmentDays = days(env.RETENTION_APPOINTMENT_DAYS, "RETENTION_APPOINTMENT_DAYS")
-  const cancelledDays = days(env.RETENTION_CANCELLED_APPOINTMENT_DAYS, "RETENTION_CANCELLED_APPOINTMENT_DAYS")
-  const deidentifiedDays = days(env.RETENTION_DEIDENTIFIED_RECORD_DAYS, "RETENTION_DEIDENTIFIED_RECORD_DAYS")
-  // Keep the setting explicit even though the current schema has no audit-event
-  // table. Future audit data must use this DPO-approved cap, not a new default.
-  days(env.RETENTION_AUDIT_EVENT_DAYS, "RETENTION_AUDIT_EVENT_DAYS")
+  const appointmentDays = days(env.RETENTION_APPOINTMENT_DAYS, "RETENTION_APPOINTMENT_DAYS");
+  const cancelledDays = days(
+    env.RETENTION_CANCELLED_APPOINTMENT_DAYS,
+    "RETENTION_CANCELLED_APPOINTMENT_DAYS",
+  );
+  const deidentifiedDays = days(
+    env.RETENTION_DEIDENTIFIED_RECORD_DAYS,
+    "RETENTION_DEIDENTIFIED_RECORD_DAYS",
+  );
+  const auditDays = days(env.RETENTION_AUDIT_EVENT_DAYS, "RETENTION_AUDIT_EVENT_DAYS");
 
-  const now = Date.now()
-  const normalCutoff = now - appointmentDays * 86_400_000
-  const cancelledCutoff = now - cancelledDays * 86_400_000
-  const deidentifiedCutoff = now - deidentifiedDays * 86_400_000
+  const now = Date.now();
+  const normalCutoff = now - appointmentDays * 86_400_000;
+  const cancelledCutoff = now - cancelledDays * 86_400_000;
+  const deidentifiedCutoff = now - deidentifiedDays * 86_400_000;
+  const auditCutoff = now - auditDays * 86_400_000;
   await env.DB.batch([
     env.DB.prepare("DELETE FROM verification WHERE expires_at < ?").bind(now),
     env.DB.prepare("DELETE FROM session WHERE expires_at < ?").bind(now),
-    env.DB.prepare("DELETE FROM appointment WHERE status = 'CANCELLED' AND updated_at < ?").bind(cancelledCutoff),
-    env.DB.prepare("DELETE FROM appointment WHERE status IN ('COMPLETED', 'REQUESTED') AND starts_at < ?").bind(normalCutoff),
-    env.DB.prepare("DELETE FROM calendar_event_reference WHERE appointment_id NOT IN (SELECT id FROM appointment)"),
-    env.DB.prepare("DELETE FROM integration_job WHERE processed_at IS NOT NULL AND processed_at < ?").bind(normalCutoff),
-    env.DB.prepare("DELETE FROM user WHERE id IN (SELECT user_id FROM account_deletion_request WHERE requested_at < ?)").bind(deidentifiedCutoff),
-  ])
+    env.DB.prepare("DELETE FROM appointment WHERE status = 'CANCELLED' AND updated_at < ?").bind(
+      cancelledCutoff,
+    ),
+    env.DB.prepare(
+      "DELETE FROM appointment WHERE status IN ('COMPLETED', 'REQUESTED') AND starts_at < ?",
+    ).bind(normalCutoff),
+    env.DB.prepare(
+      "DELETE FROM calendar_event_reference WHERE appointment_id NOT IN (SELECT id FROM appointment)",
+    ),
+    env.DB.prepare(
+      "DELETE FROM integration_job WHERE processed_at IS NOT NULL AND processed_at < ?",
+    ).bind(normalCutoff),
+    env.DB.prepare(
+      "DELETE FROM integration_job WHERE state = 'FAILED' AND alerted_at IS NOT NULL AND created_at < ?",
+    ).bind(normalCutoff),
+    env.DB.prepare("DELETE FROM security_event WHERE created_at < ?").bind(auditCutoff),
+    env.DB.prepare('DELETE FROM "rateLimit" WHERE lastRequest < ?').bind(now - 86_400_000),
+    env.DB.prepare(
+      "DELETE FROM user WHERE id IN (SELECT user_id FROM account_deletion_request WHERE requested_at < ?)",
+    ).bind(deidentifiedCutoff),
+  ]);
 }
 
 async function runMaintenance(env: MaintenanceEnv) {
-  await processPendingIntegrationJobs(env, 10)
-  await runRetention(env)
+  await processPendingIntegrationJobs(env, 10);
+  await runRetention(env);
 }
 
 const worker = {
-  async scheduled(_event: unknown, env: MaintenanceEnv, ctx: { waitUntil(task: Promise<unknown>): void }) {
-    ctx.waitUntil(runMaintenance(env))
+  async scheduled(
+    _event: unknown,
+    env: MaintenanceEnv,
+    ctx: { waitUntil(task: Promise<unknown>): void },
+  ) {
+    ctx.waitUntil(
+      runMaintenance(env).catch(() => {
+        console.error("scheduled maintenance failed");
+      }),
+    );
   },
-}
+};
 
-export default worker
+export default worker;

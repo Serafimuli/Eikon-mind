@@ -1,38 +1,31 @@
-import { and, asc, eq, gt } from "drizzle-orm"
-import { ActionForm } from "@/components/ActionForm"
-import { blockAvailability, createAvailability } from "@/app/[locale]/actions"
-import { getDb } from "@/lib/db"
-import { availabilitySlots } from "@/lib/db/schema"
-import { listEnrolledTherapists } from "@/lib/db/repositories"
-import { requireStaff } from "@/lib/session"
-import type { Locale } from "@/lib/site-content"
+import { and, asc, eq, gt } from "drizzle-orm";
+import { ActionForm } from "@/components/ActionForm";
+import { blockAvailability, createAvailability } from "@/app/[locale]/actions";
+import { getDb } from "@/lib/db";
+import { availabilitySlots } from "@/lib/db/schema";
+import { listEnrolledTherapists } from "@/lib/db/repositories";
+import { requireStaff } from "@/lib/session";
+import type { Locale } from "@/lib/site-content";
+import { formatDateTime } from "@/lib/presentation";
 
-export default async function NewAvailability({
-  params,
-}: {
-  params: Promise<{ locale: Locale }>
-}) {
-  const { locale } = await params
-  const actor = await requireStaff(locale)
-  const db = getDb()
-  const therapists =
-    actor.role === "ADMIN" ? await listEnrolledTherapists() : []
+export default async function NewAvailability({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params;
+  const actor = await requireStaff(locale);
+  const db = getDb();
+  const therapists = actor.role === "ADMIN" ? await listEnrolledTherapists() : [];
   const openSlots = await db
     .select()
     .from(availabilitySlots)
     .where(
       actor.role === "ADMIN"
-        ? and(
-            eq(availabilitySlots.state, "OPEN"),
-            gt(availabilitySlots.startsAt, new Date()),
-          )
+        ? and(eq(availabilitySlots.state, "OPEN"), gt(availabilitySlots.startsAt, new Date()))
         : and(
             eq(availabilitySlots.therapistId, actor.id),
             eq(availabilitySlots.state, "OPEN"),
             gt(availabilitySlots.startsAt, new Date()),
           ),
     )
-    .orderBy(asc(availabilitySlots.startsAt))
+    .orderBy(asc(availabilitySlots.startsAt));
   return (
     <main className="private-shell">
       <ActionForm
@@ -45,9 +38,7 @@ export default async function NewAvailability({
         className="form-card"
       >
         <p className="eyebrow">Eikon Mind</p>
-        <h1>
-          {locale === "ro" ? "Adaugă disponibilitate" : "Add availability"}
-        </h1>
+        <h1>{locale === "ro" ? "Adaugă disponibilitate" : "Add availability"}</h1>
         {actor.role === "ADMIN" && (
           <label>
             {locale === "ro" ? "Terapeut" : "Therapist"}
@@ -92,9 +83,7 @@ export default async function NewAvailability({
         </h2>
         {openSlots.map((slot) => (
           <div className="appointment" key={slot.id}>
-            {slot.startsAt.toLocaleString(locale === "ro" ? "ro-RO" : "en-GB", {
-              timeZone: "Europe/Bucharest",
-            })}
+            {formatDateTime(slot.startsAt, locale)}
             <ActionForm
               action={blockAvailability.bind(null, locale, slot.id)}
               errorMessage={
@@ -111,5 +100,5 @@ export default async function NewAvailability({
         ))}
       </section>
     </main>
-  )
+  );
 }

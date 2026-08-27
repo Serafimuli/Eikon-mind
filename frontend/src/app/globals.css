@@ -6,7 +6,10 @@
   font-display: swap;
   font-style: normal;
   font-weight: 400;
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
 }
 
 @font-face {
@@ -15,7 +18,9 @@
   font-display: swap;
   font-style: normal;
   font-weight: 400;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
@@ -24,7 +29,10 @@
   font-display: swap;
   font-style: normal;
   font-weight: 400;
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
 }
 
 @font-face {
@@ -33,7 +41,9 @@
   font-display: swap;
   font-style: normal;
   font-weight: 400;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
@@ -42,7 +52,10 @@
   font-display: swap;
   font-style: normal;
   font-weight: 500;
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
 }
 
 @font-face {
@@ -51,7 +64,9 @@
   font-display: swap;
   font-style: normal;
   font-weight: 500;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
@@ -60,7 +75,10 @@
   font-display: swap;
   font-style: normal;
   font-weight: 400;
-  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
 }
 
 @font-face {
@@ -69,17 +87,19 @@
   font-display: swap;
   font-style: normal;
   font-weight: 400;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 :root {
-  --primary: #cc785c;
-  --primary-active: #a9583e;
+  --primary: #9f4d32;
+  --primary-active: #7f3a27;
   --primary-disabled: #e6dfd8;
   --ink: #141413;
   --body: #3d3d3a;
   --body-strong: #252523;
-  --muted: #6c6a64;
+  --muted: #64625d;
   --muted-soft: #8e8b82;
   --hairline: #e6dfd8;
   --hairline-soft: #ebe6df;
@@ -103,11 +123,13 @@
   --font-code: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
   --container: 1200px;
   --section-space: 96px;
-  --shadow-hover: 0 1px 3px rgba(20, 20, 19, .08);
+  --shadow-hover: 0 1px 3px rgba(20, 20, 19, 0.08);
   color-scheme: light;
 }
 
 .dark {
+  --primary: #e6a086;
+  --primary-active: #f2b49e;
   --primary-disabled: #3a332e;
   --ink: #faf9f5;
   --body: #e4e1db;
@@ -125,6 +147,7 @@
   --surface-dark-soft: #1f1e1b;
   --on-dark: #faf9f5;
   --on-dark-soft: #a09d96;
+  --on-primary: #141413;
   color-scheme: dark;
 }
 
@@ -231,7 +254,7 @@ strong {
 }
 
 ::selection {
-  background: rgba(204, 120, 92, .24);
+  background: rgba(204, 120, 92, 0.24);
 }
 
 :focus-visible {
@@ -295,7 +318,12 @@ strong {
   font-size: 14px;
   font-weight: 500;
   line-height: 1;
-  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .button:hover {
@@ -362,7 +390,11 @@ strong {
   font-size: 15px;
   font-weight: 500;
   line-height: 1;
-  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
 }
 
 .icon-button:hover {
@@ -446,7 +478,7 @@ strong {
   color: var(--ink);
   font-size: 16px;
   font-weight: 500;
-  letter-spacing: .01em;
+  letter-spacing: 0.01em;
 }
 
 .site-header__wordmark span,
@@ -528,11 +560,13 @@ strong {
   border: 1px solid var(--hairline);
   border-radius: 12px;
   background: var(--canvas);
-  box-shadow: 0 12px 24px rgba(20, 20, 19, .08);
+  box-shadow: 0 12px 24px rgba(20, 20, 19, 0.08);
   opacity: 0;
   pointer-events: none;
   transform: translateY(-8px);
-  transition: opacity 180ms ease, transform 180ms ease;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
 .service-dropdown--open,
@@ -551,7 +585,9 @@ strong {
   border-radius: 6px;
   color: var(--body);
   font-size: 14px;
-  transition: background-color 180ms ease, color 180ms ease;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
 }
 
 .service-dropdown a:hover {
@@ -599,7 +635,10 @@ strong {
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
-  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
 }
 
 .schedule-button:hover {
@@ -649,7 +688,7 @@ strong {
 .home-hero {
   min-height: 520px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, .78fr);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.78fr);
   align-items: center;
   gap: 72px;
   padding-top: var(--section-space);
@@ -727,7 +766,7 @@ strong {
 .intro-section,
 .benefits-section {
   display: grid;
-  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   gap: 96px;
 }
 
@@ -755,7 +794,7 @@ strong {
   font-family: var(--font-display);
   font-size: 36px;
   line-height: 1.15;
-  letter-spacing: -.5px;
+  letter-spacing: -0.5px;
 }
 
 .quote-band,
@@ -774,7 +813,7 @@ strong {
   font-family: var(--font-display);
   font-size: 36px;
   line-height: 1.15;
-  letter-spacing: -.5px;
+  letter-spacing: -0.5px;
 }
 
 .services-section {
@@ -799,7 +838,9 @@ strong {
   border: 1px solid var(--hairline);
   border-radius: 12px;
   background: var(--surface-card);
-  transition: box-shadow 260ms ease, transform 260ms ease;
+  transition:
+    box-shadow 260ms ease,
+    transform 260ms ease;
 }
 
 .service-card:hover {
@@ -931,7 +972,7 @@ strong {
 
 .benefits-gallery {
   display: grid;
-  grid-template-columns: 1.15fr .85fr;
+  grid-template-columns: 1.15fr 0.85fr;
   grid-template-rows: 280px auto;
   gap: 12px;
 }
@@ -971,7 +1012,7 @@ strong {
 .recommendation__mark {
   font-family: var(--font-display);
   font-size: 64px;
-  line-height: .75;
+  line-height: 0.75;
 }
 
 .recommendation p {
@@ -1008,7 +1049,9 @@ strong {
   border: 1px solid var(--hairline);
   border-radius: 12px;
   background: var(--surface-card);
-  transition: box-shadow 260ms ease, transform 260ms ease;
+  transition:
+    box-shadow 260ms ease,
+    transform 260ms ease;
 }
 
 .testimonial-card:hover {
@@ -1119,7 +1162,7 @@ strong {
 .inner-page-hero {
   min-height: 410px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, .9fr);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
   align-items: center;
   gap: 72px;
   padding-top: var(--section-space);
@@ -1159,7 +1202,7 @@ strong {
 
 .service-page__intro {
   display: grid;
-  grid-template-columns: minmax(180px, .6fr) minmax(0, 1.4fr);
+  grid-template-columns: minmax(180px, 0.6fr) minmax(0, 1.4fr);
   gap: 48px;
   padding: 32px;
   border-radius: 12px;
@@ -1233,7 +1276,7 @@ strong {
 
 .about-gallery {
   display: grid;
-  grid-template-columns: 1.2fr .8fr;
+  grid-template-columns: 1.2fr 0.8fr;
   grid-template-rows: 280px 200px;
   gap: 12px;
   margin-bottom: 32px;
@@ -1279,7 +1322,7 @@ strong {
 
 .contact-layout {
   display: grid;
-  grid-template-columns: minmax(240px, .8fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
   gap: 48px;
 }
 
@@ -1561,7 +1604,10 @@ textarea {
   color: var(--ink);
   font-size: 16px;
   line-height: 1.2;
-  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
 }
 
 textarea {
@@ -1579,7 +1625,7 @@ select:focus,
 textarea:focus {
   border-color: var(--primary);
   outline: 0;
-  box-shadow: 0 0 0 3px rgba(204, 120, 92, .15);
+  box-shadow: 0 0 0 3px rgba(204, 120, 92, 0.15);
 }
 
 .appointment-list {
@@ -1594,7 +1640,10 @@ textarea:focus {
   border-radius: 12px;
   background: var(--surface-card);
   color: var(--body);
-  transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  transition:
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .appointment:hover {
@@ -2113,13 +2162,25 @@ textarea:focus {
 }
 
 @keyframes menu-reveal {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes dropdown-reveal {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2130,9 +2191,9 @@ textarea:focus {
   *,
   *::before,
   *::after {
-    animation-duration: .01ms !important;
+    animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
-    transition-duration: .01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

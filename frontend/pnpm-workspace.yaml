@@ -1,4 +1,11 @@
 allowBuilds:
   esbuild: true
+  libxmljs2: false
+  sharp: true
   unrs-resolver: true
   workerd: true
+nodeLinker: hoisted
+minimumReleaseAgeExclude:
+  - "@cloudflare/workers-types@5.20260827.1"
+overrides:
+  esbuild: 0.28.2

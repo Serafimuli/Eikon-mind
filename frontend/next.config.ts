@@ -1,11 +1,13 @@
-import type { NextConfig } from "next"
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare"
+import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
-initOpenNextCloudflareForDev()
+initOpenNextCloudflareForDev();
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["localhost", "127.0.0.1"],
   images: { unoptimized: true },
-  typedRoutes: false,
-}
+  poweredByHeader: false,
+  typedRoutes: true,
+};
 
-export default nextConfig
+export default nextConfig;
