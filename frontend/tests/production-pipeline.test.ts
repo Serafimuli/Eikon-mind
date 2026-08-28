@@ -9,13 +9,21 @@ const hcpScriptPath = new URL(
 );
 const smokeScriptPath = new URL("../scripts/smoke-production.mjs", import.meta.url);
 const terraformPath = new URL("../../infra/terraform/env/production/main.tf", import.meta.url);
+const applicationModulePath = new URL(
+  "../../infra/terraform/modules/application/main.tf",
+  import.meta.url,
+);
+const wranglerRendererPath = new URL("../scripts/render-wrangler-config.mjs", import.meta.url);
 
-const [workflow, hcpScript, smokeScript, terraform] = await Promise.all([
-  readFile(workflowPath, "utf8"),
-  readFile(hcpScriptPath, "utf8"),
-  readFile(smokeScriptPath, "utf8"),
-  readFile(terraformPath, "utf8"),
-]);
+const [workflow, hcpScript, smokeScript, terraform, applicationModule, wranglerRenderer] =
+  await Promise.all([
+    readFile(workflowPath, "utf8"),
+    readFile(hcpScriptPath, "utf8"),
+    readFile(smokeScriptPath, "utf8"),
+    readFile(terraformPath, "utf8"),
+    readFile(applicationModulePath, "utf8"),
+    readFile(wranglerRendererPath, "utf8"),
+  ]);
 
 test("production HCP organization is supplied explicitly by CI", () => {
   assert.doesNotMatch(terraform, /your-hcp-terraform-organization/);
@@ -56,6 +64,24 @@ test("remote HCP runs receive a sensitive Cloudflare environment variable", () =
   assert.match(hcpScript, /key: variableKey/);
   assert.match(hcpScript, /category: "env"/);
   assert.match(hcpScript, /sensitive: true/);
+});
+
+test("zone rate limiting stays within the Cloudflare Free plan feature set", () => {
+  assert.doesNotMatch(applicationModule, /http\.request\.method/);
+  assert.doesNotMatch(applicationModule, /uri\.path matches/);
+  assert.match(applicationModule, /starts_with\(http\.request\.uri\.path/);
+  assert.match(applicationModule, /period\s+= 10/);
+  assert.match(applicationModule, /requests_per_period\s+= 10/);
+  assert.match(applicationModule, /mitigation_timeout\s+= 10/);
+});
+
+test("application Worker uses a Custom Domain as its origin", () => {
+  assert.match(
+    wranglerRenderer,
+    /routes: \[\{ pattern: deployment\.hostname, custom_domain: true \}\]/,
+  );
+  assert.doesNotMatch(wranglerRenderer, /deployment\.hostname}\/\*/);
+  assert.doesNotMatch(wranglerRenderer, /zone_id: deployment\.zone_id/);
 });
 
 test("Worker upload precedes migration and promotion with the deploy credential", () => {

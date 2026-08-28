@@ -10,7 +10,7 @@ variable "cloudflare_zone_id" {
 
 variable "hostname" {
   type        = string
-  description = "Existing production hostname."
+  description = "Available production hostname in the active zone; Wrangler creates its Worker Custom Domain."
 }
 
 variable "email_from_address" {

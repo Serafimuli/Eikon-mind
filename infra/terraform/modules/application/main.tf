@@ -55,6 +55,10 @@ resource "cloudflare_zone_setting" "minimum_tls_version" {
 
 # A zone phase is authoritative. Before the first apply, import the existing
 # http_ratelimit ruleset or use a dedicated zone with no pre-existing rules.
+# This is deliberately limited to the Cloudflare Free plan feature set: one
+# rule, URI path matching only, IP counting, and 10-second periods. HTTP method
+# matching and regular expressions require a higher zone plan, so the rule
+# counts every request to these POST-only application endpoints.
 resource "cloudflare_ruleset" "sensitive_post_rate_limits" {
   zone_id = var.zone_id
   name    = "eikon-mind-${var.environment}-sensitive-posts"
@@ -63,15 +67,15 @@ resource "cloudflare_ruleset" "sensitive_post_rate_limits" {
 
   rules = [{
     ref         = "eikon_mind_sensitive_posts"
-    description = "Rate limit authentication and appointment booking POSTs"
+    description = "Rate limit authentication and appointment booking paths"
     enabled     = true
     action      = "block"
-    expression  = "(http.request.method eq \"POST\" and http.request.uri.path matches \"^/api/(auth/(sign-(in|up)/email|request-password-reset|send-verification-email|two-factor/.*)|appointments/book)$\")"
+    expression  = "(http.request.uri.path eq \"/api/auth/sign-in/email\" or http.request.uri.path eq \"/api/auth/sign-up/email\" or http.request.uri.path eq \"/api/auth/request-password-reset\" or http.request.uri.path eq \"/api/auth/send-verification-email\" or starts_with(http.request.uri.path, \"/api/auth/two-factor/\") or http.request.uri.path eq \"/api/appointments/book\")"
     ratelimit = {
       characteristics     = ["cf.colo.id", "ip.src"]
-      period              = 60
+      period              = 10
       requests_per_period = 10
-      mitigation_timeout  = 600
+      mitigation_timeout  = 10
     }
   }]
 }

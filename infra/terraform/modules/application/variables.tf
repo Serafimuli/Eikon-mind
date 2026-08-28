@@ -19,7 +19,7 @@ variable "worker_name" {
 }
 
 variable "hostname" {
-  description = "HTTPS hostname already present in the supplied Cloudflare zone."
+  description = "Available HTTPS hostname in the supplied active Cloudflare zone; Wrangler creates its Worker Custom Domain."
   type        = string
 }
 

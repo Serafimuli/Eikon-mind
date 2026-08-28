@@ -19,7 +19,6 @@ const required = [
   "turnstile_sitekey",
   "worker_name",
   "hostname",
-  "zone_id",
   "email_from_address",
   "operations_mailbox",
   "retention",
@@ -94,7 +93,7 @@ const applicationConfig = {
   name: deployment.worker_name,
   main: `${root}.open-next/worker.js`,
   workers_dev: false,
-  routes: [{ pattern: `${deployment.hostname}/*`, zone_id: deployment.zone_id }],
+  routes: [{ pattern: deployment.hostname, custom_domain: true }],
   assets: { directory: `${root}.open-next/assets`, binding: "ASSETS" },
   send_email: emailBindings,
 };

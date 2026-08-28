@@ -5,7 +5,7 @@ This repository deploys the existing Next.js App Router application with OpenNex
 ## Architecture and security assessment
 
 ```text
-Browser --HTTPS/Turnstile--> Cloudflare zone + rate-limit rules --> OpenNext Worker
+Browser --HTTPS/Turnstile--> Cloudflare Custom Domain + rate-limit rule --> OpenNext Worker
                                                                   |-- D1 (EU jurisdiction, no replicas)
                                                                   |-- Secrets Store bindings
                                                                   |-- Email Sending binding
@@ -22,7 +22,7 @@ Controls implemented here include:
 - `USER`, `THERAPIST`, and `ADMIN` server-side roles; clients cannot submit roles.
 - verified email, 12-character minimum passwords, reset-session revocation, Turnstile on authentication, TOTP plus backup codes before staff promotion, and account-level TOTP lockouts.
 - versioned scrypt password hashes using a unique 128-bit salt (`N=16384`, `r=8`, `p=5`, 64-byte output), encrypted TOTP/backup-code material, and multi-key Better Auth signing-key rotation.
-- HTTPS redirect, TLS 1.2 minimum, sensitive POST rate limiting, host-only secure Better Auth cookies in production, no-store private responses, CSP nonce, HSTS (without preload), `nosniff`, frame denial, referrer, and permissions policies.
+- HTTPS redirect, TLS 1.2 minimum, Free-plan-compatible path rate limiting for sensitive POST endpoints, host-only secure Better Auth cookies in production, no-store private responses, CSP nonce, HSTS (without preload), `nosniff`, frame denial, referrer, and permissions policies.
 - atomic D1 slot claim and state transitions, leased/idempotent Calendar outbox retries, recipient-validated generic email, privacy-minimal security events, retention/de-identification jobs, and no application logging of personal or health data.
 - server-rendered account security pages cover email verification, password reset, role-aware post-login routing, staff TOTP challenges, and one-time backup-code enrolment; role changes revoke existing sessions.
 
@@ -48,9 +48,11 @@ Terraform is pinned to `cloudflare/cloudflare` `~> 5.23.0`; the generated provid
 - one D1 database per environment, protected from destroy;
 - an account Secrets Store per environment account, protected from destroy;
 - one managed Turnstile widget restricted to the configured hostname;
-- `always_use_https`, `min_tls_version`, and an `http_ratelimit` zone ruleset for Better Auth and `/api/appointments/book` POSTs.
+- `always_use_https`, `min_tls_version`, and one Cloudflare Free-plan-compatible `http_ratelimit` zone rule for Better Auth and `/api/appointments/book` paths.
 
-It does not create, transfer, or broadly modify DNS. Wrangler attaches the Worker route defined by the generated config. A Cloudflare ruleset phase is authoritative: before applying to an existing zone, import/reconcile the existing **`http_ratelimit` phase** ruleset with the Cloudflare provider and review the plan so existing rules are not removed. Other WAF phases are intentionally outside this module.
+Terraform does not create, transfer, or broadly modify DNS. Wrangler attaches the application Worker as a Custom Domain, and Cloudflare creates the hostname's DNS record and certificate. The hostname must belong to the supplied active zone and must not already have a conflicting CNAME. A Cloudflare ruleset phase is authoritative: before applying to an existing zone, import/reconcile the existing **`http_ratelimit` phase** ruleset with the Cloudflare provider and review the plan so existing rules are not removed. Other WAF phases are intentionally outside this module.
+
+The Free zone plan permits one rate-limit rule using URI paths and IP counting, with fixed 10-second counting and mitigation periods. It does not permit matching the HTTP method or using the `matches` regular-expression operator. The rule therefore counts all requests to the application's POST-only sensitive paths and blocks an IP for 10 seconds after more than 10 matching requests in 10 seconds. Better Auth's durable database rate limits and Turnstile remain the authoritative application controls.
 
 Cloudflare Secrets Store is currently limited to one store per account. Therefore true dev/production store isolation requires separate Cloudflare accounts (recommended). Do not configure both roots with the same account unless a shared store and namespacing have been formally accepted as a risk.
 
@@ -58,7 +60,7 @@ Cloudflare Email Sending domain onboarding, Google OAuth client consent, Data Lo
 
 ## First-time setup
 
-1. Create separate Cloudflare dev and production accounts where possible, plus existing zones/hostnames. Do not move the customer zone into Terraform.
+1. Create separate Cloudflare dev and production accounts where possible and activate the required zones. Reserve an unused hostname in each zone for the Worker Custom Domain; do not create a CNAME for it. Do not move the customer zone into Terraform.
 2. Create an HCP Terraform organization and protected workspaces named `eikon-mind-dev` and `eikon-mind-production`. Set the repository variable `HCP_TERRAFORM_ORGANIZATION` to the real organization name; production supplies it through `TF_CLOUD_ORGANIZATION` instead of committing a placeholder or tenant name. Enable state encryption, MFA/SSO, least-privilege teams, state-version retention, and mandatory production approvals.
 3. Configure protected HCP workspace variables from the matching `terraform.tfvars.example`. Production retention settings must be positive, controller/DPO-approved values; the Terraform check rejects missing/zero values and an empty external approval reference.
 4. Store `TF_API_TOKEN` and `CLOUDFLARE_TERRAFORM_API_TOKEN` as repository secrets available to the production plan job. That job writes the Cloudflare credential to the remote `eikon-mind-production` HCP workspace as a sensitive `CLOUDFLARE_API_TOKEN` environment variable through the HCP API; the credential is not inherited from the local GitHub process. Authenticate and initialize/apply the dev root separately. Review every plan; D1 and Secrets Store have `prevent_destroy`.
@@ -126,7 +128,7 @@ Keep these secrets at repository/environment scope, never in source code:
 | --- | --- | --- |
 | `TF_API_TOKEN` | HCP Terraform authentication | HCP workspace run/plan/apply only |
 | `CLOUDFLARE_TERRAFORM_API_TOKEN` | Terraform plan/apply | D1 Write; Secrets Store Write; Turnstile Sites Write; Zone Settings Write; Zone WAF Write, scoped to the environment account/zone |
-| `CLOUDFLARE_DEPLOY_API_TOKEN` | D1 migration and Worker versions/routes/triggers | Workers Scripts Write; D1 Write; Workers Routes Write for the target zone only |
+| `CLOUDFLARE_DEPLOY_API_TOKEN` | D1 migration and Worker versions/Custom Domains/triggers | Workers Scripts Write; D1 Write; Workers Routes Write for the target zone only |
 | HCP workspace variables | account/zone/hostname/sender/retention | non-secret values only; restrict workspace read access anyway |
 | Cloudflare Secrets Store | application credentials and signing material | not stored in GitHub |
 
