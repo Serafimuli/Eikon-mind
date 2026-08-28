@@ -1872,7 +1872,7 @@ roPages["politica-de-cookies"] = {
     {
       title: "4. Preferințe locale",
       paragraphs: [
-        "Preferința de temă este păstrată în localStorage în browser, nu într-un cookie.",
+        "Preferințele de temă și muzică sunt păstrate în localStorage în browser, nu în cookie-uri.",
       ],
     },
     {
@@ -1893,6 +1893,12 @@ roPages["politica-de-cookies"] = {
       ],
       ["Cloudflare Turnstile", "Securitate", "Prevenire abuz", "Conform Cloudflare"],
       ["eikon-theme (localStorage)", "Preferință locală", "Temă vizuală", "Până la ștergere"],
+      [
+        "eikon-music-enabled (localStorage)",
+        "Preferință locală",
+        "Muzică de fundal",
+        "Până la ștergere",
+      ],
     ],
   },
 };
@@ -1922,7 +1928,9 @@ enPages["politica-de-cookies"] = {
     },
     {
       title: "4. Local preference",
-      paragraphs: ["The theme preference is stored in browser localStorage, not a cookie."],
+      paragraphs: [
+        "The theme and music preferences are stored in browser localStorage, not cookies.",
+      ],
     },
     {
       title: "5. Managing cookies",
@@ -1942,6 +1950,12 @@ enPages["politica-de-cookies"] = {
       ],
       ["Cloudflare Turnstile", "Security", "Abuse prevention", "As set by Cloudflare"],
       ["eikon-theme (localStorage)", "Local preference", "Visual theme", "Until deleted"],
+      [
+        "eikon-music-enabled (localStorage)",
+        "Local preference",
+        "Background music",
+        "Until deleted",
+      ],
     ],
   },
 };

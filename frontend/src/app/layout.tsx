@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Script from "next/script";
+import { BackgroundMusic } from "@/components/BackgroundMusic";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} suppressHydrationWarning data-scroll-behavior="smooth">
       <body>
         {children}
+        <BackgroundMusic />
         <Script id="eikon-theme" nonce={nonce} strategy="beforeInteractive">
           {themeScript}
         </Script>
