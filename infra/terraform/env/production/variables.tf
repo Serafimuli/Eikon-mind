@@ -32,3 +32,8 @@ variable "retention" {
     audit_event_days           = number
   })
 }
+
+variable "retention_approval_reference" {
+  type        = string
+  description = "Non-secret reference to the external controller/DPO approval covering both retention values and deletion behavior."
+}

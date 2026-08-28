@@ -1,7 +1,0 @@
-import { eq } from "drizzle-orm"
-import { getAuth } from "@/lib/auth"
-import { getDb } from "@/lib/db"
-import { appointments, users } from "@/lib/db/schema"
-export const dynamic = "force-dynamic"
-const demos=[{email:"client@eikon-mind.ro",password:"EikonMindDemo!1",name:"Ana Popescu",firstName:"Ana",lastName:"Popescu",role:"client"},{email:"admin@eikon-mind.ro",password:"EikonMindDemo!1",name:"Maria Ionescu",firstName:"Maria",lastName:"Ionescu",role:"admin"}] as const
-export async function POST(){if(process.env.NODE_ENV==="production")return new Response("Not found",{status:404});const db=getDb();for(const demo of demos){const existing=await db.query.users.findFirst({where:eq(users.email,demo.email)});if(!existing){await getAuth().api.signUpEmail({body:{email:demo.email,password:demo.password,name:demo.name,firstName:demo.firstName,lastName:demo.lastName}})}await db.update(users).set({role:demo.role}).where(eq(users.email,demo.email))}const client=await db.query.users.findFirst({where:eq(users.email,demos[0].email)});if(client){const id="demo-appointment-1";const exists=await db.query.appointments.findFirst({where:eq(appointments.id,id)});if(!exists){const now=new Date();await db.insert(appointments).values({id,clientId:client.id,service:"Psihoterapie individuală",startsAt:new Date("2026-09-02T15:00:00.000Z"),status:"confirmed",therapist:"Eikon Mind",therapyMode:"individual",createdAt:now,updatedAt:now})}}return Response.json({seeded:true,users:demos.map(({email,password,...user})=>user)})}

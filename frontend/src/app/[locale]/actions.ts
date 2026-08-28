@@ -7,6 +7,7 @@ import { eq, or } from "drizzle-orm";
 import {
   blockOpenAvailability,
   cancelAppointmentForClient,
+  hideAppointmentForClient,
   transitionAppointmentForStaff,
 } from "@/lib/appointment-transitions";
 import { createAvailabilitySlot } from "@/lib/appointments";
@@ -98,6 +99,23 @@ export async function cancelOwnAppointment(localeInput: string, appointmentIdInp
   const user = await requireClient(locale);
   await cancelAppointmentForClient(user.id, appointmentId);
   refreshAppointmentViews(locale);
+}
+
+export async function deleteOwnAppointment(
+  localeInput: string,
+  appointmentIdInput: string,
+  formData: FormData,
+) {
+  const locale = parseLocale(localeInput);
+  const appointmentId = idSchema.parse(appointmentIdInput);
+  if (formData.get("confirmation") !== "DELETE") {
+    throw new DomainError("Appointment deletion was not confirmed", "INVALID_INPUT");
+  }
+
+  const user = await requireClient(locale);
+  await hideAppointmentForClient(user.id, appointmentId);
+  refreshAppointmentViews(locale);
+  redirect(`/${locale}/client/appointments`);
 }
 
 export async function changeStaffRole(

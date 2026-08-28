@@ -359,6 +359,17 @@ strong {
   color: var(--ink) !important;
 }
 
+.button--danger {
+  border-color: var(--error);
+  background: var(--error);
+  color: #fff !important;
+}
+
+.button--danger:hover {
+  border-color: #8f1f1f;
+  background: #8f1f1f;
+}
+
 .button--dark {
   border-color: var(--surface-dark-elevated);
   background: var(--surface-dark-elevated);
@@ -1557,6 +1568,33 @@ strong {
 .card h2,
 .card h3 {
   margin-bottom: 16px;
+}
+
+.danger-zone {
+  max-width: 720px;
+  margin-top: 32px;
+  padding: 32px;
+  border: 1px solid color-mix(in srgb, var(--error) 35%, var(--hairline));
+  border-radius: 12px;
+  background: var(--surface-card);
+}
+
+.danger-zone h2 {
+  margin-bottom: 12px;
+  font-size: 28px;
+}
+
+.confirmation-check {
+  grid-template-columns: auto 1fr !important;
+  align-items: start;
+  gap: 12px !important;
+}
+
+.confirmation-check input {
+  width: 18px;
+  min-height: 18px;
+  margin-top: 2px;
+  padding: 0;
 }
 
 .card h3 {

@@ -59,9 +59,10 @@ Cloudflare Email Sending domain onboarding, Google OAuth client consent, Data Lo
 ## First-time setup
 
 1. Create separate Cloudflare dev and production accounts where possible, plus existing zones/hostnames. Do not move the customer zone into Terraform.
-2. Create an HCP Terraform organization and protected workspaces named `eikon-mind-dev` and `eikon-mind-production`. Replace `REPLACE_WITH_HCP_TERRAFORM_ORGANIZATION` in both environment roots with that organization name. Enable state encryption, MFA/SSO, least-privilege teams, state-version retention, and mandatory production approvals.
-3. Configure protected HCP workspace variables from the matching `terraform.tfvars.example`. Production retention settings must be positive, DPO-approved values; the Terraform check rejects missing/zero values.
-4. Authenticate Terraform with `CLOUDFLARE_API_TOKEN` supplied only at runtime, then initialize/apply the dev root. Review every plan; D1 and Secrets Store have `prevent_destroy`.
+2. Create an HCP Terraform organization and protected workspaces named `eikon-mind-dev` and `eikon-mind-production`. Set the repository variable `HCP_TERRAFORM_ORGANIZATION` to the real organization name; production supplies it through `TF_CLOUD_ORGANIZATION` instead of committing a placeholder or tenant name. Enable state encryption, MFA/SSO, least-privilege teams, state-version retention, and mandatory production approvals.
+3. Configure protected HCP workspace variables from the matching `terraform.tfvars.example`. Production retention settings must be positive, controller/DPO-approved values; the Terraform check rejects missing/zero values and an empty external approval reference.
+4. Store `TF_API_TOKEN` and `CLOUDFLARE_TERRAFORM_API_TOKEN` as repository secrets available to the production plan job. That job writes the Cloudflare credential to the remote `eikon-mind-production` HCP workspace as a sensitive `CLOUDFLARE_API_TOKEN` environment variable through the HCP API; the credential is not inherited from the local GitHub process. Authenticate and initialize/apply the dev root separately. Review every plan; D1 and Secrets Store have `prevent_destroy`.
+5. Protect `refs/tags/release-*` with an active repository tag ruleset. Configure required reviewers on the GitHub `production` environment and require them to inspect the production plan job summary or its one-day plan artifact before approving the apply job.
 
    ```sh
    terraform -chdir=infra/terraform/env/dev init
@@ -131,11 +132,11 @@ Keep these secrets at repository/environment scope, never in source code:
 
 Use distinct Terraform, deploy, and secrets-rotation Cloudflare tokens. The rotation operator token requires only `Secrets Store Write` (and `Turnstile Sites Write` when rotating a widget); it must not receive Workers/D1/zone permissions. Restrict all tokens to their corresponding account and zone and set expiry/review dates.
 
-Configure GitHub `development` and `production` environments with required reviewers and a tag protection/ruleset for `release-*`. The production workflow accepts only a full 40-character commit SHA or `refs/tags/release-*`, verifies that it resolves exactly to the checked-out commit, deploys that resolved SHA (not the mutable workflow-dispatch SHA), serializes deployments, applies Terraform/migrations, promotes the reviewed Worker versions, attaches triggers, and runs an HTTPS smoke check. All third-party actions are pinned to immutable commit SHAs; Dependabot should keep those pins current. PR checks include formatting, lint, type checking, behavioral tests, dependency audit/review, responsive Playwright journeys, Terraform validation, CodeQL, Gitleaks, and a CycloneDX SBOM artifact.
+Configure GitHub `development` and `production` environments with required reviewers and an active tag ruleset for `refs/tags/release-*`. The production workflow accepts only a full commit SHA that is an ancestor of `main`, or a release tag covered by that active ruleset. It validates the application before generating a saved remote plan, publishes the plan for review, and lets the protected production job apply only that plan. It then uploads both Worker versions before migrating D1, promotes them, attaches triggers, and runs application, asset, header, auth guard, database, and maintenance-trigger smoke checks. All third-party actions are pinned to immutable commit SHAs; Dependabot should keep those pins current. PR checks include formatting, lint, type checking, behavioral tests, dependency audit/review, responsive Playwright journeys, Terraform validation, CodeQL, Gitleaks, and a CycloneDX SBOM artifact.
 
 ## Deployment, rollback, backup, and rotation
 
-The deployment order is: Terraform apply → render config → test/build → D1 migration → Worker version upload → version promotion/triggers → HTTPS smoke test. Migrations must remain expand/contract and backward-compatible with the deployed Worker during a rollout. Do not use a code rollback to undo a schema/data migration.
+The production deployment order is: application validation/build → saved remote Terraform plan → human plan review/environment approval → repeatable application build → apply that saved plan → render config → Worker version upload → D1 migration → version promotion/triggers → application/database/maintenance smoke tests. Migrations must remain expand/contract and backward-compatible with both the old and uploaded Worker versions during a rollout. Do not use a code rollback to undo a schema/data migration.
 
 - Code rollback: identify the known-good Worker version and run `pnpm exec wrangler rollback <version-id> --config <generated-config>`. Roll back the maintenance Worker independently if necessary.
 - D1 recovery: D1 Time Travel is the short operational recovery baseline (plan availability/retention depends on Cloudflare plan). A restore overwrites the target database, so it is an incident-response/DPO-approved action, not routine application rollback.
@@ -156,3 +157,20 @@ Before production, a responsible human must validate and document all of the fol
 - production security review of CSP compatibility, rate-limit thresholds, Turnstile hostname restrictions, email sender/domain restriction, and every Terraform plan.
 
 Do not add clinical notes or health fields to D1 as a convenience. Any proposal to collect special-category data requires a separate legal, security, retention, and access-control review.
+
+### Retention behavior requiring controller/DPO approval
+
+The scheduled maintenance Worker applies the following strict older-than rules. A record exactly on a cutoff is retained until a later run. The production `retention_approval_reference` must point to an external approval record that covers both these rules and the configured day values; do not put names, signatures, or other personal data in Git or Terraform state.
+
+| Data | Deletion rule |
+| --- | --- |
+| `CANCELLED` appointments | Delete when `updated_at < now - RETENTION_CANCELLED_APPOINTMENT_DAYS`. |
+| `REQUESTED`, `CONFIRMED`, and `COMPLETED` appointments | Delete when `starts_at < now - RETENTION_APPOINTMENT_DAYS`. A forgotten past `CONFIRMED` appointment therefore cannot remain indefinitely. |
+| Availability slots | Delete when `ends_at < now - RETENTION_APPOINTMENT_DAYS`, but only after no appointment references the slot. |
+| Calendar references | Delete after their appointment has been deleted. |
+| Completed or acknowledged-failed integration jobs | Delete after the normal appointment period, using `processed_at` or `created_at` respectively. |
+| Security events | Delete when `created_at < now - RETENTION_AUDIT_EVENT_DAYS`. |
+| Expired verification/session and stale rate-limit records | Delete after expiry, or after one day for rate-limit records. |
+| Users with approved account-deletion requests | Delete when the request is older than `RETENTION_DEIDENTIFIED_RECORD_DAYS`; database cascades/restrictions then apply. |
+
+Any legal preservation exception requires an approved operational hold that prevents this maintenance job from deleting the affected records; the current Worker has no per-record legal-hold flag. The controller/DPO must approve this limitation or require a hold mechanism before production rollout.

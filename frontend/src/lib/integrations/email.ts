@@ -49,14 +49,21 @@ export function securityEmail(kind: "verify" | "reset", url: string) {
   };
 }
 
-export function appointmentEmail(kind: "confirmed" | "cancelled") {
-  return kind === "confirmed"
-    ? {
-        subject: "Eikon Mind appointment confirmed",
-        body: "Your appointment has been confirmed. Sign in to view your appointment details.",
-      }
-    : {
-        subject: "Eikon Mind appointment cancelled",
-        body: "Your appointment has been cancelled. Sign in to view your appointment details.",
-      };
+export function appointmentEmail(kind: "confirmed" | "cancelled" | "requested") {
+  if (kind === "confirmed") {
+    return {
+      subject: "Eikon Mind appointment confirmed",
+      body: "Your appointment has been confirmed. Sign in to view your appointment details.",
+    };
+  }
+  if (kind === "requested") {
+    return {
+      subject: "New Eikon Mind appointment request",
+      body: "A new appointment request is available. Sign in to review it.",
+    };
+  }
+  return {
+    subject: "Eikon Mind appointment cancelled",
+    body: "Your appointment has been cancelled. Sign in to view your appointment details.",
+  };
 }

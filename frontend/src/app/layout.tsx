@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,10 +18,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     "try{const theme=localStorage.getItem('eikon-theme');if(theme==='dark'){document.documentElement.classList.add('dark')}document.documentElement.style.colorScheme=theme==='dark'?'dark':'light'}catch(e){}";
   return (
     <html lang={locale} suppressHydrationWarning data-scroll-behavior="smooth">
-      <head>
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Script id="eikon-theme" nonce={nonce} strategy="beforeInteractive">
+          {themeScript}
+        </Script>
+      </body>
     </html>
   );
 }

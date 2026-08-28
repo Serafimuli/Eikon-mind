@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: Immutable commit SHA or protected release tag to deploy
+        description: Main-line commit SHA or protected refs/tags/release-* tag to deploy
         required: true
         type: string
 
@@ -16,33 +16,60 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  validate-and-plan:
     runs-on: ubuntu-24.04
-    environment: production
     defaults:
       run:
         working-directory: frontend
     env:
+      TF_IN_AUTOMATION: true
       TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_TERRAFORM_API_TOKEN }}
+      TF_CLOUD_ORGANIZATION: ${{ vars.HCP_TERRAFORM_ORGANIZATION }}
+    outputs:
+      deployment_sha: ${{ steps.ref.outputs.deployment_sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
-      - name: Resolve and verify immutable deployment ref
+          lfs: true
+      - name: Resolve and authorize immutable deployment ref
+        id: ref
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_REF: ${{ inputs.ref }}
         run: |
-          requested_ref='${{ inputs.ref }}'
           resolved_sha="$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)"
-          if [[ "$requested_ref" =~ ^[0-9a-fA-F]{40}$ ]]; then
-            test "${resolved_sha,,}" = "${requested_ref,,}"
-          elif [[ "$requested_ref" == refs/tags/release-* ]]; then
-            test "$(git -C "$GITHUB_WORKSPACE" rev-parse "$requested_ref^{commit}")" = "$resolved_sha"
+          if [[ "$REQUESTED_REF" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            test "${resolved_sha,,}" = "${REQUESTED_REF,,}"
+            git -C "$GITHUB_WORKSPACE" fetch --no-tags origin main
+            if ! git -C "$GITHUB_WORKSPACE" merge-base --is-ancestor "$resolved_sha" origin/main; then
+              echo "Production commit SHAs must be ancestors of origin/main." >&2
+              exit 1
+            fi
+          elif [[ "$REQUESTED_REF" == refs/tags/release-* ]]; then
+            git -C "$GITHUB_WORKSPACE" show-ref --verify --quiet "$REQUESTED_REF"
+            test "$(git -C "$GITHUB_WORKSPACE" rev-parse "$REQUESTED_REF^{commit}")" = "$resolved_sha"
+            protected=false
+            while read -r ruleset_id; do
+              if gh api "repos/$GITHUB_REPOSITORY/rulesets/$ruleset_id" \
+                --jq 'select(any(.conditions.ref_name.include[]?; . == "refs/tags/release-*" or . == "~ALL")) | select(any(.rules[]?; .type == "creation")) | .id' \
+                | grep -q .; then
+                protected=true
+                break
+              fi
+            done < <(gh api --paginate "repos/$GITHUB_REPOSITORY/rulesets?includes_parents=true" \
+              --jq '.[] | select(.target == "tag" and .enforcement == "active") | .id')
+            if [ "$protected" != "true" ]; then
+              echo "release-* deployments require an active repository tag ruleset." >&2
+              exit 1
+            fi
           else
-            echo "Only a full 40-character commit SHA or refs/tags/release-* is deployable." >&2
+            echo "Only a main-line commit SHA or protected refs/tags/release-* tag is deployable." >&2
             exit 1
           fi
-          echo "DEPLOYMENT_SHA=$resolved_sha" >> "$GITHUB_ENV"
+          echo "deployment_sha=$resolved_sha" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/verify-lfs
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
@@ -51,30 +78,116 @@ jobs:
       - uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5
         with:
           version: 10
+      - run: pnpm install --frozen-lockfile
+      - name: Validate and build application before infrastructure planning
+        run: pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm security:audit && pnpm cf:build
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_version: 1.15.8
-      - name: Apply approved production infrastructure
+      - name: Configure Cloudflare credential in the remote HCP workspace
+        env:
+          HCP_TERRAFORM_TOKEN: ${{ secrets.TF_API_TOKEN }}
+          CLOUDFLARE_PROVIDER_TOKEN: ${{ secrets.CLOUDFLARE_TERRAFORM_API_TOKEN }}
+        run: node "$GITHUB_WORKSPACE/.github/scripts/configure-hcp-production.mjs"
+      - name: Generate and expose the saved production plan
         working-directory: infra/terraform/env/production
         run: |
           terraform init -input=false
-          terraform apply -input=false -auto-approve
-          terraform output -json > "$GITHUB_WORKSPACE/deployment.json"
+          terraform plan -input=false -out="$RUNNER_TEMP/production.tfplan"
+          terraform show -no-color "$RUNNER_TEMP/production.tfplan" | tee "$RUNNER_TEMP/production-plan.txt"
+          printf '%s\n' '${{ steps.ref.outputs.deployment_sha }}' > "$RUNNER_TEMP/deployment.sha"
+          {
+            echo "## Production Terraform plan"
+            echo "Review the full plan log or downloaded plan artifact before approving the production environment."
+            echo '```terraform'
+            sed -n '1,500p' "$RUNNER_TEMP/production-plan.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish immutable plan for production review
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: production-plan-${{ steps.ref.outputs.deployment_sha }}
+          path: |
+            ${{ runner.temp }}/production.tfplan
+            ${{ runner.temp }}/production-plan.txt
+            ${{ runner.temp }}/deployment.sha
+          if-no-files-found: error
+          retention-days: 1
+
+  apply-reviewed-plan:
+    needs: validate-and-plan
+    runs-on: ubuntu-24.04
+    environment: production
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      DEPLOYMENT_SHA: ${{ needs.validate-and-plan.outputs.deployment_sha }}
+      TF_IN_AUTOMATION: true
+      TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+      TF_CLOUD_ORGANIZATION: ${{ vars.HCP_TERRAFORM_ORGANIZATION }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.validate-and-plan.outputs.deployment_sha }}
+          fetch-depth: 0
+          lfs: true
+      - uses: ./.github/actions/verify-lfs
+      - name: Verify deployment checkout
+        run: test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$DEPLOYMENT_SHA"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5
+        with:
+          version: 10
       - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm security:audit && pnpm cf:build
+      - name: Rebuild application before changing infrastructure
+        run: pnpm cf:build
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
+        with:
+          terraform_version: 1.15.8
+      - name: Download the reviewed production plan
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: production-plan-${{ needs.validate-and-plan.outputs.deployment_sha }}
+          path: ${{ runner.temp }}/production-plan
+      - name: Apply only the reviewed production plan
+        working-directory: infra/terraform/env/production
+        run: |
+          test "$(cat "$RUNNER_TEMP/production-plan/deployment.sha")" = "$DEPLOYMENT_SHA"
+          terraform init -input=false
+          terraform apply -input=false "$RUNNER_TEMP/production-plan/production.tfplan"
+          terraform output -json > "$GITHUB_WORKSPACE/deployment.json"
       - name: Render production configuration
         run: node scripts/render-wrangler-config.mjs production "$GITHUB_WORKSPACE/deployment.json"
-      - name: Apply backwards-compatible D1 migrations
-        run: pnpm exec wrangler d1 migrations apply eikon-mind-production --remote --config .wrangler/generated/production/wrangler.jsonc
-      - name: Upload, then promote reviewed versions
+      - name: Upload application and maintenance Worker versions
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
         run: |
           pnpm exec wrangler versions upload --config .wrangler/generated/production/wrangler.jsonc --tag "$DEPLOYMENT_SHA" --message "production $DEPLOYMENT_SHA"
+          pnpm exec wrangler versions upload --config .wrangler/generated/production/wrangler-maintenance.jsonc --tag "$DEPLOYMENT_SHA" --message "production maintenance $DEPLOYMENT_SHA"
+      - name: Apply backwards-compatible D1 migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
+        run: pnpm exec wrangler d1 migrations apply eikon-mind-production --remote --config .wrangler/generated/production/wrangler.jsonc
+      - name: Promote reviewed versions and deploy triggers
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
+        run: |
           pnpm exec wrangler versions deploy --config .wrangler/generated/production/wrangler.jsonc --version-tag "$DEPLOYMENT_SHA" --percentage 100 --message "production $DEPLOYMENT_SHA"
           pnpm exec wrangler triggers deploy --config .wrangler/generated/production/wrangler.jsonc
-          pnpm exec wrangler versions upload --config .wrangler/generated/production/wrangler-maintenance.jsonc --tag "$DEPLOYMENT_SHA" --message "production maintenance $DEPLOYMENT_SHA"
           pnpm exec wrangler versions deploy --config .wrangler/generated/production/wrangler-maintenance.jsonc --version-tag "$DEPLOYMENT_SHA" --percentage 100 --message "production maintenance $DEPLOYMENT_SHA"
           pnpm exec wrangler triggers deploy --config .wrangler/generated/production/wrangler-maintenance.jsonc
-      - name: HTTPS smoke test
-        run: curl --fail --silent --show-error --max-time 15 "https://$(jq -r '.deployment.value.hostname' "$GITHUB_WORKSPACE/deployment.json")/"
+      - name: Production application, database, and maintenance smoke tests
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
+        run: |
+          database_health="$(pnpm exec wrangler d1 execute eikon-mind-production --remote --command 'SELECT 1 AS healthy' --json --config .wrangler/generated/production/wrangler.jsonc)"
+          echo "$database_health" | jq -e 'any(.. | objects; .healthy == 1)'
+          hostname="$(jq -r '.deployment.value.hostname' "$GITHUB_WORKSPACE/deployment.json")"
+          account_id="$(jq -r '.deployment.value.account_id' "$GITHUB_WORKSPACE/deployment.json")"
+          worker_name="$(jq -r '.deployment.value.worker_name' "$GITHUB_WORKSPACE/deployment.json")"
+          node scripts/smoke-production.mjs "https://$hostname" "$account_id" "$worker_name-maintenance"

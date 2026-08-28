@@ -5,4 +5,4 @@ infra/terraform/**/*.tfstate
 infra/terraform/**/*.tfstate.*
 infra/terraform/**/*.tfvars
 !infra/terraform/**/*.tfvars.example
-.pnpm-store/
+/.pnpm-store/

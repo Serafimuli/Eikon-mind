@@ -2,6 +2,10 @@ export const APPOINTMENT_STATUSES = ["REQUESTED", "CONFIRMED", "COMPLETED", "CAN
 
 export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 
+export function isFutureAppointment(startsAt: Date) {
+  return startsAt.getTime() > Date.now();
+}
+
 export const STAFF_APPOINTMENT_TRANSITIONS: Readonly<
   Record<AppointmentStatus, readonly AppointmentStatus[]>
 > = Object.freeze({

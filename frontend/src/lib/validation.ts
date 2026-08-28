@@ -95,6 +95,7 @@ export const availabilityFormSchema = z
 export const bookingRequestSchema = z
   .object({
     slotId: idSchema,
+    rescheduleFromAppointmentId: idSchema.optional(),
   })
   .strict();
 

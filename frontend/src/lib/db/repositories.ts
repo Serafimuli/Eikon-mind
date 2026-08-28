@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, gt } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { appointments, availabilitySlots, users } from "@/lib/db/schema";
 
@@ -82,7 +82,7 @@ export async function listUserAppointments(userId: string) {
   return getDb()
     .select()
     .from(appointments)
-    .where(eq(appointments.clientId, userId))
+    .where(and(eq(appointments.clientId, userId), isNull(appointments.clientHiddenAt)))
     .orderBy(desc(appointments.startsAt));
 }
 
@@ -90,7 +90,13 @@ export async function findAppointmentForClient(id: string, clientId: string) {
   const [appointment] = await getDb()
     .select()
     .from(appointments)
-    .where(and(eq(appointments.id, id), eq(appointments.clientId, clientId)))
+    .where(
+      and(
+        eq(appointments.id, id),
+        eq(appointments.clientId, clientId),
+        isNull(appointments.clientHiddenAt),
+      ),
+    )
     .limit(1);
   return appointment ?? null;
 }

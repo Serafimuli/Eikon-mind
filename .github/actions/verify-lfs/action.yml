@@ -1,0 +1,18 @@
+name: Verify Git LFS assets
+description: Materialize and validate LFS objects before CI reads or packages repository assets.
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        set -euo pipefail
+        git -C "$GITHUB_WORKSPACE" lfs checkout
+        git -C "$GITHUB_WORKSPACE" lfs fsck
+
+        asset="$GITHUB_WORKSPACE/frontend/public/assets/eikon-mind-mark.png"
+        signature="$(od -An -tx1 -N8 "$asset" | tr -d '[:space:]')"
+        if [ "$signature" != "89504e470d0a1a0a" ]; then
+          echo "Expected a materialized PNG at $asset; got signature $signature" >&2
+          exit 1
+        fi

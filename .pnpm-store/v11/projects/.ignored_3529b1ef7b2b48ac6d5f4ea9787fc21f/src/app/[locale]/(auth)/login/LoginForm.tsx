@@ -1,7 +1,0 @@
-"use client"
-import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useState } from "react"
-import { authClient } from "@/lib/auth-client"
-import type { Locale } from "@/lib/site-content"
-export function LoginForm({locale}:{locale:Locale}){const router=useRouter();const search=useSearchParams();const [error,setError]=useState("");const [busy,setBusy]=useState(false);const submit=async(form:FormData)=>{setBusy(true);setError("");const result=await authClient.signIn.email({email:String(form.get("email")),password:String(form.get("password")),callbackURL:"/"});setBusy(false);if(result.error)return setError(result.error.message||"Sign-in failed");const destination=search?.get("returnTo");router.replace(destination?.startsWith(`/${locale}/`)?destination:`/${locale}/client`);router.refresh()};return <form action={submit} className="form-card"><p className="eyebrow">Eikon Mind</p><h1>{locale==="ro"?"Bine ai revenit":"Welcome back"}</h1><label>Email<input name="email" type="email" required/></label><label>{locale==="ro"?"Parolă":"Password"}<input name="password" type="password" minLength={8} required/></label>{error&&<p className="error">{error}</p>}<button className="button" disabled={busy}>{busy?"…":locale==="ro"?"Autentificare":"Sign in"}</button><p><Link href={`/${locale}/register`}>{locale==="ro"?"Creează un cont":"Create an account"}</Link></p></form>}

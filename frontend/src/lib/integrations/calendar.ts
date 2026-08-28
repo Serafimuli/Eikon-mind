@@ -58,36 +58,73 @@ async function accessToken(env: IntegrationEnvironment) {
   return assertSecret(json.access_token, "Google access token");
 }
 
-async function updateGoogleEvent(env: IntegrationEnvironment, job: PendingJob, eventId: string) {
+function googleEventPayload(job: PendingJob, eventId: string) {
+  return {
+    id: eventId,
+    summary: "Reserved time",
+    start: {
+      dateTime: new Date(job.starts_at).toISOString(),
+      timeZone: "UTC",
+    },
+    end: {
+      dateTime: new Date(job.ends_at).toISOString(),
+      timeZone: "UTC",
+    },
+  };
+}
+
+async function updateGoogleEvent(
+  eventUrl: string,
+  token: string,
+  payload: ReturnType<typeof googleEventPayload>,
+) {
+  const response = await fetch(eventUrl, {
+    method: "PUT",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error("Google Calendar update failed");
+}
+
+async function syncGoogleEvent(env: IntegrationEnvironment, job: PendingJob, eventId: string) {
   const calendarId = encodeURIComponent(assertSecret(env.GOOGLE_CALENDAR_ID, "GOOGLE_CALENDAR_ID"));
   const token = await accessToken(env);
-  const payload =
-    job.kind === "CALENDAR_CANCEL"
-      ? { id: eventId, status: "cancelled" }
-      : {
-          id: eventId,
-          summary: "Reserved time",
-          start: {
-            dateTime: new Date(job.starts_at).toISOString(),
-            timeZone: "UTC",
-          },
-          end: {
-            dateTime: new Date(job.ends_at).toISOString(),
-            timeZone: "UTC",
-          },
-        };
-  const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`,
-    {
-      method: "PUT",
-      headers: {
-        authorization: `Bearer ${token}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(payload),
+  const eventsUrl = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`;
+  const eventUrl = `${eventsUrl}/${encodeURIComponent(eventId)}`;
+
+  if (job.kind === "CALENDAR_CANCEL") {
+    const response = await fetch(eventUrl, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    if (!response.ok && response.status !== 404 && response.status !== 410) {
+      throw new Error("Google Calendar delete failed");
+    }
+    return;
+  }
+
+  const payload = googleEventPayload(job, eventId);
+  if (job.event_id) {
+    await updateGoogleEvent(eventUrl, token, payload);
+    return;
+  }
+
+  const response = await fetch(eventsUrl, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
     },
-  );
-  if (!response.ok) throw new Error("Google Calendar update failed");
+    body: JSON.stringify(payload),
+  });
+  if (response.status === 409) {
+    await updateGoogleEvent(eventUrl, token, payload);
+    return;
+  }
+  if (!response.ok) throw new Error("Google Calendar insert failed");
 }
 
 async function alertFailedJobs(env: IntegrationEnvironment) {
@@ -144,7 +181,7 @@ export async function processPendingIntegrationJobs(env: IntegrationEnvironment,
 
     try {
       const eventId = job.event_id ?? (await googleEventId(job.appointment_id));
-      await updateGoogleEvent(env, job, eventId);
+      await syncGoogleEvent(env, job, eventId);
       await env.DB.batch([
         env.DB.prepare(
           `INSERT INTO calendar_event_reference

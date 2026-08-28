@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.8.0"
 
   cloud {
-    organization = "REPLACE_WITH_HCP_TERRAFORM_ORGANIZATION"
+    # CI supplies the real organization through TF_CLOUD_ORGANIZATION.
     workspaces {
       name = "eikon-mind-production"
     }
@@ -39,9 +39,10 @@ check "dpo_approved_retention_values" {
       var.retention.appointment_days > 0 &&
       var.retention.cancelled_appointment_days > 0 &&
       var.retention.deidentified_record_days > 0 &&
-      var.retention.audit_event_days > 0
+      var.retention.audit_event_days > 0 &&
+      trimspace(var.retention_approval_reference) != ""
     )
-    error_message = "Production deployment requires DPO-approved, positive retention values in the HCP Terraform workspace."
+    error_message = "Production deployment requires positive retention values and an external controller/DPO approval reference covering the exact deletion behavior."
   }
 }
 

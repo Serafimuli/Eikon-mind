@@ -51,7 +51,11 @@ const secretConfig: SecretConfig = {
 const now = Date.now();
 const start = new Date(now + 86_400_000);
 start.setUTCHours(8, 0, 0, 0);
-const end = new Date(start.getTime() + 50 * 60_000);
+const slotIds = [E2E_FIXTURES.slotId, E2E_FIXTURES.rescheduleSlotId, E2E_FIXTURES.spareSlotId];
+const slotWindows = slotIds.map((id, index) => {
+  const startsAt = new Date(start.getTime() + index * 2 * 60 * 60_000);
+  return { id, startsAt, endsAt: new Date(startsAt.getTime() + 50 * 60_000) };
+});
 const passwordHash = await hashPassword(E2E_FIXTURES.password);
 const encryptedSecret = await symmetricEncrypt({ key: secretConfig, data: "JBSWY3DPEHPK3PXP" });
 const encryptedBackupCodes = await symmetricEncrypt({
@@ -74,13 +78,14 @@ const users = [
 ] as const;
 
 const fixtureIds = users.map(([id]) => quote(id)).join(", ");
+const fixtureSlotIds = slotIds.map(quote).join(", ");
 const statements = [
   "PRAGMA foreign_keys = ON",
-  `DELETE FROM appointment WHERE client_id IN (${fixtureIds}) OR therapist_id IN (${fixtureIds}) OR availability_slot_id = ${quote(E2E_FIXTURES.slotId)}`,
+  `DELETE FROM appointment WHERE client_id IN (${fixtureIds}) OR therapist_id IN (${fixtureIds}) OR availability_slot_id IN (${fixtureSlotIds})`,
   `DELETE FROM integration_job WHERE appointment_id = ${quote(E2E_FIXTURES.appointmentId)}`,
   `DELETE FROM calendar_event_reference WHERE appointment_id = ${quote(E2E_FIXTURES.appointmentId)}`,
   `DELETE FROM appointment WHERE id = ${quote(E2E_FIXTURES.appointmentId)}`,
-  `DELETE FROM availability_slot WHERE id = ${quote(E2E_FIXTURES.slotId)}`,
+  `DELETE FROM availability_slot WHERE id IN (${fixtureSlotIds})`,
   `DELETE FROM session WHERE user_id IN (${fixtureIds})`,
   `DELETE FROM "twoFactor" WHERE userId IN (${fixtureIds})`,
   `DELETE FROM account WHERE user_id IN (${fixtureIds})`,
@@ -97,7 +102,10 @@ const statements = [
     (id) =>
       `INSERT INTO "twoFactor" (id, userId, secret, backupCodes, verified, failedVerificationCount, lockedUntil) VALUES (${quote(`2fa-${id}`)}, ${quote(id)}, ${quote(encryptedSecret)}, ${quote(encryptedBackupCodes)}, 1, 0, NULL)`,
   ),
-  `INSERT INTO availability_slot (id, therapist_id, starts_at, ends_at, state, created_at, updated_at) VALUES (${quote(E2E_FIXTURES.slotId)}, ${quote(E2E_FIXTURES.therapistId)}, ${start.getTime()}, ${end.getTime()}, 'OPEN', ${now}, ${now})`,
+  ...slotWindows.map(
+    ({ id, startsAt, endsAt }) =>
+      `INSERT INTO availability_slot (id, therapist_id, starts_at, ends_at, state, created_at, updated_at) VALUES (${quote(id)}, ${quote(E2E_FIXTURES.therapistId)}, ${startsAt.getTime()}, ${endsAt.getTime()}, 'OPEN', ${now}, ${now})`,
+  ),
 ].join(";\n");
 
 execFileSync(
@@ -114,4 +122,4 @@ execFileSync(
   { stdio: "inherit" },
 );
 
-console.info("Prepared isolated local E2E users and one bookable slot.");
+console.info("Prepared isolated local E2E users and three bookable slots.");

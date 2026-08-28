@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rescheduleAppointmentForClient } from "@/lib/appointment-transitions";
 import { getAuth } from "@/lib/auth";
 import { claimAvailabilitySlot } from "@/lib/appointments";
 import { findUserById } from "@/lib/db/repositories";
@@ -7,7 +8,7 @@ import { bookingRequestSchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 
-function json(body: Record<string, string>, status: number) {
+function json(body: Record<string, unknown>, status: number) {
   return NextResponse.json(body, {
     status,
     headers: { "Cache-Control": "private, no-store, max-age=0" },
@@ -29,6 +30,24 @@ export async function POST(request: Request) {
   const body = bookingRequestSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return json({ error: "Invalid booking request" }, 400);
   try {
+    if (body.data.rescheduleFromAppointmentId) {
+      const result = await rescheduleAppointmentForClient(
+        user.id,
+        body.data.rescheduleFromAppointmentId,
+        body.data.slotId,
+      );
+      if (result.originalAppointmentCancelled) {
+        return json(
+          {
+            error: "That time is no longer available",
+            originalAppointmentCancelled: true,
+          },
+          409,
+        );
+      }
+      return json({ appointmentId: result.appointmentId }, 201);
+    }
+
     const appointment = await claimAvailabilitySlot(user.id, body.data.slotId);
     return json({ appointmentId: appointment.id }, 201);
   } catch {

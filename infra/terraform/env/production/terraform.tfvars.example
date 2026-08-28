@@ -7,6 +7,8 @@ email_from_address    = "noreply@example.com"
 operations_mailbox    = "operations@example.com"
 
 # Obtain these from the controller/DPO and record the approval outside Git.
+# The referenced approval must cover the exact behavior documented in README.md.
+retention_approval_reference = ""
 retention = {
   appointment_days           = 0
   cancelled_appointment_days = 0

@@ -24,7 +24,7 @@ function days(value: string, name: string) {
   return result;
 }
 
-async function runRetention(env: MaintenanceEnv) {
+export async function runRetention(env: MaintenanceEnv) {
   const appointmentDays = days(env.RETENTION_APPOINTMENT_DAYS, "RETENTION_APPOINTMENT_DAYS");
   const cancelledDays = days(
     env.RETENTION_CANCELLED_APPOINTMENT_DAYS,
@@ -48,7 +48,15 @@ async function runRetention(env: MaintenanceEnv) {
       cancelledCutoff,
     ),
     env.DB.prepare(
-      "DELETE FROM appointment WHERE status IN ('COMPLETED', 'REQUESTED') AND starts_at < ?",
+      "DELETE FROM appointment WHERE status IN ('REQUESTED', 'CONFIRMED', 'COMPLETED') AND starts_at < ?",
+    ).bind(normalCutoff),
+    env.DB.prepare(
+      `DELETE FROM availability_slot
+       WHERE ends_at < ?
+       AND NOT EXISTS (
+         SELECT 1 FROM appointment
+         WHERE appointment.availability_slot_id = availability_slot.id
+       )`,
     ).bind(normalCutoff),
     env.DB.prepare(
       "DELETE FROM calendar_event_reference WHERE appointment_id NOT IN (SELECT id FROM appointment)",

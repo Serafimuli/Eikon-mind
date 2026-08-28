@@ -1,5 +1,6 @@
 "use client";
 
+import { unstable_rethrow } from "next/navigation";
 import { useActionState } from "react";
 
 type ActionState = { error: string };
@@ -21,7 +22,8 @@ export function ActionForm({
       try {
         await action(formData);
         return { error: "" };
-      } catch {
+      } catch (error) {
+        unstable_rethrow(error);
         return { error: errorMessage };
       }
     },

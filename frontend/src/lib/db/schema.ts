@@ -104,12 +104,18 @@ export const appointments = sqliteTable(
       .notNull()
       .default("REQUESTED"),
     cancelledAt: integer("cancelled_at", { mode: "timestamp_ms" }),
+    clientHiddenAt: integer("client_hidden_at", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [
     uniqueIndex("appointment_availability_slot_unique").on(table.availabilitySlotId),
     index("appointment_client_starts_idx").on(table.clientId, table.startsAt),
+    index("appointment_client_visible_idx").on(
+      table.clientId,
+      table.clientHiddenAt,
+      table.startsAt,
+    ),
     index("appointment_therapist_starts_idx").on(table.therapistId, table.startsAt),
     index("appointment_status_starts_idx").on(table.status, table.startsAt),
   ],
