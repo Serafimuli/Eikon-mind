@@ -303,8 +303,27 @@ test("rate-limit coverage includes verification resend and password reset", asyn
 
 test("the Turnstile dummy hostname exception is gated by both local test credentials", async () => {
   const source = await readFile(new URL("../src/lib/auth.ts", import.meta.url), "utf8");
-  assert.match(source, /!production &&/);
+  assert.match(source, /const local = env\.APP_ENV === "local"/);
   assert.match(source, /TURNSTILE_SITEKEY === "1x00000000000000000000AA"/);
-  assert.match(source, /TURNSTILE_SECRET === "1x0000000000000000000000000000000AA"/);
+  assert.match(source, /turnstileSecret === "1x0000000000000000000000000000000AA"/);
+  assert.match(
+    source,
+    /deployed && \(usesOfficialTurnstileTestSitekey \|\| usesOfficialTurnstileTestSecret\)/,
+  );
+  assert.match(
+    source,
+    /usesOfficialTurnstileTestKeys =\s*local && usesOfficialTurnstileTestSitekey && usesOfficialTurnstileTestSecret/,
+  );
   assert.match(source, /usesOfficialTurnstileTestKeys \? \["example\.com"\]/);
+});
+
+test("dev and production use deployed transport and cookie protections", async () => {
+  const [authSource, platformEnvSource] = await Promise.all([
+    readFile(new URL("../src/lib/auth.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/lib/platform-env.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(authSource, /const deployed = !local/);
+  assert.match(authSource, /useSecureCookies: deployed/);
+  assert.match(authSource, /secure: deployed/);
+  assert.match(platformEnvSource, /env\.APP_ENV !== "local" && url\.protocol !== "https:"/);
 });

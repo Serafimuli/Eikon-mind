@@ -1,4 +1,5 @@
 import { createTextEmail } from "@/lib/integrations/email-message";
+import { resolveSecret } from "@/lib/runtime-secret";
 
 type IntegrationEnvironment = Pick<
   CloudflareEnv,
@@ -22,6 +23,13 @@ type PendingJob = {
   event_id: string | null;
 };
 
+type GoogleCredentials = {
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+  calendarId: string;
+};
+
 const MAX_ATTEMPTS = 8;
 const LEASE_MILLISECONDS = 5 * 60_000;
 const MAX_RETRY_DELAY_MILLISECONDS = 60 * 60_000;
@@ -29,6 +37,16 @@ const MAX_RETRY_DELAY_MILLISECONDS = 60 * 60_000;
 function assertSecret(value: string | undefined, name: string) {
   if (!value) throw new Error(`Missing required ${name} secret`);
   return value;
+}
+
+async function resolveGoogleCredentials(env: IntegrationEnvironment): Promise<GoogleCredentials> {
+  const [clientId, clientSecret, refreshToken, calendarId] = await Promise.all([
+    resolveSecret(env.GOOGLE_CLIENT_ID, "GOOGLE_CLIENT_ID"),
+    resolveSecret(env.GOOGLE_CLIENT_SECRET, "GOOGLE_CLIENT_SECRET"),
+    resolveSecret(env.GOOGLE_REFRESH_TOKEN, "GOOGLE_REFRESH_TOKEN"),
+    resolveSecret(env.GOOGLE_CALENDAR_ID, "GOOGLE_CALENDAR_ID"),
+  ]);
+  return { clientId, clientSecret, refreshToken, calendarId };
 }
 
 async function googleEventId(appointmentId: string) {
@@ -41,11 +59,11 @@ async function googleEventId(appointmentId: string) {
     .slice(0, 26);
 }
 
-async function accessToken(env: IntegrationEnvironment) {
+async function accessToken(credentials: GoogleCredentials) {
   const body = new URLSearchParams({
-    client_id: assertSecret(env.GOOGLE_CLIENT_ID, "GOOGLE_CLIENT_ID"),
-    client_secret: assertSecret(env.GOOGLE_CLIENT_SECRET, "GOOGLE_CLIENT_SECRET"),
-    refresh_token: assertSecret(env.GOOGLE_REFRESH_TOKEN, "GOOGLE_REFRESH_TOKEN"),
+    client_id: credentials.clientId,
+    client_secret: credentials.clientSecret,
+    refresh_token: credentials.refreshToken,
     grant_type: "refresh_token",
   });
   const response = await fetch("https://oauth2.googleapis.com/token", {
@@ -89,9 +107,9 @@ async function updateGoogleEvent(
   if (!response.ok) throw new Error("Google Calendar update failed");
 }
 
-async function syncGoogleEvent(env: IntegrationEnvironment, job: PendingJob, eventId: string) {
-  const calendarId = encodeURIComponent(assertSecret(env.GOOGLE_CALENDAR_ID, "GOOGLE_CALENDAR_ID"));
-  const token = await accessToken(env);
+async function syncGoogleEvent(credentials: GoogleCredentials, job: PendingJob, eventId: string) {
+  const calendarId = encodeURIComponent(credentials.calendarId);
+  const token = await accessToken(credentials);
   const eventsUrl = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`;
   const eventUrl = `${eventsUrl}/${encodeURIComponent(eventId)}`;
 
@@ -166,6 +184,8 @@ export async function processPendingIntegrationJobs(env: IntegrationEnvironment,
     .bind(now, now, limit)
     .all<PendingJob>();
 
+  let googleCredentials: Promise<GoogleCredentials> | undefined;
+
   for (const job of result.results) {
     const claimed = await env.DB.prepare(
       `UPDATE integration_job
@@ -181,7 +201,8 @@ export async function processPendingIntegrationJobs(env: IntegrationEnvironment,
 
     try {
       const eventId = job.event_id ?? (await googleEventId(job.appointment_id));
-      await syncGoogleEvent(env, job, eventId);
+      googleCredentials ??= resolveGoogleCredentials(env);
+      await syncGoogleEvent(await googleCredentials, job, eventId);
       await env.DB.batch([
         env.DB.prepare(
           `INSERT INTO calendar_event_reference

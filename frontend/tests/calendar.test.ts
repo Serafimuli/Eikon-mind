@@ -150,6 +150,29 @@ test("creates an initial Google Calendar event with POST and a deterministic ID"
   assert.equal(database.batched[0].bindings[2], payload.id);
 });
 
+test("resolves Secrets Store bindings before calling Google", async (t) => {
+  const database = new FakeDatabase(createJob());
+  const calls = mockFetch(t, ({ url }) => {
+    if (url === oauthUrl) return oauthSuccess();
+    return new Response(null, { status: 200 });
+  });
+  const env = createEnvironment(database);
+  Object.assign(env, {
+    GOOGLE_CLIENT_ID: { get: async () => "remote-client-id" },
+    GOOGLE_CLIENT_SECRET: { get: async () => "remote-client-secret" },
+    GOOGLE_REFRESH_TOKEN: { get: async () => "remote-refresh-token" },
+    GOOGLE_CALENDAR_ID: { get: async () => "calendar@example.com" },
+  });
+
+  await processPendingIntegrationJobs(env, 1);
+
+  const oauthBody = new URLSearchParams(String(calls[0].init?.body));
+  assert.equal(oauthBody.get("client_id"), "remote-client-id");
+  assert.equal(oauthBody.get("client_secret"), "remote-client-secret");
+  assert.equal(oauthBody.get("refresh_token"), "remote-refresh-token");
+  assert.equal(calls[1].url, eventsUrl);
+});
+
 test("retries a transient insert failure with the same deterministic event ID", async (t) => {
   const database = new FakeDatabase(createJob());
   let insertAttempts = 0;

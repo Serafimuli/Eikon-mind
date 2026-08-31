@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const workflowPath = new URL("../../.github/workflows/deploy-production.yml", import.meta.url);
+const devWorkflowPath = new URL("../../.github/workflows/deploy-dev.yml", import.meta.url);
 const hcpScriptPath = new URL(
   "../../.github/scripts/configure-hcp-production.mjs",
   import.meta.url,
@@ -15,15 +16,23 @@ const applicationModulePath = new URL(
 );
 const wranglerRendererPath = new URL("../scripts/render-wrangler-config.mjs", import.meta.url);
 
-const [workflow, hcpScript, smokeScript, terraform, applicationModule, wranglerRenderer] =
-  await Promise.all([
-    readFile(workflowPath, "utf8"),
-    readFile(hcpScriptPath, "utf8"),
-    readFile(smokeScriptPath, "utf8"),
-    readFile(terraformPath, "utf8"),
-    readFile(applicationModulePath, "utf8"),
-    readFile(wranglerRendererPath, "utf8"),
-  ]);
+const [
+  workflow,
+  devWorkflow,
+  hcpScript,
+  smokeScript,
+  terraform,
+  applicationModule,
+  wranglerRenderer,
+] = await Promise.all([
+  readFile(workflowPath, "utf8"),
+  readFile(devWorkflowPath, "utf8"),
+  readFile(hcpScriptPath, "utf8"),
+  readFile(smokeScriptPath, "utf8"),
+  readFile(terraformPath, "utf8"),
+  readFile(applicationModulePath, "utf8"),
+  readFile(wranglerRendererPath, "utf8"),
+]);
 
 test("production HCP organization is supplied explicitly by CI", () => {
   assert.doesNotMatch(terraform, /your-hcp-terraform-organization/);
@@ -96,6 +105,7 @@ test("Worker upload precedes migration and promotion with the deploy credential"
 
 test("production smoke coverage includes assets, headers, config, auth, D1, and maintenance", () => {
   for (const expected of [
+    'fetchCustomDomain("/")',
     "/assets/eikon-mind-mark.png",
     "89504e470d0a1a0a",
     "content-security-policy",
@@ -109,4 +119,15 @@ test("production smoke coverage includes assets, headers, config, auth, D1, and 
     assert.ok(smokeScript.includes(expected), `smoke script is missing ${expected}`);
   }
   assert.match(workflow, /SELECT 1 AS healthy/);
+});
+
+test("development deployment uses the complete smoke suite and deploy credential", () => {
+  assert.match(devWorkflow, /name: Development application, database, and maintenance smoke tests/);
+  assert.match(
+    devWorkflow,
+    /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_DEPLOY_API_TOKEN \}\}/,
+  );
+  assert.match(devWorkflow, /SELECT 1 AS healthy/);
+  assert.match(devWorkflow, /scripts\/smoke-production\.mjs/);
+  assert.match(devWorkflow, /Apply compatible D1 migrations[\s\S]*?CLOUDFLARE_DEPLOY_API_TOKEN/);
 });

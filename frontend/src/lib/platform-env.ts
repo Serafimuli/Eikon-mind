@@ -10,8 +10,8 @@ export function getApplicationOrigin() {
   const env = getRuntimeEnv();
   const raw = env.BETTER_AUTH_URL?.trim() || "http://localhost:3000";
   const url = new URL(raw);
-  if (env.APP_ENV === "production" && url.protocol !== "https:") {
-    throw new Error("Production BETTER_AUTH_URL must use HTTPS");
+  if (env.APP_ENV !== "local" && url.protocol !== "https:") {
+    throw new Error("Deployed BETTER_AUTH_URL must use HTTPS");
   }
   return url.origin;
 }

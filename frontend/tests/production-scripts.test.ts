@@ -73,7 +73,7 @@ test("production smoke checks pass against representative HTTP and Cloudflare re
   t.mock.method(globalThis, "fetch", async (input: RequestInfo | URL) => {
     const url = String(input);
     visited.push(url);
-    if (url === "https://production.example/en") {
+    if (url === "https://production.example/") {
       return new Response("ok", {
         status: 200,
         headers: {

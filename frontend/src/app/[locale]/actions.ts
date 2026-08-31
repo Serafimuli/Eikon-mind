@@ -220,8 +220,9 @@ export async function requestAccountDeletion(localeInput: string, formData: Form
   }
 
   const requestHeaders = await headers();
-  const verification = await getAuth()
-    .api.verifyPassword({ headers: requestHeaders, body: { password } })
+  const auth = await getAuth();
+  const verification = await auth.api
+    .verifyPassword({ headers: requestHeaders, body: { password } })
     .catch(() => ({ status: false }));
   if (!verification.status) {
     throw new DomainError("Account deletion confirmation is invalid", "ACCESS_DENIED");
@@ -271,6 +272,6 @@ export async function requestAccountDeletion(localeInput: string, formData: Form
     ),
   ]);
 
-  await getAuth().api.signOut({ headers: requestHeaders });
+  await auth.api.signOut({ headers: requestHeaders });
   redirect(`/${locale}`);
 }

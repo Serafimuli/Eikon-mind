@@ -7,7 +7,8 @@ import { findUserById } from "@/lib/db/repositories";
 import { isStaff } from "@/lib/roles";
 
 export async function getCurrentUser() {
-  const session = await getAuth().api.getSession({ headers: await headers() });
+  const auth = await getAuth();
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return null;
   return findUserById(session.user.id);
 }

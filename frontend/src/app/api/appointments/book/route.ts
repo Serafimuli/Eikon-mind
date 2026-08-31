@@ -20,7 +20,8 @@ export async function POST(request: Request) {
   if (!origin || origin !== getApplicationOrigin()) {
     return json({ error: "Invalid request origin" }, 403);
   }
-  const session = await getAuth().api.getSession({ headers: request.headers });
+  const auth = await getAuth();
+  const session = await auth.api.getSession({ headers: request.headers });
   if (!session) return json({ error: "Authentication required" }, 401);
   const user = await findUserById(session.user.id);
   if (!user || user.role !== "USER" || !user.emailVerified) {

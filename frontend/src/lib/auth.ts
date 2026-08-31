@@ -13,6 +13,7 @@ import { sessions } from "@/lib/db/schema";
 import * as schema from "@/lib/db/schema";
 import { hashPassword, verifyPassword } from "@/lib/security/password";
 import { recordSecurityEvent } from "@/lib/security/events";
+import { resolveSecret } from "@/lib/runtime-secret";
 
 export function parseSigningKeys(raw: string | undefined) {
   const keys = raw
@@ -40,14 +41,22 @@ export function parseSigningKeys(raw: string | undefined) {
   return keys;
 }
 
-export const getAuth = () => {
+export const getAuth = async () => {
   const env = getRuntimeEnv();
-  const production = env.APP_ENV === "production";
+  const local = env.APP_ENV === "local";
+  const deployed = !local;
   const baseURL = getApplicationOrigin();
+  const [signingSecrets, turnstileSecret] = await Promise.all([
+    resolveSecret(env.BETTER_AUTH_SECRETS, "BETTER_AUTH_SECRETS"),
+    resolveSecret(env.TURNSTILE_SECRET, "TURNSTILE_SECRET"),
+  ]);
+  const usesOfficialTurnstileTestSitekey = env.TURNSTILE_SITEKEY === "1x00000000000000000000AA";
+  const usesOfficialTurnstileTestSecret = turnstileSecret === "1x0000000000000000000000000000000AA";
+  if (deployed && (usesOfficialTurnstileTestSitekey || usesOfficialTurnstileTestSecret)) {
+    throw new Error("Cloudflare Turnstile test keys require APP_ENV=local");
+  }
   const usesOfficialTurnstileTestKeys =
-    !production &&
-    env.TURNSTILE_SITEKEY === "1x00000000000000000000AA" &&
-    env.TURNSTILE_SECRET === "1x0000000000000000000000000000000AA";
+    local && usesOfficialTurnstileTestSitekey && usesOfficialTurnstileTestSecret;
   const turnstileHostnames = [
     new URL(baseURL).hostname,
     // Cloudflare's dummy Siteverify response currently reports example.com.
@@ -58,7 +67,7 @@ export const getAuth = () => {
   return betterAuth({
     appName: "Eikon Mind",
     baseURL,
-    secrets: parseSigningKeys(env.BETTER_AUTH_SECRETS),
+    secrets: parseSigningKeys(signingSecrets),
     database: drizzleAdapter(getDb(), {
       provider: "sqlite",
       // Better Auth 1.7 resolves tables by its singular model names. Keep the
@@ -136,7 +145,7 @@ export const getAuth = () => {
       max: 60,
     },
     advanced: {
-      useSecureCookies: production,
+      useSecureCookies: deployed,
       ipAddress: {
         ipAddressHeaders: ["cf-connecting-ip"],
         ipv6Subnet: 64,
@@ -144,7 +153,7 @@ export const getAuth = () => {
       defaultCookieAttributes: {
         httpOnly: true,
         sameSite: "lax",
-        secure: production,
+        secure: deployed,
       },
     },
     databaseHooks: {
@@ -165,7 +174,7 @@ export const getAuth = () => {
     plugins: [
       captcha({
         provider: "cloudflare-turnstile",
-        secretKey: env.TURNSTILE_SECRET,
+        secretKey: turnstileSecret,
         endpoints: [
           "/sign-up/email",
           "/sign-in/email",

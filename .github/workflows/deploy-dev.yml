@@ -48,6 +48,8 @@ jobs:
       - name: Render environment configuration
         run: node scripts/render-wrangler-config.mjs dev "$GITHUB_WORKSPACE/deployment.json"
       - name: Apply compatible D1 migrations
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
         run: pnpm exec wrangler d1 migrations apply eikon-mind-dev --remote --config .wrangler/generated/dev/wrangler.jsonc
       - name: Upload and promote application and maintenance versions
         env:
@@ -59,5 +61,13 @@ jobs:
           pnpm exec wrangler versions upload --config .wrangler/generated/dev/wrangler-maintenance.jsonc --tag "$GITHUB_SHA" --message "development maintenance $GITHUB_SHA"
           pnpm exec wrangler versions deploy --config .wrangler/generated/dev/wrangler-maintenance.jsonc --version-tag "$GITHUB_SHA" --percentage 100 --message "development maintenance $GITHUB_SHA"
           pnpm exec wrangler triggers deploy --config .wrangler/generated/dev/wrangler-maintenance.jsonc
-      - name: HTTPS smoke test
-        run: curl --fail --silent --show-error --max-time 15 "https://$(jq -r '.deployment.value.hostname' "$GITHUB_WORKSPACE/deployment.json")/"
+      - name: Development application, database, and maintenance smoke tests
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
+        run: |
+          database_health="$(pnpm exec wrangler d1 execute eikon-mind-dev --remote --command 'SELECT 1 AS healthy' --json --config .wrangler/generated/dev/wrangler.jsonc)"
+          echo "$database_health" | jq -e 'any(.. | objects; .healthy == 1)'
+          hostname="$(jq -r '.deployment.value.hostname' "$GITHUB_WORKSPACE/deployment.json")"
+          account_id="$(jq -r '.deployment.value.account_id' "$GITHUB_WORKSPACE/deployment.json")"
+          worker_name="$(jq -r '.deployment.value.worker_name' "$GITHUB_WORKSPACE/deployment.json")"
+          node scripts/smoke-production.mjs "https://$hostname" "$account_id" "$worker_name-maintenance"
