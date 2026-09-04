@@ -1,40 +1,6 @@
 import "server-only";
 
-import { createTextEmail } from "@/lib/integrations/email-message";
-
-async function sendEmail(
-  binding: SendEmail,
-  from: string,
-  to: string,
-  subject: string,
-  body: string,
-) {
-  const message = createTextEmail(from, to, subject, body);
-  await binding.send(message);
-}
-
-export function sendTransactionalEmail(
-  env: Pick<CloudflareEnv, "TRANSACTIONAL_EMAIL" | "EMAIL_FROM_ADDRESS">,
-  recipient: string,
-  subject: string,
-  body: string,
-) {
-  return sendEmail(env.TRANSACTIONAL_EMAIL, env.EMAIL_FROM_ADDRESS, recipient, subject, body);
-}
-
-export function sendOperationsEmail(
-  env: Pick<CloudflareEnv, "OPERATIONS_EMAIL" | "EMAIL_FROM_ADDRESS" | "OPERATIONS_MAILBOX">,
-  subject: string,
-  body: string,
-) {
-  return sendEmail(
-    env.OPERATIONS_EMAIL,
-    env.EMAIL_FROM_ADDRESS,
-    env.OPERATIONS_MAILBOX,
-    subject,
-    body,
-  );
-}
+export { sendOperationsEmail, sendTransactionalEmail } from "@/lib/integrations/email-delivery";
 
 export function securityEmail(kind: "verify" | "reset", url: string) {
   if (kind === "verify") {

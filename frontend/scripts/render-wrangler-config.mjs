@@ -46,6 +46,7 @@ const secretBindings = [
   "GOOGLE_CLIENT_SECRET",
   "GOOGLE_REFRESH_TOKEN",
   "GOOGLE_CALENDAR_ID",
+  "RESEND_API_KEY",
 ].map((secret_name) => ({
   binding: secret_name,
   store_id: deployment.secrets_store_id,
@@ -70,6 +71,7 @@ const common = {
     BETTER_AUTH_URL: `https://${deployment.hostname}`,
     TURNSTILE_SITEKEY: deployment.turnstile_sitekey,
     EMAIL_FROM_ADDRESS: deployment.email_from_address,
+    FREE_TIER_ONLY: "true",
     OPERATIONS_MAILBOX: deployment.operations_mailbox,
     RETENTION_APPOINTMENT_DAYS: String(deployment.retention.appointment_days),
     RETENTION_CANCELLED_APPOINTMENT_DAYS: String(deployment.retention.cancelled_appointment_days),
@@ -77,15 +79,6 @@ const common = {
     RETENTION_AUDIT_EVENT_DAYS: String(deployment.retention.audit_event_days),
   },
 };
-
-const emailBindings = [
-  { name: "TRANSACTIONAL_EMAIL", allowed_sender_addresses: [deployment.email_from_address] },
-  {
-    name: "OPERATIONS_EMAIL",
-    allowed_sender_addresses: [deployment.email_from_address],
-    destination_address: deployment.operations_mailbox,
-  },
-];
 
 const applicationConfig = {
   $schema: `${root}node_modules/wrangler/config-schema.json`,
@@ -95,7 +88,6 @@ const applicationConfig = {
   workers_dev: false,
   routes: [{ pattern: deployment.hostname, custom_domain: true }],
   assets: { directory: `${root}.open-next/assets`, binding: "ASSETS" },
-  send_email: emailBindings,
 };
 
 const maintenanceConfig = {
@@ -105,7 +97,6 @@ const maintenanceConfig = {
   main: `${root}workers/maintenance.ts`,
   workers_dev: false,
   triggers: { crons: ["*/15 * * * *"] },
-  send_email: emailBindings,
 };
 
 mkdirSync(configDirectory, { recursive: true, mode: 0o700 });

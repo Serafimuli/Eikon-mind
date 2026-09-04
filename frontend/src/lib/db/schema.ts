@@ -89,6 +89,17 @@ export const rateLimit = sqliteTable(
   (table) => [uniqueIndex("rate_limit_key_unique").on(table.key)],
 );
 
+// One non-personal aggregate row prevents the application from exceeding the
+// Resend Free daily or monthly transactional-email allowance.
+export const emailQuotaUsage = sqliteTable("email_quota_usage", {
+  id: text("id").primaryKey(),
+  dayKey: text("day_key").notNull(),
+  dayCount: integer("day_count").notNull(),
+  monthKey: text("month_key").notNull(),
+  monthCount: integer("month_count").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
+
 export const appointments = sqliteTable(
   "appointment",
   {

@@ -93,6 +93,12 @@ test("application Worker uses a Custom Domain as its origin", () => {
   assert.doesNotMatch(wranglerRenderer, /zone_id: deployment\.zone_id/);
 });
 
+test("Worker configuration uses only the hard-capped Resend Free email integration", () => {
+  assert.match(wranglerRenderer, /"RESEND_API_KEY"/);
+  assert.match(wranglerRenderer, /FREE_TIER_ONLY: "true"/);
+  assert.doesNotMatch(wranglerRenderer, /send_email|TRANSACTIONAL_EMAIL|OPERATIONS_EMAIL/);
+});
+
 test("Worker upload precedes migration and promotion with the deploy credential", () => {
   const upload = workflow.indexOf("Upload application and maintenance Worker versions");
   const migration = workflow.indexOf("Apply backwards-compatible D1 migrations");

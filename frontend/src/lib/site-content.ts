@@ -1777,7 +1777,7 @@ roPages["politica-de-confidentialitate"] = {
     {
       title: "4. Furnizori",
       paragraphs: [
-        "Baza D1 este configurată cu jurisdicție UE și fără replici de citire. Cloudflare procesează infrastructura; Google Calendar primește doar un eveniment generic, fără nume, email sau detalii despre terapie. Configurarea nu garantează procesare exclusiv în UE.",
+        "Baza D1 este configurată cu jurisdicție UE și fără replici de citire. Cloudflare procesează infrastructura. Resend procesează expeditorul, destinatarul, subiectul și fie un link de securitate al contului, fie o notificare generică; mesajele nu conțin note clinice sau detalii despre terapie. Google Calendar primește doar un eveniment generic, fără nume, email sau detalii despre terapie. Configurarea nu garantează procesare exclusiv în UE.",
       ],
     },
     {
@@ -1824,7 +1824,7 @@ enPages["politica-de-confidentialitate"] = {
     {
       title: "4. Providers",
       paragraphs: [
-        "D1 is configured with EU jurisdiction and no read replicas. Cloudflare operates infrastructure; Google Calendar receives only a generic event with no name, email, or therapy details. This configuration does not guarantee EU-only processing.",
+        "D1 is configured with EU jurisdiction and no read replicas. Cloudflare operates infrastructure. Resend processes the sender, recipient, subject, and either an account-security link or a generic notification; messages contain no clinical notes or therapy details. Google Calendar receives only a generic event with no name, email, or therapy details. This configuration does not guarantee EU-only processing.",
       ],
     },
     {

@@ -1,4 +1,4 @@
-import { createTextEmail } from "@/lib/integrations/email-message";
+import { sendOperationsEmail } from "@/lib/integrations/email-delivery";
 import { resolveSecret } from "@/lib/runtime-secret";
 
 type IntegrationEnvironment = Pick<
@@ -8,9 +8,11 @@ type IntegrationEnvironment = Pick<
   | "GOOGLE_CLIENT_SECRET"
   | "GOOGLE_REFRESH_TOKEN"
   | "GOOGLE_CALENDAR_ID"
-  | "OPERATIONS_EMAIL"
+  | "APP_ENV"
   | "EMAIL_FROM_ADDRESS"
+  | "FREE_TIER_ONLY"
   | "OPERATIONS_MAILBOX"
+  | "RESEND_API_KEY"
 >;
 
 type PendingJob = {
@@ -151,13 +153,11 @@ async function alertFailedJobs(env: IntegrationEnvironment) {
   ).all<{ id: string }>();
   if (failed.results.length === 0) return;
 
-  const message = createTextEmail(
-    env.EMAIL_FROM_ADDRESS,
-    env.OPERATIONS_MAILBOX,
+  await sendOperationsEmail(
+    env,
     "Eikon Mind calendar integration needs attention",
     `${failed.results.length} calendar integration job(s) reached the retry limit. Review the privacy-minimized security audit and integration status.`,
   );
-  await env.OPERATIONS_EMAIL.send(message);
 
   const alertedAt = Date.now();
   await env.DB.batch(

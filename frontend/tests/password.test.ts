@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
 import test from "node:test";
 import {
@@ -41,4 +42,13 @@ test("the configured password KDF remains usable on the CI hardware budget", asy
     elapsedMilliseconds < 5_000,
     `scrypt took ${Math.round(elapsedMilliseconds)} ms; review the deployment CPU budget`,
   );
+});
+
+test("password hashing uses the Workers-native crypto implementation", async () => {
+  const source = await readFile(
+    new URL("../src/lib/security/password.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /from "node:crypto"/);
+  assert.doesNotMatch(source, /@noble\/hashes|scryptAsync/);
 });

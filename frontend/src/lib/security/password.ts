@@ -1,5 +1,4 @@
-import { scryptAsync } from "@noble/hashes/scrypt.js";
-import { bytesToHex, hexToBytes, randomBytes } from "@noble/hashes/utils.js";
+import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 
 const ALGORITHM = "scrypt";
 const FORMAT_VERSION = 1;
@@ -14,24 +13,21 @@ const SCRYPT_OPTIONS = {
   N: COST,
   r: BLOCK_SIZE,
   p: PARALLELIZATION,
-  dkLen: DERIVED_KEY_BYTES,
   maxmem: MAX_MEMORY_BYTES,
-  asyncTick: 10,
 } as const;
 
-function equalBytes(left: Uint8Array, right: Uint8Array) {
-  if (left.length !== right.length) return false;
-
-  let difference = 0;
-  for (let index = 0; index < left.length; index += 1) {
-    difference |= left[index] ^ right[index];
-  }
-  return difference === 0;
+function deriveKey(password: string, salt: Uint8Array) {
+  return new Promise<Buffer>((resolve, reject) => {
+    scrypt(password, salt, DERIVED_KEY_BYTES, SCRYPT_OPTIONS, (error, derivedKey) => {
+      if (error) reject(error);
+      else resolve(derivedKey);
+    });
+  });
 }
 
 export async function hashPassword(password: string) {
   const salt = randomBytes(SALT_BYTES);
-  const derivedKey = await scryptAsync(password, salt, SCRYPT_OPTIONS);
+  const derivedKey = await deriveKey(password, salt);
 
   return [
     ALGORITHM,
@@ -39,8 +35,8 @@ export async function hashPassword(password: string) {
     COST,
     BLOCK_SIZE,
     PARALLELIZATION,
-    bytesToHex(salt),
-    bytesToHex(derivedKey),
+    salt.toString("hex"),
+    derivedKey.toString("hex"),
   ].join("$");
 }
 
@@ -60,9 +56,9 @@ export async function verifyPassword({ hash, password }: { hash: string; passwor
       return false;
     }
 
-    const expected = hexToBytes(keyHex);
-    const actual = await scryptAsync(password, hexToBytes(saltHex), SCRYPT_OPTIONS);
-    return equalBytes(actual, expected);
+    const expected = Buffer.from(keyHex, "hex");
+    const actual = await deriveKey(password, Buffer.from(saltHex, "hex"));
+    return timingSafeEqual(actual, expected);
   } catch {
     return false;
   }

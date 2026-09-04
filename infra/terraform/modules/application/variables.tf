@@ -34,7 +34,7 @@ variable "secrets_store_name" {
 }
 
 variable "email_from_address" {
-  description = "Approved Email Sending address, for example noreply@example.com."
+  description = "Sender on a domain verified by the Resend Free account, for example noreply@example.com."
   type        = string
 }
 

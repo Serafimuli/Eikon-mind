@@ -14,21 +14,12 @@ interface CloudflareEnv {
   GOOGLE_CLIENT_SECRET: string | SecretsStoreSecret;
   GOOGLE_REFRESH_TOKEN: string | SecretsStoreSecret;
   GOOGLE_CALENDAR_ID: string | SecretsStoreSecret;
+  RESEND_API_KEY: string | SecretsStoreSecret;
   EMAIL_FROM_ADDRESS: string;
+  FREE_TIER_ONLY: "true";
   OPERATIONS_MAILBOX: string;
   RETENTION_APPOINTMENT_DAYS: string;
   RETENTION_CANCELLED_APPOINTMENT_DAYS: string;
   RETENTION_DEIDENTIFIED_RECORD_DAYS: string;
   RETENTION_AUDIT_EVENT_DAYS: string;
-  TRANSACTIONAL_EMAIL: SendEmail;
-  OPERATIONS_EMAIL: SendEmail;
-}
-
-interface SendEmail {
-  send(message: {
-    from: string | { email: string; name?: string };
-    to: string | string[];
-    subject: string;
-    text: string;
-  }): Promise<unknown>;
 }

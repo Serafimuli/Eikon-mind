@@ -103,8 +103,10 @@ function createEnvironment(database: FakeDatabase) {
     GOOGLE_CLIENT_SECRET: "client-secret",
     GOOGLE_REFRESH_TOKEN: "refresh-token",
     GOOGLE_CALENDAR_ID: "calendar@example.com",
-    OPERATIONS_EMAIL: { send: async () => undefined },
+    RESEND_API_KEY: "local-not-configured",
+    APP_ENV: "local",
     EMAIL_FROM_ADDRESS: "noreply@example.com",
+    FREE_TIER_ONLY: "true",
     OPERATIONS_MAILBOX: "operations@example.com",
   } as unknown as Parameters<typeof processPendingIntegrationJobs>[0];
 }

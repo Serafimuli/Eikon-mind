@@ -15,7 +15,7 @@ variable "hostname" {
 
 variable "email_from_address" {
   type        = string
-  description = "Approved Email Sending sender."
+  description = "Sender on a domain verified by the production Resend Free account."
 }
 
 variable "operations_mailbox" {
