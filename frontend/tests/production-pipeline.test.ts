@@ -134,8 +134,10 @@ test("development deployment uses the complete smoke suite and deploy credential
   assert.match(devWorkflow, /workflow_dispatch:/);
   assert.match(devWorkflow, /options: \[bootstrap, deploy\]/);
   assert.match(devWorkflow, /HCP_TERRAFORM_WORKSPACE: eikon-mind-dev/);
+  assert.match(devWorkflow, /Check development Secret Store readiness/);
   assert.match(devWorkflow, /Publish bootstrap deployment details/);
-  assert.match(devWorkflow, /inputs\.operation == 'bootstrap'/);
+  assert.match(devWorkflow, /steps\.secret_store\.outputs\.ready != 'true'/);
+  assert.match(devWorkflow, /steps\.secret_store\.outputs\.ready == 'true'/);
   assert.match(devWorkflow, /name: Development application, database, and maintenance smoke tests/);
   assert.match(
     devWorkflow,

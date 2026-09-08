@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test, { type TestContext } from "node:test";
 
 const hcpScript = new URL("../../.github/scripts/configure-hcp-workspace.mjs", import.meta.url);
+const secretStoreScript = new URL(
+  "../../.github/scripts/check-dev-secret-store.mjs",
+  import.meta.url,
+);
 const smokeScript = new URL("../scripts/smoke-production.mjs", import.meta.url);
 
 function restoreEnvironment(context: TestContext, values: Record<string, string | undefined>) {
@@ -54,6 +61,49 @@ test("HCP setup creates the provider token as a sensitive remote workspace env v
     hcl: false,
     sensitive: true,
   });
+});
+
+test("development bootstrap reports missing Secrets Store names without reading their values", async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), "eikon-mind-secret-store-"));
+  const deploymentPath = join(directory, "deployment.json");
+  const outputPath = join(directory, "github-output.txt");
+  await writeFile(
+    deploymentPath,
+    JSON.stringify({
+      deployment: {
+        value: { account_id: "account-1", secrets_store_id: "store-1" },
+      },
+    }),
+  );
+  restoreEnvironment(t, {
+    CLOUDFLARE_API_TOKEN: "terraform-token",
+    GITHUB_OUTPUT: outputPath,
+  });
+  const originalArgv = process.argv;
+  process.argv = ["node", "check-dev-secret-store.mjs", deploymentPath];
+  t.after(async () => {
+    process.argv = originalArgv;
+    await rm(directory, { force: true, recursive: true });
+  });
+
+  t.mock.method(globalThis, "fetch", async (input: RequestInfo | URL) => {
+    assert.equal(
+      String(input),
+      "https://api.cloudflare.com/client/v4/accounts/account-1/secrets_store/stores/store-1/secrets?per_page=100&page=1",
+    );
+    return Response.json({
+      success: true,
+      result: [{ name: "BETTER_AUTH_SECRETS" }],
+      result_info: { total_pages: 1 },
+    });
+  });
+
+  await import(`${secretStoreScript.href}?case=missing`);
+
+  const output = await readFile(outputPath, "utf8");
+  assert.match(output, /ready=false/);
+  assert.match(output, /missing=TURNSTILE_SECRET/);
+  assert.doesNotMatch(output, /terraform-token/);
 });
 
 test("production smoke checks pass against representative HTTP and Cloudflare responses", async (t) => {

@@ -58,28 +58,37 @@ jobs:
           terraform init -input=false
           terraform apply -input=false -auto-approve
           terraform output -json > "$GITHUB_WORKSPACE/deployment.json"
+      - name: Check development Secret Store readiness
+        id: secret_store
+        run: node "$GITHUB_WORKSPACE/.github/scripts/check-dev-secret-store.mjs" "$GITHUB_WORKSPACE/deployment.json"
       - name: Publish bootstrap deployment details
-        if: github.event_name == 'workflow_dispatch' && inputs.operation == 'bootstrap'
+        if: (github.event_name == 'workflow_dispatch' && inputs.operation == 'bootstrap') || steps.secret_store.outputs.ready != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: development-bootstrap-${{ github.sha }}
           path: deployment.json
           if-no-files-found: error
           retention-days: 1
-      - if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
+      - name: Report development bootstrap status
+        if: steps.secret_store.outputs.ready != 'true'
+        run: |
+          echo "## Development infrastructure is ready" >> "$GITHUB_STEP_SUMMARY"
+          echo "Add the missing Secrets Store names, then run this workflow with operation=deploy." >> "$GITHUB_STEP_SUMMARY"
+          echo "Missing names: ${{ steps.secret_store.outputs.missing }}" >> "$GITHUB_STEP_SUMMARY"
+      - if: steps.secret_store.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy')
         run: pnpm install --frozen-lockfile
-      - if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
+      - if: steps.secret_store.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy')
         run: pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm security:audit && pnpm cf:build
       - name: Render environment configuration
-        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
+        if: steps.secret_store.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy')
         run: node scripts/render-wrangler-config.mjs dev "$GITHUB_WORKSPACE/deployment.json"
       - name: Apply compatible D1 migrations
-        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
+        if: steps.secret_store.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy')
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
         run: pnpm exec wrangler d1 migrations apply eikon-mind-dev --remote --config .wrangler/generated/dev/wrangler.jsonc
       - name: Upload and promote application and maintenance versions
-        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
+        if: steps.secret_store.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy')
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
         run: |
@@ -90,7 +99,7 @@ jobs:
           pnpm exec wrangler versions deploy --config .wrangler/generated/dev/wrangler-maintenance.jsonc --version-tag "$GITHUB_SHA" --percentage 100 --message "development maintenance $GITHUB_SHA"
           pnpm exec wrangler triggers deploy --config .wrangler/generated/dev/wrangler-maintenance.jsonc
       - name: Development application, database, and maintenance smoke tests
-        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
+        if: steps.secret_store.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy')
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
         run: |
