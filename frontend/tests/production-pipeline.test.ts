@@ -88,6 +88,15 @@ test("pnpm is available before setup-node enables pnpm caching", () => {
   }
 });
 
+test("development bootstrap creates a pnpm cache directory and reports its Secrets Store ID", () => {
+  const pnpmStore = devWorkflow.indexOf("Create pnpm store directory");
+  const setupNode = devWorkflow.indexOf("uses: actions/setup-node", pnpmStore);
+
+  assert.ok(pnpmStore >= 0 && pnpmStore < setupNode);
+  assert.match(devWorkflow, /jq -r '\.deployment\.value\.secrets_store_id'/);
+  assert.match(devWorkflow, /Secrets Store ID:/);
+});
+
 test("zone rate limiting stays within the Cloudflare Free plan feature set", () => {
   assert.doesNotMatch(applicationModule, /http\.request\.method/);
   assert.doesNotMatch(applicationModule, /uri\.path matches/);
