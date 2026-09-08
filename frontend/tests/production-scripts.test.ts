@@ -26,6 +26,7 @@ test("HCP setup creates the provider token as a sensitive remote workspace env v
   restoreEnvironment(t, {
     TF_CLOUD_ORGANIZATION: "real-production-org",
     HCP_TERRAFORM_WORKSPACE: "eikon-mind-production",
+    HCP_TERRAFORM_WORKING_DIRECTORY: "infra/terraform/env/production",
     HCP_TERRAFORM_TOKEN: "hcp-token",
     CLOUDFLARE_PROVIDER_TOKEN: "cloudflare-provider-token",
   });
@@ -39,6 +40,9 @@ test("HCP setup creates the provider token as a sensitive remote workspace env v
         data: { id: "workspace-1", attributes: { "execution-mode": "remote" } },
       });
     }
+    if (url.endsWith("/workspaces/workspace-1") && init?.method === "PATCH") {
+      return Response.json({ data: { id: "workspace-1" } });
+    }
     if (url.endsWith("/workspaces/workspace-1/vars") && !init?.method) {
       return Response.json({ data: [], links: { next: null } });
     }
@@ -50,9 +54,17 @@ test("HCP setup creates the provider token as a sensitive remote workspace env v
 
   await import(`${hcpScript.href}?case=create`);
 
-  assert.equal(requests.length, 3);
-  assert.equal(requests[2].init?.method, "POST");
-  const requestBody = JSON.parse(String(requests[2].init?.body));
+  assert.equal(requests.length, 4);
+  assert.equal(requests[1].init?.method, "PATCH");
+  assert.deepEqual(JSON.parse(String(requests[1].init?.body)), {
+    data: {
+      id: "workspace-1",
+      type: "workspaces",
+      attributes: { "working-directory": "infra/terraform/env/production" },
+    },
+  });
+  assert.equal(requests[3].init?.method, "POST");
+  const requestBody = JSON.parse(String(requests[3].init?.body));
   assert.deepEqual(requestBody.data.attributes, {
     key: "CLOUDFLARE_API_TOKEN",
     value: "cloudflare-provider-token",

@@ -89,6 +89,7 @@ jobs:
           HCP_TERRAFORM_TOKEN: ${{ secrets.TF_API_TOKEN }}
           CLOUDFLARE_PROVIDER_TOKEN: ${{ secrets.CLOUDFLARE_TERRAFORM_API_TOKEN }}
           HCP_TERRAFORM_WORKSPACE: eikon-mind-production
+          HCP_TERRAFORM_WORKING_DIRECTORY: infra/terraform/env/production
         run: node "$GITHUB_WORKSPACE/.github/scripts/configure-hcp-workspace.mjs"
       - name: Generate and expose the saved production plan
         working-directory: infra/terraform/env/production

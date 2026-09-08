@@ -67,6 +67,8 @@ test("deployment refs are main-line SHAs or creation-restricted release tags", (
 
 test("remote HCP runs receive a sensitive Cloudflare environment variable", () => {
   assert.match(hcpScript, /executionMode !== "remote"/);
+  assert.match(hcpScript, /HCP_TERRAFORM_WORKING_DIRECTORY/);
+  assert.match(hcpScript, /"working-directory": workingDirectory/);
   assert.match(hcpScript, /key: variableKey/);
   assert.match(hcpScript, /category: "env"/);
   assert.match(hcpScript, /sensitive: true/);
@@ -148,6 +150,7 @@ test("development deployment uses the complete smoke suite and deploy credential
   assert.match(devWorkflow, /workflow_dispatch:/);
   assert.match(devWorkflow, /options: \[bootstrap, deploy\]/);
   assert.match(devWorkflow, /HCP_TERRAFORM_WORKSPACE: eikon-mind-dev/);
+  assert.match(devWorkflow, /HCP_TERRAFORM_WORKING_DIRECTORY: infra\/terraform\/env\/dev/);
   assert.match(devWorkflow, /Check development Secret Store readiness/);
   assert.match(devWorkflow, /Publish bootstrap deployment details/);
   assert.match(devWorkflow, /steps\.secret_store\.outputs\.ready != 'true'/);

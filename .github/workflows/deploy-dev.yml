@@ -49,6 +49,7 @@ jobs:
         env:
           TF_CLOUD_ORGANIZATION: eikon-mind
           HCP_TERRAFORM_WORKSPACE: eikon-mind-dev
+          HCP_TERRAFORM_WORKING_DIRECTORY: infra/terraform/env/dev
           HCP_TERRAFORM_TOKEN: ${{ secrets.TF_API_TOKEN }}
           CLOUDFLARE_PROVIDER_TOKEN: ${{ secrets.CLOUDFLARE_TERRAFORM_API_TOKEN }}
         run: node "$GITHUB_WORKSPACE/.github/scripts/configure-hcp-workspace.mjs"

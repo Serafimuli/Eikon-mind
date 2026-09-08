@@ -9,8 +9,17 @@ function requiredEnvironment(name) {
 
 const organization = requiredEnvironment("TF_CLOUD_ORGANIZATION");
 const workspaceName = requiredEnvironment("HCP_TERRAFORM_WORKSPACE");
+const workingDirectory = requiredEnvironment("HCP_TERRAFORM_WORKING_DIRECTORY");
 const hcpToken = requiredEnvironment("HCP_TERRAFORM_TOKEN");
 const cloudflareToken = requiredEnvironment("CLOUDFLARE_PROVIDER_TOKEN");
+
+if (
+  workingDirectory.startsWith("/") ||
+  workingDirectory.includes("\\") ||
+  workingDirectory.split("/").some((segment) => !segment || segment === "." || segment === "..")
+) {
+  throw new Error("HCP_TERRAFORM_WORKING_DIRECTORY must be a safe relative path");
+}
 
 async function hcpRequest(path, init = {}) {
   const response = await fetch(new URL(path, apiOrigin), {
@@ -36,6 +45,19 @@ if (!workspaceId) throw new Error(`HCP workspace ${workspaceName} was not found`
 const executionMode = workspace.data.attributes?.["execution-mode"];
 if (executionMode !== "remote") {
   throw new Error(`Expected HCP workspace remote execution, received ${executionMode}`);
+}
+
+if (workspace.data.attributes?.["working-directory"] !== workingDirectory) {
+  await hcpRequest(`/api/v2/workspaces/${encodeURIComponent(workspaceId)}`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      data: {
+        id: workspaceId,
+        type: "workspaces",
+        attributes: { "working-directory": workingDirectory },
+      },
+    }),
+  });
 }
 
 const variables = [];
@@ -78,4 +100,4 @@ if (existing) {
   });
 }
 
-console.log(`Configured sensitive ${variableKey} environment variable in ${workspaceName}`);
+console.log(`Configured ${workingDirectory} and sensitive ${variableKey} in ${workspaceName}`);
