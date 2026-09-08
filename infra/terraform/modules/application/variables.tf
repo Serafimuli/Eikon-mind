@@ -4,8 +4,10 @@ variable "account_id" {
 }
 
 variable "zone_id" {
-  description = "Existing Cloudflare Zone ID. This module never creates or transfers a zone."
+  description = "Existing Cloudflare Zone ID. Leave null when the environment uses workers.dev. This module never creates or transfers a zone."
   type        = string
+  default     = null
+  nullable    = true
 }
 
 variable "environment" {
@@ -19,7 +21,7 @@ variable "worker_name" {
 }
 
 variable "hostname" {
-  description = "Available HTTPS hostname in the supplied active Cloudflare zone; Wrangler creates its Worker Custom Domain."
+  description = "Available HTTPS hostname for the Worker, including a workers.dev hostname when no zone is supplied."
   type        = string
 }
 

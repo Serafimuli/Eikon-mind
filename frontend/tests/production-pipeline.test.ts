@@ -4,10 +4,7 @@ import test from "node:test";
 
 const workflowPath = new URL("../../.github/workflows/deploy-production.yml", import.meta.url);
 const devWorkflowPath = new URL("../../.github/workflows/deploy-dev.yml", import.meta.url);
-const hcpScriptPath = new URL(
-  "../../.github/scripts/configure-hcp-production.mjs",
-  import.meta.url,
-);
+const hcpScriptPath = new URL("../../.github/scripts/configure-hcp-workspace.mjs", import.meta.url);
 const smokeScriptPath = new URL("../scripts/smoke-production.mjs", import.meta.url);
 const terraformPath = new URL("../../infra/terraform/env/production/main.tf", import.meta.url);
 const applicationModulePath = new URL(
@@ -84,11 +81,17 @@ test("zone rate limiting stays within the Cloudflare Free plan feature set", () 
   assert.match(applicationModule, /mitigation_timeout\s+= 10/);
 });
 
-test("application Worker uses a Custom Domain as its origin", () => {
+test("application Worker uses workers.dev only for zone-less development", () => {
   assert.match(
     wranglerRenderer,
     /routes: \[\{ pattern: deployment\.hostname, custom_domain: true \}\]/,
   );
+  assert.match(
+    wranglerRenderer,
+    /const usesWorkersDev = environment === "dev" && !deployment\.zone_id/,
+  );
+  assert.match(wranglerRenderer, /\? \{ workers_dev: true \}/);
+  assert.match(wranglerRenderer, /workers_dev: false,/);
   assert.doesNotMatch(wranglerRenderer, /deployment\.hostname}\/\*/);
   assert.doesNotMatch(wranglerRenderer, /zone_id: deployment\.zone_id/);
 });
@@ -111,7 +114,7 @@ test("Worker upload precedes migration and promotion with the deploy credential"
 
 test("production smoke coverage includes assets, headers, config, auth, D1, and maintenance", () => {
   for (const expected of [
-    'fetchCustomDomain("/")',
+    'fetchOrigin("/")',
     "/assets/eikon-mind-mark.png",
     "89504e470d0a1a0a",
     "content-security-policy",
@@ -128,6 +131,11 @@ test("production smoke coverage includes assets, headers, config, auth, D1, and 
 });
 
 test("development deployment uses the complete smoke suite and deploy credential", () => {
+  assert.match(devWorkflow, /workflow_dispatch:/);
+  assert.match(devWorkflow, /options: \[bootstrap, deploy\]/);
+  assert.match(devWorkflow, /HCP_TERRAFORM_WORKSPACE: eikon-mind-dev/);
+  assert.match(devWorkflow, /Publish bootstrap deployment details/);
+  assert.match(devWorkflow, /inputs\.operation == 'bootstrap'/);
   assert.match(devWorkflow, /name: Development application, database, and maintenance smoke tests/);
   assert.match(
     devWorkflow,

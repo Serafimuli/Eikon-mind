@@ -42,12 +42,16 @@ resource "cloudflare_turnstile_widget" "application" {
 
 # Only these two narrow, non-DNS zone settings are owned by this module.
 resource "cloudflare_zone_setting" "always_use_https" {
+  count = var.zone_id == null ? 0 : 1
+
   zone_id    = var.zone_id
   setting_id = "always_use_https"
   value      = "on"
 }
 
 resource "cloudflare_zone_setting" "minimum_tls_version" {
+  count = var.zone_id == null ? 0 : 1
+
   zone_id    = var.zone_id
   setting_id = "min_tls_version"
   value      = "1.2"
@@ -60,6 +64,8 @@ resource "cloudflare_zone_setting" "minimum_tls_version" {
 # matching and regular expressions require a higher zone plan, so the rule
 # counts every request to these POST-only application endpoints.
 resource "cloudflare_ruleset" "sensitive_post_rate_limits" {
+  count = var.zone_id == null ? 0 : 1
+
   zone_id = var.zone_id
   name    = "eikon-mind-${var.environment}-sensitive-posts"
   kind    = "zone"
@@ -78,4 +84,21 @@ resource "cloudflare_ruleset" "sensitive_post_rate_limits" {
       mitigation_timeout  = 10
     }
   }]
+}
+
+# Existing zoned environments retain their state addresses after zone controls
+# become optional for workers.dev deployments.
+moved {
+  from = cloudflare_zone_setting.always_use_https
+  to   = cloudflare_zone_setting.always_use_https[0]
+}
+
+moved {
+  from = cloudflare_zone_setting.minimum_tls_version
+  to   = cloudflare_zone_setting.minimum_tls_version[0]
+}
+
+moved {
+  from = cloudflare_ruleset.sensitive_post_rate_limits
+  to   = cloudflare_ruleset.sensitive_post_rate_limits[0]
 }

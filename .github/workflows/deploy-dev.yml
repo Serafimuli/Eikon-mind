@@ -3,6 +3,14 @@ name: Deploy development
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Provision only, or provision and deploy the application.
+        required: true
+        default: bootstrap
+        type: choice
+        options: [bootstrap, deploy]
 
 permissions:
   contents: read
@@ -37,21 +45,41 @@ jobs:
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_version: 1.15.8
+      - name: Configure Cloudflare credential in the remote HCP workspace
+        env:
+          TF_CLOUD_ORGANIZATION: eikon-mind
+          HCP_TERRAFORM_WORKSPACE: eikon-mind-dev
+          HCP_TERRAFORM_TOKEN: ${{ secrets.TF_API_TOKEN }}
+          CLOUDFLARE_PROVIDER_TOKEN: ${{ secrets.CLOUDFLARE_TERRAFORM_API_TOKEN }}
+        run: node "$GITHUB_WORKSPACE/.github/scripts/configure-hcp-workspace.mjs"
       - name: Apply approved development infrastructure
         working-directory: infra/terraform/env/dev
         run: |
           terraform init -input=false
           terraform apply -input=false -auto-approve
           terraform output -json > "$GITHUB_WORKSPACE/deployment.json"
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm security:audit && pnpm cf:build
+      - name: Publish bootstrap deployment details
+        if: github.event_name == 'workflow_dispatch' && inputs.operation == 'bootstrap'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: development-bootstrap-${{ github.sha }}
+          path: deployment.json
+          if-no-files-found: error
+          retention-days: 1
+      - if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
+        run: pnpm install --frozen-lockfile
+      - if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
+        run: pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm security:audit && pnpm cf:build
       - name: Render environment configuration
+        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
         run: node scripts/render-wrangler-config.mjs dev "$GITHUB_WORKSPACE/deployment.json"
       - name: Apply compatible D1 migrations
+        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
         run: pnpm exec wrangler d1 migrations apply eikon-mind-dev --remote --config .wrangler/generated/dev/wrangler.jsonc
       - name: Upload and promote application and maintenance versions
+        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
         run: |
@@ -62,6 +90,7 @@ jobs:
           pnpm exec wrangler versions deploy --config .wrangler/generated/dev/wrangler-maintenance.jsonc --version-tag "$GITHUB_SHA" --percentage 100 --message "development maintenance $GITHUB_SHA"
           pnpm exec wrangler triggers deploy --config .wrangler/generated/dev/wrangler-maintenance.jsonc
       - name: Development application, database, and maintenance smoke tests
+        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
         run: |

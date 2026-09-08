@@ -2,7 +2,7 @@ terraform {
   required_version = ">= 1.8.0"
 
   cloud {
-    organization = "REPLACE_WITH_HCP_TERRAFORM_ORGANIZATION"
+    organization = "eikon-mind"
     workspaces {
       name = "eikon-mind-dev"
     }

@@ -5,7 +5,7 @@ This repository deploys the existing Next.js App Router application with OpenNex
 ## Architecture and security assessment
 
 ```text
-Browser --HTTPS/Turnstile--> Cloudflare Custom Domain + rate-limit rule --> OpenNext Worker
+Browser --HTTPS/Turnstile--> Cloudflare Custom Domain or workers.dev --> OpenNext Worker
                                                                   |-- D1 (EU jurisdiction, no replicas)
                                                                   |-- Secrets Store bindings
                                                                   |-- Resend Free API (hard-capped)
@@ -48,9 +48,9 @@ Terraform is pinned to `cloudflare/cloudflare` `~> 5.23.0`; the generated provid
 - one D1 database per environment, protected from destroy;
 - an account Secrets Store per environment account, protected from destroy;
 - one managed Turnstile widget restricted to the configured hostname;
-- `always_use_https`, `min_tls_version`, and one Cloudflare Free-plan-compatible `http_ratelimit` zone rule for Better Auth and `/api/appointments/book` paths.
+- `always_use_https`, `min_tls_version`, and one Cloudflare Free-plan-compatible `http_ratelimit` zone rule for Better Auth and `/api/appointments/book` paths when an environment has a Cloudflare zone.
 
-Terraform does not create, transfer, or broadly modify DNS. Wrangler attaches the application Worker as a Custom Domain, and Cloudflare creates the hostname's DNS record and certificate. The hostname must belong to the supplied active zone and must not already have a conflicting CNAME. A Cloudflare ruleset phase is authoritative: before applying to an existing zone, import/reconcile the existing **`http_ratelimit` phase** ruleset with the Cloudflare provider and review the plan so existing rules are not removed. Other WAF phases are intentionally outside this module.
+Terraform does not create, transfer, or broadly modify DNS. Zoned environments use a Worker Custom Domain, for which Cloudflare creates the hostname's DNS record and certificate. A zone-less development environment uses `workers.dev` instead: set the account subdomain in Workers & Pages and configure `hostname` as `<worker-name>.<account-subdomain>.workers.dev`; omit `cloudflare_zone_id`. A Cloudflare ruleset phase is authoritative: before applying to an existing zone, import/reconcile the existing **`http_ratelimit` phase** ruleset with the Cloudflare provider and review the plan so existing rules are not removed. Other WAF phases are intentionally outside this module.
 
 The Free zone plan permits one rate-limit rule using URI paths and IP counting, with fixed 10-second counting and mitigation periods. It does not permit matching the HTTP method or using the `matches` regular-expression operator. The rule therefore counts all requests to the application's POST-only sensitive paths and blocks an IP for 10 seconds after more than 10 matching requests in 10 seconds. Better Auth's durable database rate limits and Turnstile remain the authoritative application controls.
 
@@ -75,36 +75,31 @@ Provider limits and terms can change. Before each production release, re-check [
 
 ## First-time setup
 
-1. Create separate Cloudflare dev and production accounts where possible, leave both on Workers Free and the zone Free plan, and activate the required zones. Reserve an unused hostname in each zone for the Worker Custom Domain; do not create a CNAME for it. Do not move the customer zone into Terraform.
+1. Create separate Cloudflare dev and production accounts where possible and leave both on Workers Free. For development without a domain, set the dev account's Workers & Pages subdomain to `eikon-dev` and use `eikon-mind-dev.eikon-dev.workers.dev`; do not configure a zone ID. Production still requires an active Free zone and an unused Custom Domain hostname; do not move the customer zone into Terraform.
 2. Create a Free HCP Terraform organization and workspaces named `eikon-mind-dev` and `eikon-mind-production`; keep the organization below 500 managed resources. Set the repository variable `HCP_TERRAFORM_ORGANIZATION` to the real organization name; production supplies it through `TF_CLOUD_ORGANIZATION` instead of committing a placeholder or tenant name. Protect owner identities with MFA and restrict workspace access to the minimum number of operators available on the Free plan.
-3. Configure protected HCP workspace variables from the matching `terraform.tfvars.example`. Production retention settings must be positive, controller/DPO-approved values; the Terraform check rejects missing/zero values and an empty external approval reference.
-4. Store `TF_API_TOKEN` and `CLOUDFLARE_TERRAFORM_API_TOKEN` as repository secrets available to the production plan job. That job writes the Cloudflare credential to the remote `eikon-mind-production` HCP workspace as a sensitive `CLOUDFLARE_API_TOKEN` environment variable through the HCP API; the credential is not inherited from the local GitHub process. Authenticate and initialize/apply the dev root separately. Review every plan; D1 and Secrets Store have `prevent_destroy`.
+3. Configure protected HCP workspace variables from the matching `terraform.tfvars.example`. In `eikon-mind-dev`, omit `cloudflare_zone_id`, set `hostname` to `eikon-mind-dev.eikon-dev.workers.dev`, and use `onboarding@resend.dev` only for the email associated with the development Resend account. Production retention settings must be positive, controller/DPO-approved values; the Terraform check rejects missing/zero values and an empty external approval reference.
+4. Store `TF_API_TOKEN`, `CLOUDFLARE_TERRAFORM_API_TOKEN`, and `CLOUDFLARE_DEPLOY_API_TOKEN` in the GitHub `development` environment. The deployment workflows write the Cloudflare Terraform credential to their matching remote HCP workspace as a sensitive `CLOUDFLARE_API_TOKEN` environment variable through the HCP API; the credential is not inherited from the local GitHub process. Review every plan; D1 and Secrets Store have `prevent_destroy`.
 5. Protect `refs/tags/release-*` with an active repository tag ruleset. Configure required reviewers on the GitHub `production` environment and require them to inspect the production plan job summary or its one-day plan artifact before approving the apply job.
 
-   ```sh
-   terraform -chdir=infra/terraform/env/dev init
-   terraform -chdir=infra/terraform/env/dev plan
-   terraform -chdir=infra/terraform/env/dev apply
-   terraform -chdir=infra/terraform/env/dev output -json > deployment.json
-   ```
+   For the initial development setup, push the implementation branch and run **Actions → Deploy development** with `operation=bootstrap`. It applies only Terraform and publishes `deployment.json` as a one-day, non-secret artifact.
 
-5. Render the ignored Wrangler files from that non-secret output. Never commit `.wrangler/generated` or `deployment.json`.
+6. Download the bootstrap artifact, populate Secrets Store as described below, then merge the same commit to `main`. The push-triggered development workflow renders the ignored Wrangler files and performs the application deployment. Never commit `.wrangler/generated` or `deployment.json`.
 
    ```sh
    cd frontend
    node scripts/render-wrangler-config.mjs dev ../deployment.json
    ```
 
-6. Create separate **Resend Free** accounts for development and production, keep pay-as-you-go disabled, verify the sending domain and `noreply@<domain>`, and create a sending-only API key restricted to that domain. Store it as `RESEND_API_KEY`. Cloudflare Email Sending must remain unconfigured because arbitrary recipients require Workers Paid. Application code derives customer recipients from authenticated server-side records, validates every address, and atomically stops at 100 sends/day or 3,000/month.
-7. Create a dedicated Google OAuth client and refresh token with only the Calendar scope/calendar needed by this application. Give it access only to a dedicated calendar. Calendar events are generic `Reserved time` events with an opaque ID and no client name, email, service, notes, or clinical data.
-8. Populate the Secrets Store interactively—never use `--value` in shell history and never put values in Terraform, `.tfvars`, GitHub secrets, or Git. For each secret use Wrangler's prompt-only command:
+7. Create separate **Resend Free** accounts for development and production and keep pay-as-you-go disabled. Production must verify a sending domain and use a restricted API key. A no-domain development environment may use `onboarding@resend.dev`, but Resend permits that sender to deliver only to the email address on the development Resend account; store its API key as `RESEND_API_KEY`. Cloudflare Email Sending must remain unconfigured because arbitrary recipients require Workers Paid. Application code derives customer recipients from authenticated server-side records, validates every address, and atomically stops at 100 sends/day or 3,000/month.
+8. Create a dedicated Google OAuth client and refresh token with only the Calendar scope/calendar needed by this application. Give it access only to a dedicated calendar. Calendar events are generic `Reserved time` events with an opaque ID and no client name, email, service, notes, or clinical data.
+9. Populate the Secrets Store interactively—never use `--value` in shell history and never put values in Terraform, `.tfvars`, GitHub secrets, or Git. For each secret use Wrangler's prompt-only command:
 
    ```sh
    pnpm exec wrangler secrets-store secret create <STORE_ID> --name <SECRET_NAME> --scopes workers --remote
    ```
 
    Required names are `BETTER_AUTH_SECRETS`, `TURNSTILE_SECRET`, `RESEND_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, and `GOOGLE_CALENDAR_ID`. Better Auth uses its native comma-separated rotation format, for example `2:<new-random-32+-character-key>,1:<previous-key>`; the highest version signs new material while retained versions continue to verify existing sessions and encrypted 2FA data. Versions must be unique positive integers. The Turnstile widget secret is sensitive Terraform state: restrict HCP access and copy it only once into Secrets Store through the prompt.
-9. Run the D1 migration and deploy through the approved workflow. After a verified user has enrolled TOTP, bootstrap exactly one first administrator:
+10. Run the D1 migration and deploy through the approved workflow. After a verified user has enrolled TOTP, bootstrap exactly one first administrator:
 
    ```sh
    pnpm exec wrangler d1 migrations apply eikon-mind-dev --remote --config .wrangler/generated/dev/wrangler.jsonc
@@ -142,14 +137,14 @@ Keep these secrets at repository/environment scope, never in source code:
 | GitHub secret/configuration | Used for | Minimum Cloudflare scope |
 | --- | --- | --- |
 | `TF_API_TOKEN` | HCP Terraform authentication | HCP workspace run/plan/apply only |
-| `CLOUDFLARE_TERRAFORM_API_TOKEN` | Terraform plan/apply | D1 Write; Secrets Store Write; Turnstile Sites Write; Zone Settings Write; Zone WAF Write, scoped to the environment account/zone |
-| `CLOUDFLARE_DEPLOY_API_TOKEN` | D1 migration and Worker versions/Custom Domains/triggers | Workers Scripts Write; D1 Write; **Account Secrets Store Edit**; Workers Routes Write for the target zone only |
+| `CLOUDFLARE_TERRAFORM_API_TOKEN` | Terraform plan/apply | D1 Write; Secrets Store Write; Turnstile Sites Write; add Zone Settings Write and Zone WAF Write only for zoned environments |
+| `CLOUDFLARE_DEPLOY_API_TOKEN` | D1 migration and Worker versions/Custom Domains/triggers | Workers Scripts Write; D1 Write; **Account Secrets Store Edit**; add Workers Routes Write only for a Custom Domain |
 | HCP workspace variables | account/zone/hostname/sender/retention | non-secret values only; restrict workspace read access anyway |
 | Cloudflare Secrets Store | application credentials and signing material | not stored in GitHub |
 
 Use distinct Terraform, deploy, and secrets-rotation Cloudflare tokens. The rotation operator token requires only `Secrets Store Write` (and `Turnstile Sites Write` when rotating a widget); it must not receive Workers/D1/zone permissions. Restrict all tokens to their corresponding account and zone and set expiry/review dates.
 
-Configure GitHub `development` and `production` environments with required reviewers and an active tag ruleset for `refs/tags/release-*`. The production workflow accepts only a full commit SHA that is an ancestor of `main`, or a release tag covered by that active ruleset. It validates the application before generating a saved remote plan, publishes the plan for review, and lets the protected production job apply only that plan. It then uploads both Worker versions before migrating D1, promotes them, attaches triggers, and runs application, asset, header, auth guard, database, and maintenance-trigger smoke checks. Development runs the same application, asset, header, auth guard, D1, and maintenance-trigger checks; its initial Custom Domain request retries while DNS and certificate issuance settle. All third-party actions are pinned to immutable commit SHAs; Dependabot should keep those pins current. PR checks include formatting, lint, type checking, behavioral tests, dependency audit/review, responsive Playwright journeys, Terraform validation, CodeQL, Gitleaks, and a CycloneDX SBOM artifact.
+Configure GitHub `development` and `production` environments with required reviewers and an active tag ruleset for `refs/tags/release-*`. The production workflow accepts only a full commit SHA that is an ancestor of `main`, or a release tag covered by that active ruleset. It validates the application before generating a saved remote plan, publishes the plan for review, and lets the protected production job apply only that plan. It then uploads both Worker versions before migrating D1, promotes them, attaches triggers, and runs application, asset, header, auth guard, database, and maintenance-trigger smoke checks. For development, run the manual `bootstrap` operation once to provision infrastructure and retrieve the non-secret Secrets Store ID, then add the seven prompt-only secrets and merge to `main`; the push-triggered workflow deploys and smoke-tests the `workers.dev` application. All third-party actions are pinned to immutable commit SHAs; Dependabot should keep those pins current. PR checks include formatting, lint, type checking, behavioral tests, dependency audit/review, responsive Playwright journeys, Terraform validation, CodeQL, Gitleaks, and a CycloneDX SBOM artifact.
 
 ## Deployment, rollback, backup, and rotation
 

@@ -10,7 +10,7 @@ if (!originValue || !accountId || !maintenanceWorkerName || !cloudflareToken) {
 
 const origin = new URL(originValue).origin;
 
-async function fetchCustomDomain(path, { attempts = 30, delayMs = 10_000 } = {}) {
+async function fetchOrigin(path, { attempts = 30, delayMs = 10_000 } = {}) {
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
@@ -22,14 +22,14 @@ async function fetchCustomDomain(path, { attempts = 30, delayMs = 10_000 } = {})
     }
     if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
-  throw new Error(`Custom Domain did not become ready after ${(attempts * delayMs) / 1000}s`, {
+  throw new Error(`Deployment origin did not become ready after ${(attempts * delayMs) / 1000}s`, {
     cause: lastError,
   });
 }
 
-// The first request is the Custom Domain readiness check. DNS propagation and
-// certificate issuance can lag behind the Worker deployment by several minutes.
-const page = await fetchCustomDomain("/");
+// The first request is the deployment origin readiness check. A Custom Domain
+// can take longer to settle than a workers.dev endpoint after a Worker deploy.
+const page = await fetchOrigin("/");
 assert.equal(page.status, 200, "public page must return HTTP 200");
 assert.match(page.headers.get("content-security-policy") ?? "", /default-src 'self'/);
 assert.match(page.headers.get("strict-transport-security") ?? "", /max-age=31536000/);
@@ -79,4 +79,4 @@ assert.ok(
   "maintenance Worker must have the expected cron trigger",
 );
 
-console.log("Production HTTP, asset, auth guard, security header, and maintenance checks passed");
+console.log("Deployment HTTP, asset, auth guard, security header, and maintenance checks passed");

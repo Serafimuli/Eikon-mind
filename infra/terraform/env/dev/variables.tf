@@ -5,12 +5,14 @@ variable "cloudflare_account_id" {
 
 variable "cloudflare_zone_id" {
   type        = string
-  description = "Existing development zone ID."
+  default     = null
+  nullable    = true
+  description = "Existing development zone ID. Omit when deploying to workers.dev."
 }
 
 variable "hostname" {
   type        = string
-  description = "Available development hostname in the active zone, such as dev.example.com; Wrangler creates its Worker Custom Domain."
+  description = "Development HTTPS hostname, such as eikon-mind-dev.eikon-dev.workers.dev."
 }
 
 variable "email_from_address" {

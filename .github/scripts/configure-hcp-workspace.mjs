@@ -1,5 +1,4 @@
 const apiOrigin = "https://app.terraform.io";
-const workspaceName = "eikon-mind-production";
 const variableKey = "CLOUDFLARE_API_TOKEN";
 
 function requiredEnvironment(name) {
@@ -9,6 +8,7 @@ function requiredEnvironment(name) {
 }
 
 const organization = requiredEnvironment("TF_CLOUD_ORGANIZATION");
+const workspaceName = requiredEnvironment("HCP_TERRAFORM_WORKSPACE");
 const hcpToken = requiredEnvironment("HCP_TERRAFORM_TOKEN");
 const cloudflareToken = requiredEnvironment("CLOUDFLARE_PROVIDER_TOKEN");
 
@@ -28,10 +28,10 @@ async function hcpRequest(path, init = {}) {
 }
 
 const workspace = await hcpRequest(
-  `/api/v2/organizations/${encodeURIComponent(organization)}/workspaces/${workspaceName}`,
+  `/api/v2/organizations/${encodeURIComponent(organization)}/workspaces/${encodeURIComponent(workspaceName)}`,
 );
 const workspaceId = workspace?.data?.id;
-if (!workspaceId) throw new Error("HCP Terraform production workspace was not found");
+if (!workspaceId) throw new Error(`HCP workspace ${workspaceName} was not found`);
 
 const executionMode = workspace.data.attributes?.["execution-mode"];
 if (executionMode !== "remote") {
@@ -57,7 +57,7 @@ if (matchingVariables[0] && matchingVariables[0].attributes.category !== "env") 
 const attributes = {
   key: variableKey,
   value: cloudflareToken,
-  description: "Cloudflare provider credential for remote production Terraform runs",
+  description: `Cloudflare provider credential for remote ${workspaceName} Terraform runs`,
   category: "env",
   hcl: false,
   sensitive: true,

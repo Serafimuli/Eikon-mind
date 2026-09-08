@@ -80,13 +80,19 @@ const common = {
   },
 };
 
+const usesWorkersDev = environment === "dev" && !deployment.zone_id;
+
 const applicationConfig = {
   $schema: `${root}node_modules/wrangler/config-schema.json`,
   ...common,
   name: deployment.worker_name,
   main: `${root}.open-next/worker.js`,
-  workers_dev: false,
-  routes: [{ pattern: deployment.hostname, custom_domain: true }],
+  ...(usesWorkersDev
+    ? { workers_dev: true }
+    : {
+        workers_dev: false,
+        routes: [{ pattern: deployment.hostname, custom_domain: true }],
+      }),
   assets: { directory: `${root}.open-next/assets`, binding: "ASSETS" },
 };
 

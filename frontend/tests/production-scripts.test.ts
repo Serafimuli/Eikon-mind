@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 
-const hcpScript = new URL("../../.github/scripts/configure-hcp-production.mjs", import.meta.url);
+const hcpScript = new URL("../../.github/scripts/configure-hcp-workspace.mjs", import.meta.url);
 const smokeScript = new URL("../scripts/smoke-production.mjs", import.meta.url);
 
 function restoreEnvironment(context: TestContext, values: Record<string, string | undefined>) {
@@ -18,6 +18,7 @@ function restoreEnvironment(context: TestContext, values: Record<string, string 
 test("HCP setup creates the provider token as a sensitive remote workspace env variable", async (t) => {
   restoreEnvironment(t, {
     TF_CLOUD_ORGANIZATION: "real-production-org",
+    HCP_TERRAFORM_WORKSPACE: "eikon-mind-production",
     HCP_TERRAFORM_TOKEN: "hcp-token",
     CLOUDFLARE_PROVIDER_TOKEN: "cloudflare-provider-token",
   });
@@ -48,7 +49,7 @@ test("HCP setup creates the provider token as a sensitive remote workspace env v
   assert.deepEqual(requestBody.data.attributes, {
     key: "CLOUDFLARE_API_TOKEN",
     value: "cloudflare-provider-token",
-    description: "Cloudflare provider credential for remote production Terraform runs",
+    description: "Cloudflare provider credential for remote eikon-mind-production Terraform runs",
     category: "env",
     hcl: false,
     sensitive: true,
