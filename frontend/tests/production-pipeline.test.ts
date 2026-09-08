@@ -72,6 +72,20 @@ test("remote HCP runs receive a sensitive Cloudflare environment variable", () =
   assert.match(hcpScript, /sensitive: true/);
 });
 
+test("pnpm is available before setup-node enables pnpm caching", () => {
+  for (const pipeline of [workflow, devWorkflow]) {
+    let start = 0;
+    while (true) {
+      const setupNode = pipeline.indexOf("uses: actions/setup-node", start);
+      if (setupNode === -1) break;
+
+      const previousPnpmSetup = pipeline.lastIndexOf("uses: pnpm/action-setup", setupNode);
+      assert.ok(previousPnpmSetup >= start && previousPnpmSetup < setupNode);
+      start = setupNode + 1;
+    }
+  }
+});
+
 test("zone rate limiting stays within the Cloudflare Free plan feature set", () => {
   assert.doesNotMatch(applicationModule, /http\.request\.method/);
   assert.doesNotMatch(applicationModule, /uri\.path matches/);

@@ -70,14 +70,14 @@ jobs:
           fi
           echo "deployment_sha=$resolved_sha" >> "$GITHUB_OUTPUT"
       - uses: ./.github/actions/verify-lfs
+      - uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5
+        with:
+          version: 10
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5
-        with:
-          version: 10
       - run: pnpm install --frozen-lockfile
       - name: Validate and build application before infrastructure planning
         run: pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm security:audit && pnpm cf:build
@@ -136,14 +136,14 @@ jobs:
       - uses: ./.github/actions/verify-lfs
       - name: Verify deployment checkout
         run: test "$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)" = "$DEPLOYMENT_SHA"
+      - uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5
+        with:
+          version: 10
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5
-        with:
-          version: 10
       - run: pnpm install --frozen-lockfile
       - name: Rebuild application before changing infrastructure
         run: pnpm cf:build
