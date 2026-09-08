@@ -19,7 +19,7 @@ terraform {
 provider "cloudflare" {}
 
 module "application" {
-  source = "../../modules/application"
+  source = "git::https://github.com/Serafimuli/Eikon-mind.git//infra/terraform/modules/application?ref=next.js-migration"
 
   account_id         = var.cloudflare_account_id
   zone_id            = var.cloudflare_zone_id
