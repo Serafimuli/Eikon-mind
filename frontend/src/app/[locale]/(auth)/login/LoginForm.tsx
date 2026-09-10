@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { useTurnstileChallenge } from "@/hooks/useTurnstileChallenge";
 import { authClient, resolveAuthDestination } from "@/lib/auth-client";
 import { securityCopy, type Locale } from "@/lib/site-content";
@@ -15,6 +16,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
   const [busy, setBusy] = useState(false);
   const captcha = useTurnstileChallenge();
   const copy = securityCopy[locale];
+  const oauthFailed = Boolean(search?.get("oauthError") || search?.get("error"));
 
   const submit = async (form: FormData) => {
     if (!captcha.token) return setError(copy.captchaRequired);
@@ -65,14 +67,23 @@ export function LoginForm({ locale }: { locale: Locale }) {
         />
       </label>
       <TurnstileWidget key={captcha.generation} onToken={captcha.setToken} />
-      {error && (
+      {(error || oauthFailed) && (
         <p className="error" role="alert">
-          {error}
+          {error || copy.signInFailed}
         </p>
       )}
       <button className="button" disabled={busy || !captcha.token}>
         {busy ? "…" : locale === "ro" ? "Autentificare" : "Sign in"}
       </button>
+      <div className="auth-divider" aria-hidden="true">
+        <span>{locale === "ro" ? "sau" : "or"}</span>
+      </div>
+      <GoogleSignInButton
+        locale={locale}
+        returnTo={search?.get("returnTo")}
+        disabled={busy}
+        onError={() => setError(copy.signInFailed)}
+      />
       <p>
         <Link href={`/${locale}/reset-password`}>
           {locale === "ro" ? "Ai uitat parola?" : "Forgot your password?"}

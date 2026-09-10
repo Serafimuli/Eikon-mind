@@ -49,7 +49,7 @@ export function middleware(request: NextRequest) {
   );
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   if (
-    /^\/(?:ro|en)\/(?:client|admin|login|register|reset-password|verify-email|two-factor)(?:\/|$)/.test(
+    /^\/(?:ro|en)\/(?:client|admin|login|register|reset-password|verify-email|two-factor|continue)(?:\/|$)/.test(
       request.nextUrl.pathname,
     ) ||
     request.nextUrl.pathname.startsWith("/api/auth/")

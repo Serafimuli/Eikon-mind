@@ -1677,6 +1677,35 @@ strong {
   width: min(calc(100% - 32px), 560px);
 }
 
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-transform: lowercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  height: 1px;
+  flex: 1;
+  background: var(--hairline);
+  content: "";
+}
+
+.auth-google-button {
+  width: 100%;
+}
+
+.auth-google-mark {
+  color: #4285f4;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 .form-card h1 {
   margin-bottom: 32px;
 }

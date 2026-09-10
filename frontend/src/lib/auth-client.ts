@@ -6,6 +6,13 @@ import type { Route } from "next";
 
 export const authClient = createAuthClient({ plugins: [twoFactorClient()] });
 
+export function googleAuthContinuationURL(locale: string, returnTo?: string | null) {
+  const query = new URLSearchParams();
+  if (returnTo) query.set("returnTo", returnTo);
+  const suffix = query.size ? `?${query.toString()}` : "";
+  return `/${locale}/continue${suffix}`;
+}
+
 export async function resolveAuthDestination(
   locale: string,
   returnTo?: string | null,

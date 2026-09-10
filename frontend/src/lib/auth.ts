@@ -41,14 +41,20 @@ export function parseSigningKeys(raw: string | undefined) {
   return keys;
 }
 
+function googleProfileName(value: string | undefined, fallback: string) {
+  return value?.trim().slice(0, 80) || fallback;
+}
+
 export const getAuth = async () => {
   const env = getRuntimeEnv();
   const local = env.APP_ENV === "local";
   const deployed = !local;
   const baseURL = getApplicationOrigin();
-  const [signingSecrets, turnstileSecret] = await Promise.all([
+  const [signingSecrets, turnstileSecret, googleClientId, googleClientSecret] = await Promise.all([
     resolveSecret(env.BETTER_AUTH_SECRETS, "BETTER_AUTH_SECRETS"),
     resolveSecret(env.TURNSTILE_SECRET, "TURNSTILE_SECRET"),
+    resolveSecret(env.GOOGLE_CLIENT_ID, "GOOGLE_CLIENT_ID"),
+    resolveSecret(env.GOOGLE_CLIENT_SECRET, "GOOGLE_CLIENT_SECRET"),
   ]);
   const usesOfficialTurnstileTestSitekey = env.TURNSTILE_SITEKEY === "1x00000000000000000000AA";
   const usesOfficialTurnstileTestSecret = turnstileSecret === "1x0000000000000000000000000000000AA";
@@ -106,6 +112,27 @@ export const getAuth = async () => {
           sendTransactionalEmail(env, user.email, message.subject, message.body),
           "verification email",
         );
+      },
+    },
+    account: {
+      // Social identities only require OIDC scopes, but Better Auth stores
+      // provider tokens in the account row. Keep that material encrypted.
+      encryptOAuthTokens: true,
+    },
+    socialProviders: {
+      google: {
+        clientId: googleClientId,
+        clientSecret: googleClientSecret,
+        prompt: "select_account",
+        // The calendar integration uses the same OAuth client. Do not inherit
+        // its grants into end-user sessions or persist them in auth accounts.
+        includeGrantedScopes: false,
+        mapProfileToUser: (profile) => ({
+          // These fields are required by the existing user schema. Google
+          // normally supplies them, but fall back safely for incomplete profiles.
+          firstName: googleProfileName(profile.given_name, "Google"),
+          lastName: googleProfileName(profile.family_name, "User"),
+        }),
       },
     },
     user: {

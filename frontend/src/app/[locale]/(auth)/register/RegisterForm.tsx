@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { useTurnstileChallenge } from "@/hooks/useTurnstileChallenge";
 import { authClient } from "@/lib/auth-client";
 import { securityCopy, type Locale } from "@/lib/site-content";
@@ -76,6 +77,14 @@ export function RegisterForm({ locale }: { locale: Locale }) {
       <button className="button" disabled={busy || !captcha.token}>
         {busy ? "…" : locale === "ro" ? "Înregistrează-te" : "Register"}
       </button>
+      <div className="auth-divider" aria-hidden="true">
+        <span>{locale === "ro" ? "sau" : "or"}</span>
+      </div>
+      <GoogleSignInButton
+        locale={locale}
+        disabled={busy}
+        onError={() => setError(copy.registrationFailed)}
+      />
       <p>
         <Link href={`/${locale}/login`}>
           {locale === "ro" ? "Ai deja cont? Autentifică-te" : "Already have an account? Sign in"}
