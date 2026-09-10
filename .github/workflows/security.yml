@@ -14,6 +14,9 @@ jobs:
   codeql:
     runs-on: ubuntu-24.04
     permissions:
+      # CodeQL reads the current workflow run when it fingerprints and uploads
+      # SARIF. Without this, analysis succeeds but upload fails with 403.
+      actions: read
       contents: read
       security-events: write
     steps:
