@@ -173,3 +173,11 @@ test("development deployment uses the complete smoke suite and deploy credential
   assert.match(devWorkflow, /scripts\/smoke-production\.mjs/);
   assert.match(devWorkflow, /Apply compatible D1 migrations[\s\S]*?CLOUDFLARE_DEPLOY_API_TOKEN/);
 });
+
+test("development deployment initializes Workers before using version promotions", () => {
+  assert.match(devWorkflow, /Worker that does not yet exist/);
+  assert.match(devWorkflow, /wrangler deploy --config "\$config" --tag "\$tag"/);
+  assert.match(devWorkflow, /wrangler versions upload --config "\$config"/);
+  assert.match(devWorkflow, /wrangler versions deploy --config "\$config"/);
+  assert.match(devWorkflow, /wrangler triggers deploy --config "\$config"/);
+});

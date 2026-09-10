@@ -100,12 +100,28 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
         run: |
-          pnpm exec wrangler versions upload --config .wrangler/generated/dev/wrangler.jsonc --tag "$GITHUB_SHA" --message "development $GITHUB_SHA"
-          pnpm exec wrangler versions deploy --config .wrangler/generated/dev/wrangler.jsonc --version-tag "$GITHUB_SHA" --percentage 100 --message "development $GITHUB_SHA"
-          pnpm exec wrangler triggers deploy --config .wrangler/generated/dev/wrangler.jsonc
-          pnpm exec wrangler versions upload --config .wrangler/generated/dev/wrangler-maintenance.jsonc --tag "$GITHUB_SHA" --message "development maintenance $GITHUB_SHA"
-          pnpm exec wrangler versions deploy --config .wrangler/generated/dev/wrangler-maintenance.jsonc --version-tag "$GITHUB_SHA" --percentage 100 --message "development maintenance $GITHUB_SHA"
-          pnpm exec wrangler triggers deploy --config .wrangler/generated/dev/wrangler-maintenance.jsonc
+          deploy_worker() {
+            local config="$1"
+            local tag="$2"
+            local message="$3"
+            local upload_log="$4"
+
+            if pnpm exec wrangler versions upload --config "$config" --tag "$tag" --message "$message" >"$upload_log" 2>&1; then
+              cat "$upload_log"
+              pnpm exec wrangler versions deploy --config "$config" --version-tag "$tag" --percentage 100 --message "$message"
+            elif grep -Fq "Worker that does not yet exist" "$upload_log"; then
+              cat "$upload_log"
+              pnpm exec wrangler deploy --config "$config" --tag "$tag" --message "$message"
+            else
+              cat "$upload_log"
+              return 1
+            fi
+
+            pnpm exec wrangler triggers deploy --config "$config"
+          }
+
+          deploy_worker .wrangler/generated/dev/wrangler.jsonc "$GITHUB_SHA" "development $GITHUB_SHA" "$RUNNER_TEMP/development-worker-upload.log"
+          deploy_worker .wrangler/generated/dev/wrangler-maintenance.jsonc "$GITHUB_SHA" "development maintenance $GITHUB_SHA" "$RUNNER_TEMP/development-maintenance-worker-upload.log"
       - name: Development application, database, and maintenance smoke tests
         if: steps.secret_store.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy')
         env:
