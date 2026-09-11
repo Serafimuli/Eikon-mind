@@ -1,9 +1,13 @@
-import { createTextEmail } from "@/lib/integrations/email-message";
+import {
+  createBrandedEmail,
+  type TransactionalEmailMessage,
+} from "@/lib/integrations/email-message";
 import { resolveSecret } from "@/lib/runtime-secret";
 
 type EmailEnvironment = Pick<
   CloudflareEnv,
   | "APP_ENV"
+  | "BETTER_AUTH_URL"
   | "DB"
   | "EMAIL_FROM_ADDRESS"
   | "FREE_TIER_ONLY"
@@ -61,8 +65,9 @@ export async function reserveFreeEmailQuota(env: Pick<EmailEnvironment, "DB">, n
   }
 }
 
-async function sendEmail(env: EmailEnvironment, to: string, subject: string, body: string) {
-  const message = createTextEmail(env.EMAIL_FROM_ADDRESS, to, subject, body);
+async function sendEmail(env: EmailEnvironment, to: string, message: TransactionalEmailMessage) {
+  const logoUrl = new URL("/assets/source/eikon-mind-logo.png", env.BETTER_AUTH_URL).toString();
+  const rendered = createBrandedEmail(env.EMAIL_FROM_ADDRESS, to, message, logoUrl);
   if (env.FREE_TIER_ONLY !== "true") {
     throw new Error("Email delivery requires FREE_TIER_ONLY=true");
   }
@@ -77,10 +82,11 @@ async function sendEmail(env: EmailEnvironment, to: string, subject: string, bod
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      from: `${message.from.name} <${message.from.email}>`,
-      to: [message.to],
-      subject: message.subject,
-      text: message.text,
+      from: `${rendered.from.name} <${rendered.from.email}>`,
+      to: [rendered.to],
+      subject: rendered.subject,
+      text: rendered.text,
+      html: rendered.html,
     }),
   });
   if (!response.ok) {
@@ -92,12 +98,11 @@ async function sendEmail(env: EmailEnvironment, to: string, subject: string, bod
 export function sendTransactionalEmail(
   env: EmailEnvironment,
   recipient: string,
-  subject: string,
-  body: string,
+  message: TransactionalEmailMessage,
 ) {
-  return sendEmail(env, recipient, subject, body);
+  return sendEmail(env, recipient, message);
 }
 
 export function sendOperationsEmail(env: EmailEnvironment, subject: string, body: string) {
-  return sendEmail(env, env.OPERATIONS_MAILBOX, subject, body);
+  return sendEmail(env, env.OPERATIONS_MAILBOX, { subject, body });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { authClient } from "@/lib/auth-client";
 import type { Locale } from "@/lib/site-content";
 
@@ -38,7 +39,7 @@ export function TwoFactorSetup({ enabled, locale }: { enabled: boolean; locale: 
 
   if (enabled)
     return (
-      <section className="card" aria-live="polite">
+      <section className="card profile-card profile-card--security" aria-live="polite">
         <h2>{locale === "ro" ? "Autentificare cu doi factori" : "Two-factor authentication"}</h2>
         <p className="success" role="status">
           {locale === "ro"
@@ -49,7 +50,7 @@ export function TwoFactorSetup({ enabled, locale }: { enabled: boolean; locale: 
     );
 
   return (
-    <section className="card" aria-live="polite">
+    <section className="card profile-card profile-card--security" aria-live="polite">
       <h2>{locale === "ro" ? "Activează TOTP" : "Enable TOTP"}</h2>
       <p>
         {locale === "ro"
@@ -81,14 +82,32 @@ export function TwoFactorSetup({ enabled, locale }: { enabled: boolean; locale: 
         <>
           <p>
             {locale === "ro"
-              ? "Scanează sau adaugă acest URI în aplicația de autentificare:"
-              : "Scan or add this URI in your authenticator app:"}
+              ? "Scanează codul QR cu aplicația de autentificare."
+              : "Scan this QR code with your authenticator app."}
           </p>
-          <code className="wrap-code">{uri}</code>
-          <p>
-            <strong>{locale === "ro" ? "Coduri de rezervă:" : "Backup codes:"}</strong>{" "}
-            {backupCodes.join(" · ")}
-          </p>
+          <div className="two-factor-qr">
+            <QRCodeSVG
+              value={uri}
+              size={224}
+              level="M"
+              includeMargin
+              role="img"
+              title={locale === "ro" ? "Cod QR pentru configurarea TOTP" : "TOTP setup QR code"}
+            />
+          </div>
+          <div className="backup-codes">
+            <strong>{locale === "ro" ? "Coduri de rezervă" : "Backup codes"}</strong>
+            <p>
+              {locale === "ro"
+                ? "Păstrează-le într-un manager de parole aprobat. Sunt afișate o singură dată."
+                : "Keep them in an approved password manager. They are shown only once."}
+            </p>
+            <ul>
+              {backupCodes.map((backupCode) => (
+                <li key={backupCode}>{backupCode}</li>
+              ))}
+            </ul>
+          </div>
           <label>
             {locale === "ro" ? "Codul aplicației" : "Authenticator code"}
             <input

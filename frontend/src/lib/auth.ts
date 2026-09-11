@@ -7,7 +7,11 @@ import { captcha, twoFactor } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { securityEmail, sendTransactionalEmail } from "@/lib/integrations/email";
+import {
+  passwordChangedEmail,
+  securityEmail,
+  sendTransactionalEmail,
+} from "@/lib/integrations/email";
 import { defer, getApplicationOrigin, getRuntimeEnv } from "@/lib/platform-env";
 import { sessions } from "@/lib/db/schema";
 import * as schema from "@/lib/db/schema";
@@ -97,10 +101,7 @@ export const getAuth = async () => {
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
         const message = securityEmail("reset", url);
-        defer(
-          sendTransactionalEmail(env, user.email, message.subject, message.body),
-          "password reset email",
-        );
+        defer(sendTransactionalEmail(env, user.email, message), "password reset email");
       },
     },
     emailVerification: {
@@ -108,10 +109,7 @@ export const getAuth = async () => {
       autoSignInAfterVerification: true,
       sendVerificationEmail: async ({ user, url }) => {
         const message = securityEmail("verify", url);
-        defer(
-          sendTransactionalEmail(env, user.email, message.subject, message.body),
-          "verification email",
-        );
+        defer(sendTransactionalEmail(env, user.email, message), "verification email");
       },
     },
     account: {
@@ -136,6 +134,11 @@ export const getAuth = async () => {
       },
     },
     user: {
+      changeEmail: {
+        // The default is verification-first. Do not permit a pending address
+        // to replace the current one before the recipient proves control of it.
+        enabled: true,
+      },
       additionalFields: {
         firstName: {
           type: "string",
@@ -194,6 +197,27 @@ export const getAuth = async () => {
               .update(sessions)
               .set({ ipAddress: null, userAgent: null })
               .where(eq(sessions.id, session.id));
+          },
+        },
+      },
+      account: {
+        update: {
+          // Better Auth updates a credential account only after it has hashed
+          // and accepted a new password. Query only the destination address;
+          // the password hash and all other account material stay untouched.
+          after: async (account) => {
+            if (account.providerId !== "credential") return;
+            const [recipient] = await getDb()
+              .select({ email: schema.users.email })
+              .from(schema.users)
+              .where(eq(schema.users.id, account.userId))
+              .limit(1);
+            if (!recipient) return;
+
+            defer(
+              sendTransactionalEmail(env, recipient.email, passwordChangedEmail()),
+              "password updated email",
+            );
           },
         },
       },

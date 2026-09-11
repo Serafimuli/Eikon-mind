@@ -37,10 +37,7 @@ async function notifyClient(clientId: string | null, status: "CONFIRMED" | "CANC
   if (!client?.emailVerified) return;
 
   const message = appointmentEmail(status === "CONFIRMED" ? "confirmed" : "cancelled");
-  defer(
-    sendTransactionalEmail(getRuntimeEnv(), client.email, message.subject, message.body),
-    "appointment email",
-  );
+  defer(sendTransactionalEmail(getRuntimeEnv(), client.email, message), "appointment email");
 }
 
 async function notifyTherapist(therapistId: string | null) {
@@ -56,7 +53,7 @@ async function notifyTherapist(therapistId: string | null) {
 
   const message = appointmentEmail("requested");
   defer(
-    sendTransactionalEmail(getRuntimeEnv(), therapist.email, message.subject, message.body),
+    sendTransactionalEmail(getRuntimeEnv(), therapist.email, message),
     "appointment request email",
   );
 }

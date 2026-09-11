@@ -9,6 +9,7 @@ type IntegrationEnvironment = Pick<
   | "GOOGLE_REFRESH_TOKEN"
   | "GOOGLE_CALENDAR_ID"
   | "APP_ENV"
+  | "BETTER_AUTH_URL"
   | "EMAIL_FROM_ADDRESS"
   | "FREE_TIER_ONLY"
   | "OPERATIONS_MAILBOX"

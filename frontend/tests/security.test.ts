@@ -200,7 +200,7 @@ test("reschedule notifications use only the verified assigned therapist and gene
     "utf8",
   );
   const emailSource = await readFile(
-    new URL("../src/lib/integrations/email.ts", import.meta.url),
+    new URL("../src/lib/integrations/email-content.ts", import.meta.url),
     "utf8",
   );
   assert.match(transitionSource, /notifyTherapist\(replacement\.therapistId\)/);

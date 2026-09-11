@@ -54,7 +54,7 @@ export function EmailVerificationCard({
   };
 
   return (
-    <section className="card" aria-live="polite">
+    <section className="card profile-card profile-card--security" aria-live="polite">
       <h2>{locale === "ro" ? "Verificarea emailului" : "Email verification"}</h2>
       <p>
         {locale === "ro"
