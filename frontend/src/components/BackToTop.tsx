@@ -19,12 +19,7 @@ export function BackToTop() {
       title={label}
       onClick={scrollToTop}
     >
-      <svg
-        className="back-to-top__icon"
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        focusable="false"
-      >
+      <svg className="back-to-top__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path d="M5 12h14M12 19V5M5 12l7-7 7 7" />
       </svg>
     </button>
