@@ -1,4 +1,6 @@
 import { and, eq } from "drizzle-orm";
+import Link from "next/link";
+import type { Route } from "next";
 import { EmailVerificationCard } from "@/components/EmailVerificationCard";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { TwoFactorSetup } from "@/components/TwoFactorSetup";
@@ -89,9 +91,13 @@ export default async function Profile({ params }: { params: Promise<{ locale: Lo
             ? "Descarcă o copie a datelor de cont și a programărilor asociate contului tău."
             : "Download a copy of your account data and the appointments associated with it."}
         </p>
-        <a className="button button--secondary" href="/api/privacy/export">
+        <Link
+          className="button button--secondary"
+          href={"/api/privacy/export" as Route}
+          prefetch={false}
+        >
           {locale === "ro" ? "Descarcă exportul" : "Download export"}
-        </a>
+        </Link>
       </section>
     </main>
   );
