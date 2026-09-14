@@ -85,8 +85,6 @@ export type HomeContent = {
   benefitsLink: string;
   benefits: string[];
   recommendation: { quote: string; author: string; link: string };
-  testimonialsTitle: string;
-  testimonials: { quote: string; author: string; image: string }[];
   sessionsTitle: string;
   sessions: { title: string; body: string; items: string[]; duration: string }[];
   blogTitle: string;
@@ -137,13 +135,6 @@ const assets = {
   seniorService: "/assets/service-seniors.jpg",
   addictions: "/assets/service-addictions.jpg",
   training: "/assets/service-professional-formation.jpg",
-  testimonials: [
-    "/assets/source/testimonial-1.webp",
-    "/assets/source/testimonial-2.webp",
-    "/assets/source/testimonial-3.webp",
-    "/assets/source/testimonial-4.webp",
-    "/assets/source/testimonial-5.webp",
-  ],
 };
 
 const roServices: ServiceSummary[] = [
@@ -290,33 +281,6 @@ const roHome: HomeContent = {
     author: "Dumitru Pușcașu, Psihoterapeut Marea Britanie",
     link: "https://www.cbtandcoachingservices.com/",
   },
-  testimonialsTitle: "Cuvinte de la oameni care au făcut primul pas",
-  testimonials: [
-    {
-      quote:
-        "Am învățat să înțeleg ce se întâmplă cu mine când apar stresul și anxietatea. Am plecat din terapie cu instrumente concrete și cu mai multă încredere.",
-      author: "Elena M.",
-      image: assets.testimonials[0],
-    },
-    {
-      quote:
-        "Am găsit un spațiu în care am putut vorbi sincer despre burnout și despre presiunea pe care o puneam singur asupra mea.",
-      author: "Marius D.",
-      image: assets.testimonials[1],
-    },
-    {
-      quote:
-        "Am început să văd tiparele care mă țineau pe loc și am învățat să îmi pun limite fără vinovăție.",
-      author: "Ana P.",
-      image: assets.testimonials[2],
-    },
-    {
-      quote:
-        "M-am simțit văzută și ascultată. Este un psiholog foarte bun în Iași și recomand cu încredere această experiență.",
-      author: "Iulia T.",
-      image: assets.testimonials[3],
-    },
-  ],
   sessionsTitle: "Cum putem lucra împreună",
   sessions: [
     {
@@ -406,33 +370,6 @@ const enHome: HomeContent = {
     author: "Dumitru Pușcașu, Psychotherapist, United Kingdom",
     link: "https://www.cbtandcoachingservices.com/",
   },
-  testimonialsTitle: "Words from people who took the first step",
-  testimonials: [
-    {
-      quote:
-        "I learned to understand what happens to me when stress and anxiety appear. I left therapy with concrete tools and more confidence.",
-      author: "Elena M.",
-      image: assets.testimonials[0],
-    },
-    {
-      quote:
-        "I found a space where I could speak honestly about burnout and the pressure I was putting on myself.",
-      author: "Marius D.",
-      image: assets.testimonials[1],
-    },
-    {
-      quote:
-        "I began to see the patterns that kept me stuck and learned to set boundaries without guilt.",
-      author: "Ana P.",
-      image: assets.testimonials[2],
-    },
-    {
-      quote:
-        "I felt seen and heard. She is a very good psychologist in Iași and I recommend the experience with confidence.",
-      author: "Iulia T.",
-      image: assets.testimonials[3],
-    },
-  ],
   sessionsTitle: "How we can work together",
   sessions: [
     {
@@ -1058,6 +995,12 @@ const roPages: Record<PublicSlug, PageContent> = {
         title: "3. Programări și conturi",
         paragraphs: [
           "Pentru programări poți fi direcționat către zona securizată a aplicației. Ești responsabil pentru corectitudinea datelor furnizate și pentru păstrarea confidențialității datelor de acces.",
+        ],
+      },
+      {
+        title: "3.1. Minori și documente terapeutice",
+        paragraphs: [
+          "Aplicația este folosită numai pentru conturi și programări și nu colectează documente clinice sau consimțăminte terapeutice. Pentru o persoană sub 18 ani, reprezentarea, consimțământul pentru servicii psihologice și orice documente necesare se stabilesc direct cu terapeutul, în afara aplicației. Nu transmite aceste documente prin cont sau prin formularul de programare.",
         ],
       },
       {
@@ -1694,6 +1637,12 @@ const enPages: Record<PublicSlug, PageContent> = {
         ],
       },
       {
+        title: "3.1. Minors and therapeutic documents",
+        paragraphs: [
+          "The application is used only for accounts and bookings and does not collect clinical documents or therapeutic consents. For a person under 18, representation, consent for psychological services, and any required documents are arranged directly with the therapist outside the application. Do not send these documents through an account or booking form.",
+        ],
+      },
+      {
         title: "4. Cancellation and rescheduling",
         paragraphs: [
           "If you cannot attend an appointment, please inform the practice as early as possible so it can be rescheduled. Specific conditions are communicated when the appointment is arranged.",
@@ -1749,94 +1698,145 @@ const enPages: Record<PublicSlug, PageContent> = {
 // controller review is still required before publishing either policy.
 roPages["politica-de-confidentialitate"] = {
   kind: "legal",
-  title: "Politica de confidențialitate",
+  title: "Informare privind prelucrarea datelor",
   description:
-    "Această aplicație prelucrează date minime pentru conturi și programări; nu este un dosar medical.",
+    "Informare GDPR pentru aplicația Eikon Mind. Ultima actualizare: 14 septembrie 2026.",
   sections: [
     {
-      title: "1. Date procesate",
+      title: "1. Operator și domeniul informării",
+      paragraphs: [
+        "Operatorul datelor este Eikon Mind – Cabinet individual de psihologie, psiholog clinician și psihoterapeut Maria-Manuela Niță, cu sediul profesional în Strada Vasile Lupu nr. 83, Iași, România. Pentru întrebări sau cereri privind datele personale, scrie la contact@eikon-mind.ro.",
+        "Această informare acoperă aplicația pentru conturi și programări. Nu acoperă dosarele clinice, consimțămintele terapeutice sau documentele gestionate direct de terapeut în afara aplicației.",
+      ],
+    },
+    {
+      title: "2. Date pe care le prelucrăm",
       items: [
-        "nume și adresă de email pentru cont și verificare",
-        "credite de autentificare, sesiuni și autentificare cu doi factori",
-        "interval de disponibilitate, momentul programării și starea acesteia",
-        "referință opacă la un eveniment de calendar",
+        "date de cont: prenume, nume, adresă de email, starea verificării și momentele creării/actualizării contului",
+        "date de autentificare: hash-ul parolei, sesiuni, metoda de autentificare, identificatorul furnizorului Google ales de utilizator și materiale 2FA criptate",
+        "date de programare: intervalul ales, statusul, momentele creării/actualizării și legătura tehnică necesară cu terapeutul",
+        "date de securitate minimizate: evenimente de securitate, chei de limitare a cererilor și date tehnice procesate pentru protejarea aplicației",
       ],
     },
     {
-      title: "2. Date care nu sunt colectate",
+      title: "3. Date privind sănătatea și date care nu sunt colectate",
       paragraphs: [
-        "Nu solicitați și nu introduceți în aplicație note clinice, diagnostic, istoric medical, simptome sau alte date de sănătate. Formularul de programare nu are câmp de observații.",
+        "O programare la un cabinet de psihologie poate indica folosirea unor servicii de sănătate mintală. Tratăm aceste date de programare ca date cu context de sănătate și le limităm la ceea ce este necesar pentru gestionarea programării.",
+        "Nu solicita și nu introduce în aplicație note clinice, diagnostice, istoric medical, simptome, documente sau alte informații terapeutice. Formularul de programare nu are câmp de observații.",
       ],
     },
     {
-      title: "3. Scopuri",
+      title: "4. Scopuri și temeiuri juridice",
       paragraphs: [
-        "Folosim datele pentru autentificare, prevenirea abuzului, afișarea disponibilității, gestionarea programării, confirmări/anulări și obligații legale aplicabile. Operatorul trebuie să confirme pentru fiecare scop temeiul juridic înainte de publicare.",
+        "Folosim datele de cont și programare pentru a face pași la cererea ta înainte de furnizarea serviciului și pentru gestionarea contului/programării, în temeiul art. 6 alin. (1) lit. b GDPR. În măsura în care o programare dezvăluie context de sănătate, temeiul suplimentar analizat este art. 9 alin. (2) lit. h GDPR, pentru gestionarea serviciilor psihologice de către un profesionist ținut de obligația de confidențialitate.",
+        "Folosim date tehnice, autentificarea cu doi factori, Turnstile, limitarea cererilor și evenimentele de securitate pentru prevenirea fraudei și protejarea conturilor, în interesul nostru legitim conform art. 6 alin. (1) lit. f GDPR. Operatorul păstrează o evaluare a interesului legitim pentru acest scop.",
+        "Trimitem emailuri tranzacționale pentru verificarea contului, resetarea parolei și notificări generice despre programare. Nu trimitem prin aceste emailuri note clinice sau detalii despre terapie.",
       ],
     },
     {
-      title: "4. Furnizori",
+      title: "5. Destinatari și furnizori",
       paragraphs: [
-        "Baza D1 este configurată cu jurisdicție UE și fără replici de citire. Cloudflare procesează infrastructura. Resend procesează expeditorul, destinatarul, subiectul și fie un link de securitate al contului, fie o notificare generică; mesajele nu conțin note clinice sau detalii despre terapie. Google Calendar primește doar un eveniment generic, fără nume, email sau detalii despre terapie. Configurarea nu garantează procesare exclusiv în UE.",
+        "Datele sunt accesibile numai terapeutului și personalului autorizat, în măsura necesară. Cloudflare furnizează găzduire, securitate, Turnstile și baza de date D1; Resend furnizează emailurile tranzacționale; Google este un furnizor separat pentru autentificarea opțională cu Google și pentru Calendar.",
+        "Calendarul Google primește numai un identificator opac de eveniment, intervalul orar și titlul generic «Reserved time»; nu primește nume, email, servicii, note clinice sau detalii de terapie. Google pentru autentificare își prelucrează propriile date conform politicilor sale; noi primim doar datele de profil necesare creării contului și identificatorul contului ales.",
       ],
     },
     {
-      title: "5. Păstrare și ștergere",
+      title: "6. Transferuri internaționale",
       paragraphs: [
-        "Conturile șterse sunt de-identificate și accesul este revocat imediat. Datele de programare sunt șterse conform perioadelor aprobate de operator/DPO și eventualelor obligații legale. Perioadele și excepțiile trebuie comunicate de operator.",
+        "D1 este configurată cu jurisdicție UE și fără replici de citire, însă această configurație nu garantează procesare exclusiv în UE/SEE. Cloudflare, Resend și Google pot efectua transferuri internaționale în funcție de serviciul utilizat. Înainte de lansare, operatorul verifică acordurile de prelucrare, lista subprocessatorilor, deciziile de adecvare sau clauzele contractuale standard și măsurile suplimentare aplicabile. Poți solicita informații despre garanțiile relevante la contact@eikon-mind.ro.",
       ],
     },
     {
-      title: "6. Drepturi și contact",
+      title: "7. Perioade de păstrare",
       paragraphs: [
-        "Pentru acces, rectificare, ștergere, restricționare, portabilitate sau obiecții contactează operatorul. Procedura de verificare a identității, răspuns și plângeri trebuie validată juridic de operator.",
+        "Programările REQUESTED, CONFIRMED și COMPLETED și datele tehnice asociate sunt șterse la 30 de zile după momentul programării. Programările anulate sunt șterse la 14 zile după ultima actualizare. După o cerere de ștergere, accesul și datele de identificare sunt eliminate imediat, iar înregistrarea de-identificată este eliminată la 30 de zile după cerere.",
+        "Evenimentele de securitate sunt șterse după 14 zile; sesiunile și verificările expirate sunt șterse la expirare; înregistrările de limitare a cererilor sunt șterse după o zi. Copiile de recuperare pot rămâne temporar conform perioadelor verificate ale furnizorilor.",
+      ],
+    },
+    {
+      title: "8. Drepturile tale",
+      paragraphs: [
+        "Ai dreptul de acces, rectificare, ștergere, restricționare, opoziție, portabilitate și de a te adresa Autorității Naționale de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP) la www.dataprotection.ro. Poți descărca din profil o copie a datelor de cont și programărilor; pentru celelalte cereri sau pentru asistență, contactează-ne la adresa de mai sus.",
+        "Răspundem fără întârzieri nejustificate și, în mod normal, în cel mult o lună de la primirea cererii. Putem solicita doar informațiile necesare pentru verificarea identității. Poți retrage un consimțământ atunci când prelucrarea se bazează pe consimțământ, fără a afecta legalitatea prelucrării anterioare retragerii.",
+      ],
+    },
+    {
+      title: "9. Caracter obligatoriu și decizii automate",
+      paragraphs: [
+        "Numele și emailul, precum și o metodă de autentificare sunt necesare pentru cont; intervalul orar este necesar pentru programare. Dacă nu le furnizezi, nu putem oferi funcția respectivă. Nu folosim profilare sau decizii automate cu efect juridic ori similar semnificativ.",
+        "Această informare este revizuită înaintea oricărei schimbări care introduce noi scopuri, destinatari, tehnologii de urmărire sau categorii de date.",
       ],
     },
   ],
 };
 enPages["politica-de-confidentialitate"] = {
   kind: "legal",
-  title: "Privacy policy",
-  description:
-    "This application processes the minimum data for accounts and bookings; it is not a medical record.",
+  title: "Privacy and data-processing notice",
+  description: "GDPR notice for the Eikon Mind application. Last updated: 14 September 2026.",
   sections: [
     {
-      title: "1. Data processed",
+      title: "1. Controller and scope",
+      paragraphs: [
+        "The controller is Eikon Mind – Individual Psychology Practice, clinical psychologist and psychotherapist Maria-Manuela Niță, with professional address at 83 Vasile Lupu Street, Iași, Romania. For personal-data questions or requests, write to contact@eikon-mind.ro.",
+        "This notice covers the account and booking application. It does not cover clinical files, therapeutic consents, or documents managed directly by the therapist outside the application.",
+      ],
+    },
+    {
+      title: "2. Data we process",
       items: [
-        "name and email address for the account and verification",
-        "authentication credentials, sessions, and two-factor authentication",
-        "availability window, appointment time, and status",
-        "an opaque calendar-event reference",
+        "account data: first name, last name, email address, verification status, and account creation/update times",
+        "authentication data: password hash, sessions, sign-in method, the Google provider identifier selected by the user, and encrypted 2FA material",
+        "booking data: selected time range, status, creation/update times, and the technical link needed to the therapist",
+        "minimised security data: security events, request-rate-limit keys, and technical data processed to protect the application",
       ],
     },
     {
-      title: "2. Data not collected",
+      title: "3. Health-context data and data we do not collect",
       paragraphs: [
-        "Do not submit clinical notes, diagnoses, medical history, symptoms, or other health information to the application. The booking form has no notes field.",
+        "A booking with a psychology practice may indicate the use of mental-health services. We treat booking data as health-context data and limit it to what is necessary to manage the booking.",
+        "Do not submit clinical notes, diagnoses, medical history, symptoms, documents, or other therapeutic information to the application. The booking form has no notes field.",
       ],
     },
     {
-      title: "3. Purposes",
+      title: "4. Purposes and legal bases",
       paragraphs: [
-        "We use data for authentication, abuse prevention, availability display, appointment management, confirmations/cancellations, and applicable legal obligations. The controller must validate the legal basis for every purpose before publication.",
+        "We use account and booking data to take steps at your request before providing the service and to manage the account or booking, under Article 6(1)(b) GDPR. Where a booking reveals health context, the additional basis assessed is Article 9(2)(h) GDPR for managing psychological services by a professional bound by confidentiality.",
+        "We use technical data, two-factor authentication, Turnstile, rate limiting, and security events to prevent fraud and protect accounts under our legitimate interest, Article 6(1)(f) GDPR. The controller maintains a legitimate-interest assessment for this purpose.",
+        "We send transactional emails for account verification, password reset, and generic booking notifications. These emails do not contain clinical notes or therapy details.",
       ],
     },
     {
-      title: "4. Providers",
+      title: "5. Recipients and providers",
       paragraphs: [
-        "D1 is configured with EU jurisdiction and no read replicas. Cloudflare operates infrastructure. Resend processes the sender, recipient, subject, and either an account-security link or a generic notification; messages contain no clinical notes or therapy details. Google Calendar receives only a generic event with no name, email, or therapy details. This configuration does not guarantee EU-only processing.",
+        "Data is available only to the therapist and authorised staff where necessary. Cloudflare provides hosting, security, Turnstile, and D1; Resend provides transactional email; Google is a separate provider for optional Google sign-in and Calendar.",
+        "Google Calendar receives only an opaque event identifier, time range, and the generic title “Reserved time”; it receives no name, email, service, clinical note, or therapy detail. Google processes its own sign-in service under its own policies; we receive only the profile data needed to create an account and the selected account identifier.",
       ],
     },
     {
-      title: "5. Retention and deletion",
+      title: "6. International transfers",
       paragraphs: [
-        "Deleted accounts are de-identified and access is revoked immediately. Scheduling data is removed according to controller/DPO-approved periods and any legal obligations. The controller must communicate the actual periods and exceptions.",
+        "D1 is configured with EU jurisdiction and no read replicas, but this does not guarantee EU/EEA-only processing. Cloudflare, Resend, and Google may make international transfers depending on the service used. Before release, the controller verifies the data-processing agreements, subprocessors, adequacy decisions or Standard Contractual Clauses, and applicable supplementary measures. You may request information about relevant safeguards at contact@eikon-mind.ro.",
       ],
     },
     {
-      title: "6. Rights and contact",
+      title: "7. Retention periods",
       paragraphs: [
-        "Contact the controller to exercise access, rectification, erasure, restriction, portability, or objection rights. The controller must legally validate its identity-verification, response, and complaint procedure.",
+        "REQUESTED, CONFIRMED, and COMPLETED appointments and related technical data are deleted 30 days after the appointment time. Cancelled appointments are deleted 14 days after their last update. After an erasure request, access and identifying data are removed immediately, and the de-identified record is removed 30 days after the request.",
+        "Security events are deleted after 14 days; expired sessions and verifications are deleted on expiry; rate-limit records are deleted after one day. Recovery copies may remain temporarily under verified provider retention periods.",
+      ],
+    },
+    {
+      title: "8. Your rights",
+      paragraphs: [
+        "You have the rights of access, rectification, erasure, restriction, objection, portability, and complaint to the Romanian supervisory authority, ANSPDCP, at www.dataprotection.ro. You can download your account and booking data from your profile; contact us at the address above for other requests or help.",
+        "We respond without undue delay and normally within one month of receiving a request. We may ask only for information necessary to verify identity. You may withdraw consent where processing relies on consent, without affecting the lawfulness of earlier processing.",
+      ],
+    },
+    {
+      title: "9. Required information and automated decisions",
+      paragraphs: [
+        "Your name, email address, and a sign-in method are necessary for an account; a time range is necessary for a booking. If you do not provide them, we cannot provide that feature. We do not use profiling or automated decisions with legal or similarly significant effects.",
+        "We review this notice before introducing new purposes, recipients, tracking technologies, or data categories.",
       ],
     },
   ],
@@ -1847,38 +1847,45 @@ enPages["politica-de-confidentialitate"] = {
 // Legal/controller review is still required before publishing any policy.
 roPages["politica-de-cookies"] = {
   kind: "legal",
-  title: "Politica de cookie-uri",
+  title: "Politica privind cookie-urile și tehnologii similare",
   description:
-    "Aplicația folosește doar tehnologii necesare pentru securitate, autentificare și funcționare.",
+    "Această aplicație folosește numai tehnologii necesare și preferințe locale controlate de utilizator. Ultima actualizare: 14 septembrie 2026.",
   sections: [
     {
-      title: "1. Ce folosim",
+      title: "1. Domeniul acestei politici",
       paragraphs: [
-        "Nu folosim Google Analytics, WordPress, publicitate comportamentală sau alte cookie-uri de analiză în această versiune a aplicației.",
+        "Această politică acoperă cookie-urile și tehnologiile similare care stochează sau accesează informații în browser, inclusiv localStorage. Ele sunt utilizate conform regulilor aplicabile de confidențialitate electronică și GDPR.",
       ],
     },
     {
-      title: "2. Cookie-uri esențiale",
+      title: "2. Cookie-uri esențiale de autentificare",
       paragraphs: [
-        "Better Auth folosește cookie-uri HttpOnly, Secure în producție și SameSite=Lax pentru sesiune și, când este necesar, pentru fluxul de autentificare cu doi factori. Acestea nu sunt folosite pentru marketing.",
+        "Better Auth folosește cookie-uri de sesiune pentru autentificare și, când este necesar, pentru provocarea temporară de autentificare cu doi factori. În producție acestea sunt HttpOnly, Secure, SameSite=Lax, limitate la host și nu sunt folosite pentru marketing sau analiză.",
       ],
     },
     {
-      title: "3. Protecție anti-abuz",
+      title: "3. Protecție împotriva abuzului",
       paragraphs: [
-        "Cloudflare Turnstile poate folosi tehnologii de securitate pentru a preveni automatizările abuzive. Cloudflare poate seta propriile cookie-uri tehnice conform documentației sale.",
+        "Formularele de înregistrare, autentificare și resetare a parolei încarcă Cloudflare Turnstile pentru prevenirea automatizărilor abuzive. Cloudflare poate folosi tehnologii tehnice de securitate și poate prelucra semnale de dispozitiv sau rețea conform documentației sale.",
       ],
     },
     {
       title: "4. Preferințe locale",
       paragraphs: [
-        "Preferințele de temă și muzică sunt păstrate în localStorage în browser, nu în cookie-uri.",
+        "Preferințele pentru tema vizuală și muzica de fundal sunt păstrate în localStorage, nu în cookie-uri. Ele sunt salvate numai când alegi o preferință și pot fi eliminate din setările browserului.",
       ],
     },
     {
-      title: "5. Gestionare",
+      title: "5. Fără tehnologii opționale de urmărire",
       paragraphs: [
-        "Blocarea cookie-urilor esențiale poate împiedica autentificarea. Revizuirea juridică a acestei politici, a temeiului legal și a mecanismelor de consimțământ rămâne responsabilitatea operatorului.",
+        "Nu folosim Google Analytics, cookie-uri de publicitate, publicitate comportamentală, pixeli de marketing sau cookie-uri de rețele sociale. Linkurile către rețele sociale nu încarcă resurse ale acestor platforme; datele sunt transmise numai dacă alegi să urmezi linkul.",
+        "Deoarece nu există cookie-uri opționale, aplicația nu afișează un banner de consimțământ. Orice tehnologie opțională introdusă ulterior va fi blocată până când alegerea granulară de acceptare sau refuz, la fel de accesibilă, este înregistrată.",
+      ],
+    },
+    {
+      title: "6. Gestionarea tehnologiilor",
+      paragraphs: [
+        "Poți șterge cookie-urile și localStorage din setările browserului. Blocarea cookie-urilor esențiale poate împiedica autentificarea și accesul la cont. Pentru întrebări despre această politică, contactează contact@eikon-mind.ro.",
       ],
     },
   ],
@@ -1886,12 +1893,23 @@ roPages["politica-de-cookies"] = {
     headers: ["Tehnologie", "Tip", "Scop", "Durată"],
     rows: [
       [
-        "Cookie-uri Better Auth de sesiune / 2FA",
-        "Esențial",
+        "__Secure-better-auth.session_token",
+        "Cookie esențial",
         "Autentificare și securitate cont",
-        "Sesiune / conform configurării",
+        "Până la 7 zile",
       ],
-      ["Cloudflare Turnstile", "Securitate", "Prevenire abuz", "Conform Cloudflare"],
+      [
+        "__Secure-better-auth.two_factor",
+        "Cookie esențial",
+        "Verificare temporară cu doi factori",
+        "10 minute",
+      ],
+      [
+        "Cloudflare Turnstile",
+        "Tehnologie de securitate",
+        "Prevenirea automatizărilor abuzive pe formulare de autentificare",
+        "Conform configurației Cloudflare",
+      ],
       ["eikon-theme (localStorage)", "Preferință locală", "Temă vizuală", "Până la ștergere"],
       [
         "eikon-music-enabled (localStorage)",
@@ -1904,38 +1922,45 @@ roPages["politica-de-cookies"] = {
 };
 enPages["politica-de-cookies"] = {
   kind: "legal",
-  title: "Cookie policy",
+  title: "Cookie and similar technologies policy",
   description:
-    "The application uses only technology necessary for security, authentication, and operation.",
+    "This application uses only necessary technologies and user-controlled local preferences. Last updated: 14 September 2026.",
   sections: [
     {
-      title: "1. What we use",
+      title: "1. Scope of this policy",
       paragraphs: [
-        "This version of the application does not deploy Google Analytics, WordPress, behavioural advertising, or analytics cookies.",
+        "This policy covers cookies and similar technologies that store or access information in the browser, including localStorage. They are used in line with applicable ePrivacy and GDPR rules.",
       ],
     },
     {
-      title: "2. Essential cookies",
+      title: "2. Essential authentication cookies",
       paragraphs: [
-        "Better Auth uses HttpOnly cookies, Secure cookies in production, and SameSite=Lax for sessions and, where needed, the two-factor authentication flow. They are not used for marketing.",
+        "Better Auth uses session cookies for authentication and, where needed, a temporary two-factor authentication challenge. In production they are HttpOnly, Secure, SameSite=Lax, host-only, and are not used for marketing or analytics.",
       ],
     },
     {
-      title: "3. Anti-abuse protection",
+      title: "3. Abuse prevention",
       paragraphs: [
-        "Cloudflare Turnstile may use security technology to prevent abusive automation. Cloudflare may set its own technical cookies under its documentation.",
+        "Registration, sign-in, and password-reset forms load Cloudflare Turnstile to prevent abusive automation. Cloudflare may use technical security technologies and process device or network signals under its documentation.",
       ],
     },
     {
-      title: "4. Local preference",
+      title: "4. Local preferences",
       paragraphs: [
-        "The theme and music preferences are stored in browser localStorage, not cookies.",
+        "Visual-theme and background-music preferences are stored in localStorage, not cookies. They are saved only when you choose a preference and can be removed in browser settings.",
       ],
     },
     {
-      title: "5. Managing cookies",
+      title: "5. No optional tracking technologies",
       paragraphs: [
-        "Blocking essential cookies can prevent sign-in. Legal review of this policy, the legal basis, and consent mechanisms remains the controller's responsibility.",
+        "We do not use Google Analytics, advertising cookies, behavioural advertising, marketing pixels, or social-media cookies. Links to social media do not load resources from those platforms; data is transferred only if you choose to follow a link.",
+        "Because the application has no optional cookies, it does not show a consent banner. Any optional technology added later will be blocked until a granular, equally accessible accept or reject choice is recorded.",
+      ],
+    },
+    {
+      title: "6. Managing technologies",
+      paragraphs: [
+        "You can delete cookies and localStorage in browser settings. Blocking essential cookies can prevent sign-in and account access. For questions about this policy, contact contact@eikon-mind.ro.",
       ],
     },
   ],
@@ -1943,12 +1968,23 @@ enPages["politica-de-cookies"] = {
     headers: ["Technology", "Type", "Purpose", "Duration"],
     rows: [
       [
-        "Better Auth session / 2FA cookies",
-        "Essential",
+        "__Secure-better-auth.session_token",
+        "Essential cookie",
         "Account authentication and security",
-        "Session / configured duration",
+        "Up to 7 days",
       ],
-      ["Cloudflare Turnstile", "Security", "Abuse prevention", "As set by Cloudflare"],
+      [
+        "__Secure-better-auth.two_factor",
+        "Essential cookie",
+        "Temporary two-factor authentication challenge",
+        "10 minutes",
+      ],
+      [
+        "Cloudflare Turnstile",
+        "Security technology",
+        "Preventing abusive automation on authentication forms",
+        "As configured by Cloudflare",
+      ],
       ["eikon-theme (localStorage)", "Local preference", "Visual theme", "Until deleted"],
       [
         "eikon-music-enabled (localStorage)",

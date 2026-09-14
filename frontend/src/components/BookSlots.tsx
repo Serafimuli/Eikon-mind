@@ -112,6 +112,13 @@ export function BookSlots({
               ? "Se colectează doar ora programării. Nu transmite informații medicale sau clinice prin acest formular."
               : "Only the appointment time is collected. Do not send health or clinical information through this form."}
           </p>
+          <p className="muted">
+            <Link href={`/${locale}/politica-de-confidentialitate`}>
+              {locale === "ro"
+                ? "Citește informarea privind prelucrarea datelor pentru programări."
+                : "Read the booking data-processing notice."}
+            </Link>
+          </p>
           <button type="button" className="button" disabled={busy || !slotId} onClick={book}>
             {busy
               ? "…"

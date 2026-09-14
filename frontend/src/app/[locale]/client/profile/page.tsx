@@ -79,6 +79,20 @@ export default async function Profile({ params }: { params: Promise<{ locale: Lo
           </ActionForm>
         </section>
       )}
+      <section className="form-card" aria-labelledby="data-export-title">
+        <p className="eyebrow">GDPR</p>
+        <h2 id="data-export-title">
+          {locale === "ro" ? "Descarcă datele tale" : "Download your data"}
+        </h2>
+        <p>
+          {locale === "ro"
+            ? "Descarcă o copie a datelor de cont și a programărilor asociate contului tău."
+            : "Download a copy of your account data and the appointments associated with it."}
+        </p>
+        <a className="button button--secondary" href="/api/privacy/export">
+          {locale === "ro" ? "Descarcă exportul" : "Download export"}
+        </a>
+      </section>
     </main>
   );
 }

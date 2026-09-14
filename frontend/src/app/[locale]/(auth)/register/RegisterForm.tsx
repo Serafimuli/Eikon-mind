@@ -68,6 +68,13 @@ export function RegisterForm({ locale }: { locale: Locale }) {
       <p className="muted">
         {locale === "ro" ? "Folosește cel puțin 12 caractere." : "Use at least 12 characters."}
       </p>
+      <p className="muted">
+        <Link href={`/${locale}/politica-de-confidentialitate`}>
+          {locale === "ro"
+            ? "Citește informarea privind prelucrarea datelor înainte de creare cont."
+            : "Read the data-processing notice before creating an account."}
+        </Link>
+      </p>
       <TurnstileWidget key={captcha.generation} onToken={captcha.setToken} />
       {error && (
         <p className="error" role="alert">

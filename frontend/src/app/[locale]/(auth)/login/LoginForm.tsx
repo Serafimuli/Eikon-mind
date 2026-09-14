@@ -66,6 +66,13 @@ export function LoginForm({ locale }: { locale: Locale }) {
           required
         />
       </label>
+      <p className="muted">
+        <Link href={`/${locale}/politica-de-confidentialitate`}>
+          {locale === "ro"
+            ? "Citește informarea privind prelucrarea datelor."
+            : "Read the data-processing notice."}
+        </Link>
+      </p>
       <TurnstileWidget key={captcha.generation} onToken={captcha.setToken} />
       {(error || oauthFailed) && (
         <p className="error" role="alert">

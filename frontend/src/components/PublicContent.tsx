@@ -438,29 +438,6 @@ export function HomePageContent({ locale, content }: { locale: Locale; content: 
           {locale === "ro" ? "Vezi recomandarea" : "View recommendation"} ↗
         </a>
       </section>
-      <section className="source-section testimonials-section">
-        <div className="section-heading section-heading--wide">
-          <p className="eyebrow">{locale === "ro" ? "Testimoniale" : "Testimonials"}</p>
-          <h2>{content.testimonialsTitle}</h2>
-        </div>
-        <div className="testimonial-grid">
-          {content.testimonials.map((testimonial) => (
-            <article className="testimonial-card" key={testimonial.author}>
-              <div className="testimonial-card__image">
-                <Picture
-                  src={testimonial.image}
-                  alt={`Testimonial ${testimonial.author}`}
-                  sizes="72px"
-                />
-              </div>
-              <div className="testimonial-card__body">
-                <p>“{testimonial.quote}”</p>
-                <strong>{testimonial.author}</strong>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
       <section className="source-section sessions-section">
         <div className="section-heading">
           <p className="eyebrow">{locale === "ro" ? "Ședințe" : "Sessions"}</p>

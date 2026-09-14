@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { authClient, googleAuthContinuationURL } from "@/lib/auth-client";
 import type { Locale } from "@/lib/site-content";
@@ -38,16 +39,25 @@ export function GoogleSignInButton({
   };
 
   return (
-    <button
-      className="button button--secondary auth-google-button"
-      type="button"
-      disabled={busy || disabled}
-      onClick={continueWithGoogle}
-    >
-      <span aria-hidden="true" className="auth-google-mark">
-        G
-      </span>
-      {busy ? "…" : locale === "ro" ? "Continuă cu Google" : "Continue with Google"}
-    </button>
+    <div>
+      <button
+        className="button button--secondary auth-google-button"
+        type="button"
+        disabled={busy || disabled}
+        onClick={continueWithGoogle}
+      >
+        <span aria-hidden="true" className="auth-google-mark">
+          G
+        </span>
+        {busy ? "…" : locale === "ro" ? "Continuă cu Google" : "Continue with Google"}
+      </button>
+      <p className="muted auth-privacy-notice">
+        <Link href={`/${locale}/politica-de-confidentialitate`}>
+          {locale === "ro"
+            ? "Află cum prelucrăm datele Google."
+            : "Learn how we process Google data."}
+        </Link>
+      </p>
+    </div>
   );
 }
