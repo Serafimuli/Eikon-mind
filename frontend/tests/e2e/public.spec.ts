@@ -33,7 +33,7 @@ test("Google site verification metadata is present only on localized homepages",
     await expect(verification).toHaveCount(1);
     await expect(verification).toHaveAttribute(
       "content",
-      "MCKGahJqzUmqPQhZ4ZlDVhRjEDbp-rNGjQZnTqrI9ew",
+      "PyRAi0SBOviJ6s8Ir1aFiuqk6UgyMTCe2_KFl7MaHyQ",
     );
   }
 

@@ -6,7 +6,7 @@ import { locales, site, type Locale } from "@/lib/site-content";
 
 export const metadata: Metadata = {
   verification: {
-    google: "MCKGahJqzUmqPQhZ4ZlDVhRjEDbp-rNGjQZnTqrI9ew",
+    google: "PyRAi0SBOviJ6s8Ir1aFiuqk6UgyMTCe2_KFl7MaHyQ",
   },
 };
 
