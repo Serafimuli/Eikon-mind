@@ -23,6 +23,24 @@ for (const path of ["/en", "/ro", "/en/login"]) {
   });
 }
 
+test("Google site verification metadata is present only on localized homepages", async ({
+  page,
+}) => {
+  const verification = page.locator('head meta[name="google-site-verification"]');
+
+  for (const path of ["/en", "/ro"]) {
+    await page.goto(path);
+    await expect(verification).toHaveCount(1);
+    await expect(verification).toHaveAttribute(
+      "content",
+      "MCKGahJqzUmqPQhZ4ZlDVhRjEDbp-rNGjQZnTqrI9ew",
+    );
+  }
+
+  await page.goto("/en/login");
+  await expect(verification).toHaveCount(0);
+});
+
 test("private areas redirect an unauthenticated visitor to a local sign-in URL", async ({
   page,
 }) => {

@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import { HomePageContent } from "@/components/PublicContent";
 import { PublicFooter } from "@/components/PublicFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { locales, site, type Locale } from "@/lib/site-content";
+
+export const metadata: Metadata = {
+  verification: {
+    google: "MCKGahJqzUmqPQhZ4ZlDVhRjEDbp-rNGjQZnTqrI9ew",
+  },
+};
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
