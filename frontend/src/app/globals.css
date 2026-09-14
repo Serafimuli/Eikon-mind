@@ -445,6 +445,51 @@ strong {
     box-shadow 180ms ease;
 }
 
+.back-to-top {
+  position: fixed;
+  z-index: 60;
+  right: 24px;
+  bottom: 84px;
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--primary);
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: 0 8px 24px rgba(20, 20, 19, 0.18);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.back-to-top:hover {
+  border-color: var(--primary-active);
+  background: var(--primary-active);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(20, 20, 19, 0.22);
+}
+
+.back-to-top:active {
+  transform: translateY(0);
+}
+
+.back-to-top__icon {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
 .music-toggle:hover {
   border-color: var(--primary-active);
   background: var(--primary-active);
@@ -2064,6 +2109,11 @@ textarea:focus {
   .music-toggle {
     right: calc(16px + env(safe-area-inset-right));
     bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .back-to-top {
+    right: calc(16px + env(safe-area-inset-right));
+    bottom: calc(76px + env(safe-area-inset-bottom));
   }
 
   h1 {

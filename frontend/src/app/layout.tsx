@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Script from "next/script";
+import { BackToTop } from "@/components/BackToTop";
 import { BackgroundMusic } from "@/components/BackgroundMusic";
 import "./globals.css";
 
@@ -21,6 +22,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} suppressHydrationWarning data-scroll-behavior="smooth">
       <body>
         {children}
+        <BackToTop />
         <BackgroundMusic />
         <Script id="eikon-theme" nonce={nonce} strategy="beforeInteractive">
           {themeScript}

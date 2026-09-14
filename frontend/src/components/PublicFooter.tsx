@@ -86,7 +86,6 @@ export function PublicFooter({ locale }: { locale: Locale }) {
         <span>
           © {new Date().getFullYear()} Eikon Mind. {copy.copyright}
         </span>
-        <Link href={`/${locale}`}>↑ {locale === "ro" ? "Înapoi sus" : "Back to top"}</Link>
       </div>
     </footer>
   );
