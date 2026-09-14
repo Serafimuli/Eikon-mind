@@ -668,7 +668,7 @@ strong {
 
 .service-dropdown {
   position: absolute;
-  top: 52px;
+  top: 100%;
   left: -16px;
   min-width: 280px;
   display: grid;

@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, type FocusEvent, type MouseEvent } from "react";
 import { site, type Locale } from "@/lib/site-content";
 import { HeaderShell } from "@/components/HeaderShell";
 
@@ -20,13 +20,49 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const pathname = usePathname() || `/${locale}`;
   const [menuOpen, setMenuOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
+  const [servicesHovered, setServicesHovered] = useState(false);
+  const [servicesFocused, setServicesFocused] = useState(false);
   const copy = site[locale].nav;
   const switchLocale = locale === "ro" ? "en" : "ro";
   const currentPath = pathname.replace(/^\/(ro|en)(?=\/|$)/, "") || "/";
+  const servicesExpanded = servicesOpen || servicesHovered || servicesFocused;
 
   const closeMenu = () => {
     setMenuOpen(false);
     setServicesOpen(false);
+    setServicesHovered(false);
+    setServicesFocused(false);
+  };
+
+  const handleServicesPointerEnter = () => {
+    if (typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches) {
+      setServicesHovered(true);
+    }
+  };
+
+  const handleServicesPointerLeave = () => {
+    if (typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches) {
+      setServicesHovered(false);
+    }
+  };
+
+  const handleServicesBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (!event.relatedTarget || !event.currentTarget.contains(event.relatedTarget as Node)) {
+      setServicesFocused(false);
+      setServicesOpen(false);
+    }
+  };
+
+  const handleServicesClick = (event: MouseEvent<HTMLButtonElement>) => {
+    if (typeof window === "undefined" || window.matchMedia("(hover: hover)").matches) {
+      if (event.detail > 0) {
+        setServicesFocused(false);
+      }
+      return;
+    }
+
+    setServicesFocused(false);
+    setServicesOpen((open) => !open);
   };
 
   return (
@@ -51,19 +87,25 @@ export function SiteHeader({ locale }: { locale: Locale }) {
         >
           {copy.home}
         </Link>
-        <div className="service-menu">
+        <div
+          className="service-menu"
+          onPointerEnter={handleServicesPointerEnter}
+          onPointerLeave={handleServicesPointerLeave}
+          onFocus={() => setServicesFocused(true)}
+          onBlur={handleServicesBlur}
+        >
           <button
             type="button"
             className="service-menu__trigger"
-            aria-expanded={servicesOpen}
-            onClick={() => setServicesOpen((open) => !open)}
+            aria-expanded={servicesExpanded}
+            onClick={handleServicesClick}
           >
             {copy.services}
             <span className="service-menu__chevron" aria-hidden="true">
               ⌄
             </span>
           </button>
-          <div className={`service-dropdown ${servicesOpen ? "service-dropdown--open" : ""}`}>
+          <div className={`service-dropdown ${servicesExpanded ? "service-dropdown--open" : ""}`}>
             {serviceLinks.map(([slug, roTitle, enTitle]) => (
               <Link href={`/${locale}/${slug}`} key={slug} onClick={closeMenu}>
                 <span>{locale === "ro" ? roTitle : enTitle}</span>
