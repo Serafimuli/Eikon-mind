@@ -17,6 +17,25 @@ test("profile settings use verified email changes and revoke other sessions afte
   assert.match(profile, /newEmail\.trim\(\)\.toLowerCase\(\) !== confirmEmail/);
 });
 
+test("unverified email users can access their profile and resend verification", async () => {
+  const [auth, registration, verification, profile] = await Promise.all([
+    readFile(new URL("../src/lib/auth.ts", import.meta.url), "utf8"),
+    readFile(
+      new URL("../src/app/[locale]/(auth)/register/RegisterForm.tsx", import.meta.url),
+      "utf8",
+    ),
+    readFile(new URL("../src/components/EmailVerificationCard.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/ProfileSettings.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(auth, /requireEmailVerification:\s*false/);
+  assert.match(registration, /router\.replace\(`\/\$\{locale\}\/client\/profile`\)/);
+  assert.match(verification, /authClient\.sendVerificationEmail/);
+  assert.match(verification, /callbackURL:\s*`\/\$\{locale\}\/client\/profile`/);
+  assert.match(verification, /Resend verification email/);
+  assert.match(profile, /Email not verified/);
+});
+
 test("TOTP setup renders a QR code without exposing the provisioning URI as text", async () => {
   const source = await readFile(
     new URL("../src/components/TwoFactorSetup.tsx", import.meta.url),

@@ -26,7 +26,7 @@ export function RegisterForm({ locale }: { locale: Locale }) {
       email: String(form.get("email")),
       password: String(form.get("password")),
       name: `${firstName} ${lastName}`,
-      callbackURL: `/${locale}/verify-email`,
+      callbackURL: `/${locale}/client/profile`,
       firstName,
       lastName,
       fetchOptions: { headers: { "x-captcha-response": captcha.token } },
@@ -36,7 +36,7 @@ export function RegisterForm({ locale }: { locale: Locale }) {
       captcha.reset();
       return setError(copy.registrationFailed);
     }
-    router.replace(`/${locale}/verify-email`);
+    router.replace(`/${locale}/client/profile`);
   };
 
   return (

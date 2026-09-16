@@ -36,7 +36,7 @@ export function EmailVerificationCard({
     setError("");
     const result = await authClient.sendVerificationEmail({
       email,
-      callbackURL: `/${locale}/verify-email`,
+      callbackURL: `/${locale}/client/profile`,
       fetchOptions: { headers: { "x-captcha-response": captcha.token } },
     });
     setBusy(false);

@@ -28,8 +28,8 @@ export default async function VerifyEmail({
           ) : (
             <p>
               {locale === "ro"
-                ? "Ți-am trimis un link de verificare. După verificare, autentifică-te pentru a continua."
-                : "We sent you a verification link. After verification, sign in to continue."}
+                ? "Ți-am trimis un link de verificare. Îți poți accesa profilul în timp ce adresa este în curs de verificare."
+                : "We sent you a verification link. You can access your profile while your address is pending verification."}
             </p>
           )}
           <p className="muted">
@@ -37,8 +37,8 @@ export default async function VerifyEmail({
               ? "Dacă nu găsești mesajul, verifică folderul spam sau retrimite-l din profil."
               : "If you cannot find it, check spam or resend it from your profile."}
           </p>
-          <Link className="button" href={`/${locale}/login`}>
-            {locale === "ro" ? "Mergi la autentificare" : "Go to sign in"}
+          <Link className="button" href={`/${locale}/client/profile`}>
+            {locale === "ro" ? "Mergi la profil" : "Go to profile"}
           </Link>
         </section>
       </main>

@@ -97,7 +97,10 @@ export const getAuth = async () => {
       maxPasswordLength: 128,
       password: { hash: hashPassword, verify: verifyPassword },
       autoSignIn: true,
-      requireEmailVerification: true,
+      // A pending address must not prevent its owner from using their account.
+      // Access to booking and staff capabilities remains guarded by the
+      // server-side emailVerified checks in lib/session.ts.
+      requireEmailVerification: false,
       revokeSessionsOnPasswordReset: true,
       sendResetPassword: async ({ user, url }) => {
         const message = securityEmail("reset", url);
