@@ -21,20 +21,22 @@ export async function requireUser(locale: string) {
 
 export async function requireClient(locale: string) {
   const user = await requireUser(locale);
-  if (user.role !== "USER" || !user.emailVerified) redirect(`/${locale}/client/profile`);
+  if (user.role !== "USER") redirect(`/${locale}/admin?notice=access-denied`);
+  if (!user.emailVerified) redirect(`/${locale}/client/profile`);
   return user;
 }
 
 export async function requireAdmin(locale: string) {
   const user = await requireUser(locale);
-  if (user.role !== "ADMIN" || !user.emailVerified || !user.twoFactorEnabled)
-    redirect(`/${locale}/client/profile`);
+  if (user.role === "THERAPIST") redirect(`/${locale}/admin?notice=access-denied`);
+  if (user.role !== "ADMIN") redirect(`/${locale}/client?notice=access-denied`);
+  if (!user.emailVerified || !user.twoFactorEnabled) redirect(`/${locale}/client/profile`);
   return user;
 }
 
 export async function requireStaff(locale: string) {
   const user = await requireUser(locale);
-  if (!isStaff(user.role) || !user.emailVerified || !user.twoFactorEnabled)
-    redirect(`/${locale}/client/profile`);
+  if (!isStaff(user.role)) redirect(`/${locale}/client?notice=access-denied`);
+  if (!user.emailVerified || !user.twoFactorEnabled) redirect(`/${locale}/client/profile`);
   return user;
 }

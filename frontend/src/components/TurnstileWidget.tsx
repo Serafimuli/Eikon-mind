@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Locale } from "@/lib/site-content";
 
 type TurnstileApi = {
   render: (
@@ -23,6 +24,11 @@ declare global {
 }
 
 let turnstileScript: Promise<TurnstileApi> | undefined;
+
+function discardFailedTurnstileScript() {
+  if (window.turnstile) return;
+  document.querySelector<HTMLScriptElement>("script[data-eikon-turnstile]")?.remove();
+}
 
 function loadTurnstileScript() {
   if (window.turnstile) return Promise.resolve(window.turnstile);
@@ -49,15 +55,37 @@ function loadTurnstileScript() {
     }
   }).catch((error) => {
     turnstileScript = undefined;
+    discardFailedTurnstileScript();
     throw error;
   });
 
   return turnstileScript;
 }
 
-export function TurnstileWidget({ onToken }: { onToken: (token: string) => void }) {
+const turnstileCopy = {
+  ro: {
+    loading: "Se încarcă verificarea…",
+    error: "Verificarea nu a putut fi încărcată. Verifică conexiunea și încearcă din nou.",
+    retry: "Reîncearcă verificarea",
+  },
+  en: {
+    loading: "Loading verification…",
+    error: "Verification could not be loaded. Check your connection and try again.",
+    retry: "Retry verification",
+  },
+} as const;
+
+export function TurnstileWidget({
+  locale,
+  onToken,
+}: {
+  locale: Locale;
+  onToken: (token: string) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [attempt, setAttempt] = useState(0);
+  const copy = turnstileCopy[locale];
 
   useEffect(() => {
     let widgetId: string | undefined;
@@ -103,16 +131,25 @@ export function TurnstileWidget({ onToken }: { onToken: (token: string) => void 
       onToken("");
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
     };
-  }, [onToken]);
+  }, [attempt, onToken]);
+
+  const retry = () => {
+    onToken("");
+    setStatus("loading");
+    setAttempt((currentAttempt) => currentAttempt + 1);
+  };
 
   return (
     <div aria-live="polite">
       <div ref={containerRef} />
-      {status === "loading" && <p className="muted">Loading verification…</p>}
+      {status === "loading" && <p className="muted">{copy.loading}</p>}
       {status === "error" && (
-        <p className="error" role="alert">
-          Verification could not be loaded. Refresh the page and try again.
-        </p>
+        <div className="turnstile-error" role="alert">
+          <p className="error">{copy.error}</p>
+          <button className="button button--secondary button--small" type="button" onClick={retry}>
+            {copy.retry}
+          </button>
+        </div>
       )}
     </div>
   );

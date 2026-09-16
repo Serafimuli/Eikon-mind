@@ -1,13 +1,21 @@
 import { readFile } from "node:fs/promises";
 import { expect, test, type Page } from "@playwright/test";
+import {
+  installSuccessfulTurnstile,
+  rememberAuthentication,
+  restoreAuthentication,
+} from "./auth-helpers";
 import { E2E_FIXTURES } from "./fixtures";
 
 async function signIn(page: Page) {
+  await installSuccessfulTurnstile(page);
+  if (await restoreAuthentication(page, E2E_FIXTURES.clientEmail, "/en/client")) return;
   await page.goto("/en/login");
   await page.getByLabel("Email").fill(E2E_FIXTURES.clientEmail);
   await page.getByLabel("Password").fill(E2E_FIXTURES.password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/en\/client\/?$/, { timeout: 20_000 });
+  await rememberAuthentication(page, E2E_FIXTURES.clientEmail);
 }
 
 test("legal notices publish the required English content without analytics requests", async ({
@@ -27,8 +35,15 @@ test("legal notices publish the required English content without analytics reque
   await expect(
     page.getByRole("heading", { name: "Cookie and similar technologies policy" }),
   ).toBeVisible();
-  await expect(page.getByText("__Secure-better-auth.session_token")).toBeVisible();
-  await expect(page.getByText("eikon-music-enabled (localStorage)")).toBeVisible();
+  const visibleTechnologyDetails = page.locator(
+    ".legal-table-wrap:visible, .legal-table-cards:visible",
+  );
+  await expect(
+    visibleTechnologyDetails.getByText("__Secure-better-auth.session_token"),
+  ).toBeVisible();
+  await expect(
+    visibleTechnologyDetails.getByText("eikon-music-enabled (localStorage)"),
+  ).toBeVisible();
 
   expect(requests.join("\n")).not.toMatch(
     /google-analytics|googletagmanager|facebook\.net|connect\.facebook/i,
@@ -40,6 +55,38 @@ test("login and registration show a privacy notice before Google sign-in", async
     await page.goto(path);
     await expect(page.getByRole("link", { name: /data-processing notice/i }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /how we process Google data/i })).toBeVisible();
+  }
+});
+
+test.describe("mobile cookie policy", () => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium-mobile", "Mobile-only legal layout");
+    await page.setViewportSize({ width: 390, height: 844 });
+  });
+
+  for (const locale of ["en", "ro"] as const) {
+    test(`${locale} cookie details use readable cards without horizontal overflow`, async ({
+      page,
+    }) => {
+      await page.goto(`/${locale}/politica-de-cookies`);
+
+      await expect(page.locator(".legal-table-wrap")).toBeHidden();
+      await expect(page.locator(".legal-table-cards")).toBeVisible();
+      await expect(page.locator(".legal-table-card")).not.toHaveCount(0);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        ),
+      ).toBe(false);
+
+      const cardsFitViewport = await page.locator(".legal-table-card").evaluateAll((cards) =>
+        cards.every((card) => {
+          const bounds = card.getBoundingClientRect();
+          return bounds.left >= 0 && bounds.right <= document.documentElement.clientWidth;
+        }),
+      );
+      expect(cardsFitViewport).toBe(true);
+    });
   }
 });
 

@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type FocusEvent, type MouseEvent } from "react";
+import { useCallback, useState, type FocusEvent, type MouseEvent } from "react";
 import { site, type Locale } from "@/lib/site-content";
 import { HeaderShell } from "@/components/HeaderShell";
 
@@ -26,13 +26,14 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const switchLocale = locale === "ro" ? "en" : "ro";
   const currentPath = pathname.replace(/^\/(ro|en)(?=\/|$)/, "") || "/";
   const servicesExpanded = servicesOpen || servicesHovered || servicesFocused;
+  const servicesDropdownId = "public-services-dropdown";
 
-  const closeMenu = () => {
+  const closeMenu = useCallback(() => {
     setMenuOpen(false);
     setServicesOpen(false);
     setServicesHovered(false);
     setServicesFocused(false);
-  };
+  }, []);
 
   const handleServicesPointerEnter = () => {
     if (typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches) {
@@ -78,7 +79,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
       <nav
         id="public-navigation"
         className={`site-nav ${menuOpen ? "site-nav--open" : ""}`}
-        aria-label="Navigație principală"
+        aria-label={locale === "ro" ? "Navigație principală" : "Main navigation"}
       >
         <Link
           href={`/${locale}`}
@@ -98,6 +99,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             type="button"
             className="service-menu__trigger"
             aria-expanded={servicesExpanded}
+            aria-controls={servicesDropdownId}
             onClick={handleServicesClick}
           >
             {copy.services}
@@ -105,7 +107,11 @@ export function SiteHeader({ locale }: { locale: Locale }) {
               ⌄
             </span>
           </button>
-          <div className={`service-dropdown ${servicesExpanded ? "service-dropdown--open" : ""}`}>
+          <div
+            id={servicesDropdownId}
+            className={`service-dropdown ${servicesExpanded ? "service-dropdown--open" : ""}`}
+            hidden={!servicesExpanded}
+          >
             {serviceLinks.map(([slug, roTitle, enTitle]) => (
               <Link href={`/${locale}/${slug}`} key={slug} onClick={closeMenu}>
                 <span>{locale === "ro" ? roTitle : enTitle}</span>

@@ -61,7 +61,7 @@ export function EmailVerificationCard({
           ? "Verifică adresa înainte de a face o programare."
           : "Verify your address before booking an appointment."}
       </p>
-      <TurnstileWidget key={captcha.generation} onToken={captcha.setToken} />
+      <TurnstileWidget key={captcha.generation} locale={locale} onToken={captcha.setToken} />
       {message && (
         <p className="success" role="status">
           {message}

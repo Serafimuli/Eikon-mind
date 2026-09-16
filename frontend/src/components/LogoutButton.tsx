@@ -2,7 +2,7 @@
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/lib/site-content";
-export function LogoutButton({ locale }: { locale: Locale }) {
+export function LogoutButton({ locale, label }: { locale: Locale; label: string }) {
   const r = useRouter();
   return (
     <button
@@ -13,7 +13,7 @@ export function LogoutButton({ locale }: { locale: Locale }) {
         r.refresh();
       }}
     >
-      Logout
+      {label}
     </button>
   );
 }

@@ -41,20 +41,21 @@ const followHeaderLink = async (page: Page, href: string) => {
   await link.click();
 };
 
-test("music loops, persists across navigation, and remembers the user's preference", async ({
+test("music is opt-in, loops, persists across navigation, and remembers the user's preference", async ({
   page,
 }) => {
   await installMediaMock(page);
   await page.goto("/en");
 
   const music = page.getByTestId("background-music");
-  const toggle = page.getByRole("button", { name: "Turn music off" });
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  const toggle = page.getByRole("button", { name: "Turn music on" });
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
   await expect(music).toHaveAttribute("src", "/assets/mixkit-finding-myself-993.mp3");
   await expect(music).toHaveAttribute("loop", "");
-  await expect(music).toHaveAttribute("preload", "auto");
+  await expect(music).toHaveAttribute("preload", "none");
   expect(await music.evaluate((element) => (element as HTMLAudioElement).volume)).toBe(0.25);
-  expect(await music.evaluate((element) => Number(element.dataset.playCount))).toBe(1);
+  expect(await music.evaluate((element) => Number(element.dataset.playCount ?? "0"))).toBe(0);
+  expect(await page.evaluate(() => localStorage.getItem("eikon-music-enabled"))).toBeNull();
 
   const position = await toggle.evaluate((element) => getComputedStyle(element).position);
   const bounds = await toggle.boundingBox();
@@ -65,16 +66,27 @@ test("music loops, persists across navigation, and remembers the user's preferen
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(viewport!.width);
   expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(viewport!.height);
 
+  await toggle.click();
+  await expect(page.getByRole("button", { name: "Turn music off" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(await music.evaluate((element) => Number(element.dataset.playCount))).toBe(1);
+  expect(await page.evaluate(() => localStorage.getItem("eikon-music-enabled"))).toBe("true");
+
   await music.evaluate((element) => {
     element.dataset.persistenceMarker = "same-player";
   });
   await followHeaderLink(page, "/en/despre-mine");
   await expect(page).toHaveURL(/\/en\/despre-mine$/);
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Turn music off" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   expect(await music.evaluate((element) => element.dataset.persistenceMarker)).toBe("same-player");
   expect(await music.evaluate((element) => Number(element.dataset.playCount))).toBe(1);
 
-  await toggle.click();
+  await page.getByRole("button", { name: "Turn music off" }).click();
   await expect(page.getByRole("button", { name: "Turn music on" })).toHaveAttribute(
     "aria-pressed",
     "false",
@@ -113,7 +125,7 @@ test("music loops, persists across navigation, and remembers the user's preferen
   );
 });
 
-test("blocked autoplay stays off until the user starts the music", async ({ page }) => {
+test("blocked opt-in stays off until a later user attempt succeeds", async ({ page }) => {
   await installMediaMock(page, true);
   await page.goto("/ro");
 
@@ -124,7 +136,11 @@ test("blocked autoplay stays off until the user starts the music", async ({ page
     await page
       .getByTestId("background-music")
       .evaluate((element) => Number(element.dataset.playCount ?? "0")),
-  ).toBe(1);
+  ).toBe(0);
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  expect(await page.evaluate(() => localStorage.getItem("eikon-music-enabled"))).toBeNull();
 
   await toggle.click();
   await expect(page.getByRole("button", { name: "Oprește muzica" })).toHaveAttribute(

@@ -1,10 +1,25 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  installSuccessfulTurnstile,
+  rememberAuthentication,
+  restoreAuthentication,
+} from "./auth-helpers";
 import { E2E_FIXTURES } from "./fixtures";
 
 let originalAppointmentId = "";
 let replacementAppointmentId = "";
 
 async function signIn(page: Page, email: string) {
+  await installSuccessfulTurnstile(page);
+  if (
+    await restoreAuthentication(
+      page,
+      email,
+      email === E2E_FIXTURES.clientEmail ? "/en/client" : "/en/admin",
+    )
+  ) {
+    return false;
+  }
   await page.goto("/en/login");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(E2E_FIXTURES.password);
@@ -19,6 +34,12 @@ async function signIn(page: Page, email: string) {
   if (!response.ok()) {
     throw new Error(`Sign-in request failed with HTTP ${response.status()}`);
   }
+  if (email === E2E_FIXTURES.clientEmail) {
+    await expect(page).toHaveURL(/\/en\/client\/?$/, { timeout: 20_000 });
+    await rememberAuthentication(page, email);
+    return false;
+  }
+  return true;
 }
 
 async function completeTwoFactor(page: Page, backupCode: string) {
@@ -26,6 +47,13 @@ async function completeTwoFactor(page: Page, backupCode: string) {
   await page.getByLabel("Backup code").fill(backupCode);
   await page.getByRole("button", { name: "Verify" }).click();
   await expect(page).toHaveURL(/\/en\/admin/, { timeout: 20_000 });
+}
+
+async function completeTwoFactorWhenRequired(page: Page, email: string, backupCode: string) {
+  if (await signIn(page, email)) {
+    await completeTwoFactor(page, backupCode);
+    await rememberAuthentication(page, email);
+  }
 }
 
 function appointmentIdFromUrl(page: Page) {
@@ -70,13 +98,19 @@ test.describe.serial("role-aware appointment journeys", () => {
   });
 
   test("the assigned therapist sees and confirms the replacement request", async ({ page }) => {
-    await signIn(page, E2E_FIXTURES.therapistEmail);
-    await completeTwoFactor(page, E2E_FIXTURES.therapistBackupCode);
+    await completeTwoFactorWhenRequired(
+      page,
+      E2E_FIXTURES.therapistEmail,
+      E2E_FIXTURES.therapistBackupCode,
+    );
     await page.goto("/en/admin/appointments");
     await expect(page.getByRole("heading", { name: "Appointments" })).toBeVisible();
-    await expect(page.getByText("E2E").first()).toBeVisible();
-    await page.getByRole("button", { name: "Confirm" }).click();
-    await expect(page.getByText(/Confirmed/i)).toBeVisible();
+    const replacement = page.locator(
+      `.appointment[data-appointment-id="${replacementAppointmentId}"]`,
+    );
+    await expect(replacement).toBeVisible();
+    await replacement.getByRole("button", { name: "Confirm" }).click();
+    await expect(replacement.getByText(/Confirmed/i)).toBeVisible();
   });
 
   test("deleting the replacement hides it from the client and releases slot B", async ({
@@ -102,9 +136,12 @@ test.describe.serial("role-aware appointment journeys", () => {
   });
 
   test("staff retain the hidden appointment as cancelled", async ({ page }) => {
-    await signIn(page, E2E_FIXTURES.adminEmail);
-    await completeTwoFactor(page, E2E_FIXTURES.adminBackupCode);
+    await completeTwoFactorWhenRequired(
+      page,
+      E2E_FIXTURES.adminEmail,
+      E2E_FIXTURES.adminBackupCode,
+    );
     await page.goto("/en/admin/appointments");
-    await expect(page.getByText(/Cancelled/i)).toHaveCount(2);
+    await expect(page.getByText(/Cancelled/i)).toHaveCount(3);
   });
 });

@@ -6,15 +6,46 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { HeaderShell } from "@/components/HeaderShell";
 import { LogoutButton } from "./LogoutButton";
+import { getProtectedCopy, roleLabel } from "@/lib/protected-content";
+import type { Role } from "@/lib/roles";
 import type { Locale } from "@/lib/site-content";
 
-export function PrivateHeader({ locale, admin = false }: { locale: Locale; admin?: boolean }) {
-  const pathname = usePathname() || `/${locale}/${admin ? "admin" : "client"}`;
+export function PrivateHeader({ locale, role }: { locale: Locale; role: Role }) {
+  const staff = role === "THERAPIST" || role === "ADMIN";
+  const pathname = usePathname() || `/${locale}/${staff ? "admin" : "client"}`;
   const [menuOpen, setMenuOpen] = useState(false);
-  const base = `/${locale}/${admin ? "admin" : "client"}` as Route;
+  const copy = getProtectedCopy(locale);
+  const base = `/${locale}/${staff ? "admin" : "client"}` as Route;
   const route = (path: string) => path as Route;
-  const isActive = (href: string) => (pathname === href ? "is-active" : "");
   const closeMenu = () => setMenuOpen(false);
+  const items = [
+    { key: "dashboard", label: copy.navigation.dashboard, href: base },
+    {
+      key: "appointments",
+      label: copy.navigation.appointments,
+      href: route(`${base}/appointments`),
+    },
+    ...(role === "USER"
+      ? [{ key: "book", label: copy.navigation.book, href: route(`${base}/book`) }]
+      : [
+          {
+            key: "availability",
+            label: copy.navigation.availability,
+            href: route(`${base}/appointments/new`),
+          },
+        ]),
+    ...(role === "ADMIN"
+      ? [{ key: "staff", label: copy.navigation.staff, href: route(`${base}/staff`) }]
+      : []),
+    {
+      key: "profile",
+      label: copy.navigation.profile,
+      href: route(`/${locale}/client/profile`),
+    },
+  ];
+  const activeItem = items
+    .filter(({ href }) => pathname === href || (href !== base && pathname.startsWith(`${href}/`)))
+    .sort((left, right) => right.href.length - left.href.length)[0];
 
   return (
     <HeaderShell
@@ -25,48 +56,31 @@ export function PrivateHeader({ locale, admin = false }: { locale: Locale; admin
       onClose={closeMenu}
       onMenuToggle={() => setMenuOpen((open) => !open)}
       logoSize={36}
+      showMusicControl
     >
       <nav
         id="private-navigation"
         className={`site-nav private-nav ${menuOpen ? "site-nav--open" : ""}`}
-        aria-label={locale === "ro" ? "Navigație cont" : "Account navigation"}
+        aria-label={copy.navigation.label}
       >
-        <Link className={isActive(base)} href={base} onClick={closeMenu}>
-          {locale === "ro" ? "Panou" : "Dashboard"}
-        </Link>
-        <Link
-          className={isActive(`${base}/appointments`)}
-          href={route(`${base}/appointments`)}
-          onClick={closeMenu}
+        <span
+          className="private-role-badge"
+          aria-label={`${copy.navigation.accountType}: ${roleLabel(locale, role)}`}
         >
-          {locale === "ro" ? "Programări" : "Appointments"}
-        </Link>
-        {!admin && (
+          {roleLabel(locale, role)}
+        </span>
+        {items.map((item) => (
           <Link
-            className={isActive(`${base}/book`)}
-            href={route(`${base}/book`)}
+            className={activeItem?.key === item.key ? "is-active" : ""}
+            href={item.href}
             onClick={closeMenu}
+            aria-current={activeItem?.key === item.key ? "page" : undefined}
+            key={item.key}
           >
-            {locale === "ro" ? "Rezervă" : "Book"}
+            {item.label}
           </Link>
-        )}
-        <Link
-          className={isActive(`/${locale}/client/profile`)}
-          href={route(`/${locale}/client/profile`)}
-          onClick={closeMenu}
-        >
-          {locale === "ro" ? "Profil" : "Profile"}
-        </Link>
-        {admin && (
-          <Link
-            className={isActive(`${base}/appointments/new`)}
-            href={route(`${base}/appointments/new`)}
-            onClick={closeMenu}
-          >
-            {locale === "ro" ? "Adaugă" : "Add"}
-          </Link>
-        )}
-        <LogoutButton locale={locale} />
+        ))}
+        <LogoutButton locale={locale} label={copy.navigation.logout} />
       </nav>
     </HeaderShell>
   );

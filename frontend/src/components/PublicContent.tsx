@@ -259,26 +259,40 @@ function LegalPage({ page }: { page: PageContent }) {
             <SectionContent key={section.title} section={section} />
           ))}
           {page.table && (
-            <div className="legal-table-wrap">
-              <table className="legal-table">
-                <thead>
-                  <tr>
-                    {page.table.headers.map((header) => (
-                      <th key={header}>{header}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {page.table.rows.map((row) => (
-                    <tr key={row[0]}>
-                      {row.map((cell) => (
-                        <td key={cell}>{cell}</td>
+            <>
+              <div className="legal-table-wrap">
+                <table className="legal-table">
+                  <thead>
+                    <tr>
+                      {page.table.headers.map((header) => (
+                        <th key={header}>{header}</th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {page.table.rows.map((row) => (
+                      <tr key={row[0]}>
+                        {row.map((cell, index) => (
+                          <td key={`${page.table?.headers[index]}-${cell}`}>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="legal-table-cards">
+                {page.table.rows.map((row) => (
+                  <dl className="legal-table-card" key={row[0]}>
+                    {row.map((cell, index) => (
+                      <div key={`${page.table?.headers[index]}-${cell}`}>
+                        <dt>{page.table?.headers[index]}</dt>
+                        <dd>{cell}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </article>

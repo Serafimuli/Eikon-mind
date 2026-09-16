@@ -12,10 +12,10 @@ export default async function StaffLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  await requireStaff(locale as Locale);
+  const user = await requireStaff(locale as Locale);
   return (
     <>
-      <PrivateHeader locale={locale as Locale} admin />
+      <PrivateHeader locale={locale as Locale} role={user.role} />
       {children}
     </>
   );

@@ -14,16 +14,17 @@ test.describe("public header services menu on desktop", () => {
     const trigger = serviceMenu.getByRole("button", { name: /services/i });
     const dropdown = serviceMenu.locator(".service-dropdown");
 
-    await expect(dropdown).toHaveCSS("opacity", "0");
+    await expect(dropdown).toBeHidden();
+    await expect(trigger).toHaveAttribute("aria-controls", "public-services-dropdown");
     await trigger.hover();
-    await expect(dropdown).toHaveCSS("opacity", "1");
+    await expect(dropdown).toBeVisible();
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
 
     await dropdown.getByRole("link").first().hover();
-    await expect(dropdown).toHaveCSS("opacity", "1");
+    await expect(dropdown).toBeVisible();
 
     await page.locator("main").hover({ position: { x: 20, y: 20 } });
-    await expect(dropdown).toHaveCSS("opacity", "0");
+    await expect(dropdown).toBeHidden();
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
 
@@ -36,10 +37,10 @@ test.describe("public header services menu on desktop", () => {
 
     await trigger.hover();
     await trigger.click();
-    await expect(dropdown).toHaveCSS("opacity", "1");
+    await expect(dropdown).toBeVisible();
 
     await page.locator("main").hover({ position: { x: 20, y: 20 } });
-    await expect(dropdown).toHaveCSS("opacity", "0");
+    await expect(dropdown).toBeHidden();
   });
 
   test("keyboard focus keeps the dropdown open while focus is inside the menu", async ({
@@ -52,17 +53,17 @@ test.describe("public header services menu on desktop", () => {
     const dropdown = serviceMenu.locator(".service-dropdown");
 
     await trigger.focus();
-    await expect(dropdown).toHaveCSS("opacity", "1");
+    await expect(dropdown).toBeVisible();
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
 
     const submenuLinks = dropdown.getByRole("link");
     await submenuLinks.first().focus();
-    await expect(dropdown).toHaveCSS("opacity", "1");
+    await expect(dropdown).toBeVisible();
 
     for (let index = 0; index < (await submenuLinks.count()); index += 1) {
       await page.keyboard.press("Tab");
     }
-    await expect(dropdown).toHaveCSS("opacity", "0");
+    await expect(dropdown).toBeHidden();
   });
 });
 
@@ -88,5 +89,37 @@ test.describe("public header services menu on mobile", () => {
     await trigger.click();
     await expect(dropdown).toBeHidden();
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("mobile menu contains focus, hides the page, and restores focus when closed", async ({
+    page,
+  }) => {
+    await page.goto("/en");
+
+    const menuButton = page.getByRole("button", { name: "Menu" });
+    const main = page.locator("main");
+    const footer = page.locator("footer");
+    await menuButton.click();
+
+    await expect(
+      page.getByLabel("Main navigation").getByRole("link", { name: "Home", exact: true }),
+    ).toBeFocused();
+    await expect(main).toHaveAttribute("inert", "");
+    await expect(footer).toHaveAttribute("inert", "");
+    await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
+
+    const closeButton = page.getByRole("button", { name: "Close" });
+    await closeButton.focus();
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("link", { name: "Eikon Mind" })).toBeFocused();
+    await page.keyboard.press("Shift+Tab");
+    await expect(closeButton).toBeFocused();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: "Menu" })).toBeFocused();
+    await expect(page.locator("#public-navigation")).toBeHidden();
+    await expect(main).not.toHaveAttribute("inert", "");
+    await expect(footer).not.toHaveAttribute("inert", "");
+    await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
   });
 });

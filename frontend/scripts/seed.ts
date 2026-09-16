@@ -51,7 +51,13 @@ const secretConfig: SecretConfig = {
 const now = Date.now();
 const start = new Date(now + 86_400_000);
 start.setUTCHours(8, 0, 0, 0);
-const slotIds = [E2E_FIXTURES.slotId, E2E_FIXTURES.rescheduleSlotId, E2E_FIXTURES.spareSlotId];
+const slotIds = [
+  E2E_FIXTURES.slotId,
+  E2E_FIXTURES.rescheduleSlotId,
+  E2E_FIXTURES.spareSlotId,
+  E2E_FIXTURES.auditSlotId,
+  E2E_FIXTURES.auditRescheduleSlotId,
+];
 const slotWindows = slotIds.map((id, index) => {
   const startsAt = new Date(start.getTime() + index * 2 * 60 * 60_000);
   return { id, startsAt, endsAt: new Date(startsAt.getTime() + 50 * 60_000) };
@@ -66,6 +72,15 @@ const encryptedBackupCodes = await symmetricEncrypt({
 const users = [
   [E2E_FIXTURES.clientId, "E2E Client", E2E_FIXTURES.clientEmail, "E2E", "Client", "USER", 0],
   [
+    E2E_FIXTURES.auditClientId,
+    "E2E Audit Client",
+    E2E_FIXTURES.auditClientEmail,
+    "E2E",
+    "Audit Client",
+    "USER",
+    0,
+  ],
+  [
     E2E_FIXTURES.therapistId,
     "E2E Therapist",
     E2E_FIXTURES.therapistEmail,
@@ -79,12 +94,55 @@ const users = [
 
 const fixtureIds = users.map(([id]) => quote(id)).join(", ");
 const fixtureSlotIds = slotIds.map(quote).join(", ");
+const fixtureAppointmentIds = [
+  E2E_FIXTURES.appointmentId,
+  E2E_FIXTURES.auditAppointmentId,
+  E2E_FIXTURES.auditCancelledAppointmentId,
+  E2E_FIXTURES.auditCompletedAppointmentId,
+  E2E_FIXTURES.auditPastAppointmentId,
+];
+const auditActiveWindow = slotWindows[3];
+const auditAppointments = [
+  {
+    id: E2E_FIXTURES.auditAppointmentId,
+    slotId: E2E_FIXTURES.auditSlotId,
+    startsAt: auditActiveWindow.startsAt,
+    endsAt: auditActiveWindow.endsAt,
+    status: "REQUESTED",
+    cancelledAt: "NULL",
+  },
+  {
+    id: E2E_FIXTURES.auditCancelledAppointmentId,
+    slotId: null,
+    startsAt: new Date(auditActiveWindow.startsAt.getTime() + 4 * 60 * 60_000),
+    endsAt: new Date(auditActiveWindow.endsAt.getTime() + 4 * 60 * 60_000),
+    status: "CANCELLED",
+    cancelledAt: String(now),
+  },
+  {
+    id: E2E_FIXTURES.auditCompletedAppointmentId,
+    slotId: null,
+    startsAt: new Date(now - 2 * 86_400_000),
+    endsAt: new Date(now - 2 * 86_400_000 + 50 * 60_000),
+    status: "COMPLETED",
+    cancelledAt: "NULL",
+  },
+  {
+    id: E2E_FIXTURES.auditPastAppointmentId,
+    slotId: null,
+    startsAt: new Date(now - 86_400_000),
+    endsAt: new Date(now - 86_400_000 + 50 * 60_000),
+    status: "CONFIRMED",
+    cancelledAt: "NULL",
+  },
+];
 const statements = [
   "PRAGMA foreign_keys = ON",
+  "DELETE FROM rateLimit",
   `DELETE FROM appointment WHERE client_id IN (${fixtureIds}) OR therapist_id IN (${fixtureIds}) OR availability_slot_id IN (${fixtureSlotIds})`,
-  `DELETE FROM integration_job WHERE appointment_id = ${quote(E2E_FIXTURES.appointmentId)}`,
-  `DELETE FROM calendar_event_reference WHERE appointment_id = ${quote(E2E_FIXTURES.appointmentId)}`,
-  `DELETE FROM appointment WHERE id = ${quote(E2E_FIXTURES.appointmentId)}`,
+  `DELETE FROM integration_job WHERE appointment_id IN (${fixtureAppointmentIds.map(quote).join(", ")})`,
+  `DELETE FROM calendar_event_reference WHERE appointment_id IN (${fixtureAppointmentIds.map(quote).join(", ")})`,
+  `DELETE FROM appointment WHERE id IN (${fixtureAppointmentIds.map(quote).join(", ")})`,
   `DELETE FROM availability_slot WHERE id IN (${fixtureSlotIds})`,
   `DELETE FROM session WHERE user_id IN (${fixtureIds})`,
   `DELETE FROM "twoFactor" WHERE userId IN (${fixtureIds})`,
@@ -104,7 +162,11 @@ const statements = [
   ),
   ...slotWindows.map(
     ({ id, startsAt, endsAt }) =>
-      `INSERT INTO availability_slot (id, therapist_id, starts_at, ends_at, state, created_at, updated_at) VALUES (${quote(id)}, ${quote(E2E_FIXTURES.therapistId)}, ${startsAt.getTime()}, ${endsAt.getTime()}, 'OPEN', ${now}, ${now})`,
+      `INSERT INTO availability_slot (id, therapist_id, starts_at, ends_at, state, created_at, updated_at) VALUES (${quote(id)}, ${quote(E2E_FIXTURES.therapistId)}, ${startsAt.getTime()}, ${endsAt.getTime()}, ${id === E2E_FIXTURES.auditSlotId ? "'RESERVED'" : "'OPEN'"}, ${now}, ${now})`,
+  ),
+  ...auditAppointments.map(
+    ({ id, slotId, startsAt, endsAt, status, cancelledAt }) =>
+      `INSERT INTO appointment (id, client_id, therapist_id, availability_slot_id, service_code, starts_at, ends_at, status, cancelled_at, client_hidden_at, created_at, updated_at) VALUES (${quote(id)}, ${quote(E2E_FIXTURES.clientId)}, ${quote(E2E_FIXTURES.therapistId)}, ${slotId ? quote(slotId) : "NULL"}, 'STANDARD', ${startsAt.getTime()}, ${endsAt.getTime()}, ${quote(status)}, ${cancelledAt}, NULL, ${now}, ${now})`,
   ),
 ].join(";\n");
 
@@ -122,4 +184,6 @@ execFileSync(
   { stdio: "inherit" },
 );
 
-console.info("Prepared isolated local E2E users and three bookable slots.");
+console.info(
+  "Prepared isolated local E2E users, protected-page audit records, and bookable slots.",
+);

@@ -11,10 +11,12 @@ import { accounts } from "@/lib/db/schema";
 import { isStaff } from "@/lib/roles";
 import { requireUser } from "@/lib/session";
 import type { Locale } from "@/lib/site-content";
+import { getProtectedCopy } from "@/lib/protected-content";
 
 export default async function Profile({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
   const user = await requireUser(locale);
+  const copy = getProtectedCopy(locale).profile;
   const [credentialAccount] = await getDb()
     .select({ id: accounts.id })
     .from(accounts)
@@ -36,69 +38,59 @@ export default async function Profile({ params }: { params: Promise<{ locale: Lo
         )}
         <TwoFactorSetup enabled={user.twoFactorEnabled} locale={locale} />
       </div>
-      {!isStaff(user.role) && (
-        <section className="danger-zone" aria-labelledby="delete-account-title">
-          <h2 id="delete-account-title">
-            {locale === "ro" ? "Ștergerea contului" : "Delete account"}
-          </h2>
-          <p>
-            {locale === "ro"
-              ? "Accesul este revocat imediat, iar datele de identificare sunt eliminate. Datele anonimizate pot rămâne doar pentru perioada legală aprobată."
-              : "Access is revoked immediately and identifying account data is removed. De-identified records may remain only for the approved legal retention period."}
-          </p>
-          <ActionForm
-            action={requestAccountDeletion.bind(null, locale)}
-            errorMessage={
-              locale === "ro"
-                ? "Confirmarea ștergerii nu este validă."
-                : "The deletion confirmation is invalid."
-            }
+      <div
+        className={`profile-account-actions${isStaff(user.role) ? " profile-account-actions--single" : ""}`}
+      >
+        {!isStaff(user.role) && (
+          <section className="danger-zone" aria-labelledby="delete-account-title">
+            <h2 id="delete-account-title">{copy.deleteTitle}</h2>
+            <p>{copy.deleteBody}</p>
+            <ActionForm
+              locale={locale}
+              className="destructive-form"
+              action={requestAccountDeletion.bind(null, locale)}
+              errorMessage={copy.deleteError}
+            >
+              <label>
+                {copy.currentPassword}
+                <input
+                  name="password"
+                  type="password"
+                  minLength={12}
+                  maxLength={128}
+                  autoComplete="current-password"
+                  required
+                />
+              </label>
+              <label>
+                {copy.acknowledgement}
+                <input
+                  name="acknowledgement"
+                  type="text"
+                  pattern="DELETE"
+                  autoComplete="off"
+                  required
+                />
+              </label>
+              <button className="button button--danger" type="submit">
+                {copy.deleteAction}
+              </button>
+            </ActionForm>
+          </section>
+        )}
+        <section className="form-card" aria-labelledby="data-export-title">
+          <p className="eyebrow">GDPR</p>
+          <h2 id="data-export-title">{copy.exportTitle}</h2>
+          <p>{copy.exportBody}</p>
+          <Link
+            className="button button--secondary"
+            href={"/api/privacy/export" as Route}
+            prefetch={false}
           >
-            <label>
-              {locale === "ro" ? "Parola curentă" : "Current password"}
-              <input
-                name="password"
-                type="password"
-                minLength={12}
-                maxLength={128}
-                autoComplete="current-password"
-                required
-              />
-            </label>
-            <label>
-              {locale === "ro" ? "Scrie DELETE pentru confirmare" : "Type DELETE to confirm"}
-              <input
-                name="acknowledgement"
-                type="text"
-                pattern="DELETE"
-                autoComplete="off"
-                required
-              />
-            </label>
-            <button className="button" type="submit">
-              {locale === "ro" ? "Șterge definitiv contul" : "Permanently delete account"}
-            </button>
-          </ActionForm>
+            {copy.exportAction}
+          </Link>
         </section>
-      )}
-      <section className="form-card" aria-labelledby="data-export-title">
-        <p className="eyebrow">GDPR</p>
-        <h2 id="data-export-title">
-          {locale === "ro" ? "Descarcă datele tale" : "Download your data"}
-        </h2>
-        <p>
-          {locale === "ro"
-            ? "Descarcă o copie a datelor de cont și a programărilor asociate contului tău."
-            : "Download a copy of your account data and the appointments associated with it."}
-        </p>
-        <Link
-          className="button button--secondary"
-          href={"/api/privacy/export" as Route}
-          prefetch={false}
-        >
-          {locale === "ro" ? "Descarcă exportul" : "Download export"}
-        </Link>
-      </section>
+      </div>
     </main>
   );
 }

@@ -1,13 +1,21 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import {
+  installSuccessfulTurnstile,
+  rememberAuthentication,
+  restoreAuthentication,
+} from "./auth-helpers";
 import { E2E_FIXTURES } from "./fixtures";
 
 async function signIn(page: Page) {
+  await installSuccessfulTurnstile(page);
+  if (await restoreAuthentication(page, E2E_FIXTURES.clientEmail, "/en/client")) return;
   await page.goto("/en/login");
   await page.getByLabel("Email").fill(E2E_FIXTURES.clientEmail);
   await page.getByLabel("Password").fill(E2E_FIXTURES.password);
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/en\/client\/?$/, { timeout: 20_000 });
+  await rememberAuthentication(page, E2E_FIXTURES.clientEmail);
 }
 
 test("profile settings present responsive, accessible account controls", async ({ page }) => {

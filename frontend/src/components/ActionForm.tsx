@@ -2,6 +2,8 @@
 
 import { unstable_rethrow } from "next/navigation";
 import { useActionState } from "react";
+import type { Locale } from "@/lib/site-content";
+import { getProtectedCopy } from "@/lib/protected-content";
 
 type ActionState = { error: string };
 type ServerAction = (formData: FormData) => Promise<unknown>;
@@ -11,11 +13,13 @@ export function ActionForm({
   children,
   errorMessage = "The requested action could not be completed.",
   className,
+  locale,
 }: {
   action: ServerAction;
   children: React.ReactNode;
   errorMessage?: string;
   className?: string;
+  locale: Locale;
 }) {
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     async (_previous, formData) => {
@@ -30,17 +34,30 @@ export function ActionForm({
     { error: "" },
   );
 
+  const pendingMessage = getProtectedCopy(locale).common.pending;
+
   return (
-    <form action={formAction} className={className} aria-live="polite">
-      {children}
+    <form
+      action={formAction}
+      className={className}
+      aria-busy={pending}
+      aria-live="polite"
+      data-pending={pending || undefined}
+      onSubmit={(event) => {
+        if (pending) event.preventDefault();
+      }}
+    >
+      <fieldset className="action-form__controls" disabled={pending}>
+        {children}
+      </fieldset>
       {state.error && (
         <p className="error" role="alert">
           {state.error}
         </p>
       )}
       {pending && (
-        <span className="muted" aria-live="polite">
-          Working…
+        <span className="action-form__pending" role="status">
+          {pendingMessage}
         </span>
       )}
     </form>

@@ -1,12 +1,14 @@
 import { and, asc, eq, gt } from "drizzle-orm";
-import { ActionForm } from "@/components/ActionForm";
 import { blockAvailability, createAvailability } from "@/app/[locale]/actions";
+import { ActionForm } from "@/components/ActionForm";
+import { ConfirmActionForm } from "@/components/ConfirmActionForm";
 import { getDb } from "@/lib/db";
-import { availabilitySlots } from "@/lib/db/schema";
 import { listEnrolledTherapists } from "@/lib/db/repositories";
+import { availabilitySlots, users } from "@/lib/db/schema";
+import { formatDateTime } from "@/lib/presentation";
+import { getProtectedCopy } from "@/lib/protected-content";
 import { requireStaff } from "@/lib/session";
 import type { Locale } from "@/lib/site-content";
-import { formatDateTime } from "@/lib/presentation";
 
 export default async function NewAvailability({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
@@ -14,8 +16,13 @@ export default async function NewAvailability({ params }: { params: Promise<{ lo
   const db = getDb();
   const therapists = actor.role === "ADMIN" ? await listEnrolledTherapists() : [];
   const openSlots = await db
-    .select()
+    .select({
+      slot: availabilitySlots,
+      therapistFirstName: users.firstName,
+      therapistLastName: users.lastName,
+    })
     .from(availabilitySlots)
+    .innerJoin(users, eq(availabilitySlots.therapistId, users.id))
     .where(
       actor.role === "ADMIN"
         ? and(eq(availabilitySlots.state, "OPEN"), gt(availabilitySlots.startsAt, new Date()))
@@ -26,26 +33,23 @@ export default async function NewAvailability({ params }: { params: Promise<{ lo
           ),
     )
     .orderBy(asc(availabilitySlots.startsAt));
+  const copy = getProtectedCopy(locale).availability;
+
   return (
     <main className="private-shell">
       <ActionForm
+        locale={locale}
         action={createAvailability.bind(null, locale)}
-        errorMessage={
-          locale === "ro"
-            ? "Disponibilitatea nu a putut fi publicată."
-            : "Availability could not be published."
-        }
+        errorMessage={copy.publishError}
         className="form-card"
       >
         <p className="eyebrow">Eikon Mind</p>
-        <h1>{locale === "ro" ? "Adaugă disponibilitate" : "Add availability"}</h1>
+        <h1>{copy.title}</h1>
         {actor.role === "ADMIN" && (
           <label>
-            {locale === "ro" ? "Terapeut" : "Therapist"}
+            {copy.therapist}
             <select name="therapistId" defaultValue="" required>
-              <option value="">
-                {locale === "ro" ? "Selectează terapeutul" : "Select therapist"}
-              </option>
+              <option value="">{copy.selectTherapist}</option>
               {therapists.map((therapist) => (
                 <option value={therapist.id} key={therapist.id}>
                   {therapist.firstName} {therapist.lastName}
@@ -55,49 +59,46 @@ export default async function NewAvailability({ params }: { params: Promise<{ lo
           </label>
         )}
         <label>
-          {locale === "ro" ? "Începe la" : "Starts at"}
+          {copy.starts}
           <input name="startsAt" type="datetime-local" required />
         </label>
         <label>
-          {locale === "ro" ? "Se termină la" : "Ends at"}
+          {copy.ends}
           <input name="endsAt" type="datetime-local" required />
         </label>
-        <p className="muted">
-          {locale === "ro"
-            ? "Creează doar intervale de disponibilitate. Formularul nu colectează date despre client sau sănătate."
-            : "Create availability times only. This form does not collect client or health information."}
-        </p>
+        <p className="muted">{copy.notice}</p>
         <button className="button" type="submit">
-          {locale === "ro" ? "Publică intervalul" : "Publish available time"}
+          {copy.publish}
         </button>
       </ActionForm>
       <section className="section">
-        <h2>
-          {actor.role === "ADMIN"
-            ? locale === "ro"
-              ? "Disponibilitate deschisă"
-              : "Open availability"
-            : locale === "ro"
-              ? "Disponibilitatea mea"
-              : "My open availability"}
-        </h2>
-        {openSlots.map((slot) => (
-          <div className="appointment" key={slot.id}>
-            {formatDateTime(slot.startsAt, locale)}
-            <ActionForm
-              action={blockAvailability.bind(null, locale, slot.id)}
-              errorMessage={
-                locale === "ro"
-                  ? "Intervalul nu a putut fi blocat."
-                  : "The availability could not be blocked."
-              }
-            >
-              <button className="icon-button" type="submit">
-                {locale === "ro" ? "Blochează" : "Block"}
-              </button>
-            </ActionForm>
+        <h2>{actor.role === "ADMIN" ? copy.adminOpen : copy.therapistOpen}</h2>
+        {openSlots.length ? (
+          openSlots.map(({ slot, therapistFirstName, therapistLastName }) => (
+            <article className="appointment" key={slot.id}>
+              <div className="appointment-meta">
+                <span>{formatDateTime(slot.startsAt, locale)}</span>
+                {actor.role === "ADMIN" && (
+                  <span>
+                    {copy.therapist}: {therapistFirstName} {therapistLastName}
+                  </span>
+                )}
+              </div>
+              <ConfirmActionForm
+                locale={locale}
+                action={blockAvailability.bind(null, locale, slot.id)}
+                triggerLabel={copy.block}
+                confirmationMessage={copy.confirmBlock}
+                confirmLabel={copy.confirmBlockAction}
+                errorMessage={copy.blockError}
+              />
+            </article>
+          ))
+        ) : (
+          <div className="empty-state">
+            <p>{actor.role === "ADMIN" ? copy.emptyAdmin : copy.emptyTherapist}</p>
           </div>
-        ))}
+        )}
       </section>
     </main>
   );

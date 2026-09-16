@@ -56,7 +56,11 @@ test("privacy notice links are prominent in registration, sign-in, Google sign-i
 
   for (const source of files)
     assert.match(source, /politica-de-confidentialitate|\/api\/privacy\/export/);
-  assert.match(files[4], /Download your data/);
+  const protectedContent = await readFile(
+    new URL("../src/lib/protected-content.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(protectedContent, /Download your data/);
   assert.match(files[4], /\/api\/privacy\/export/);
 });
 

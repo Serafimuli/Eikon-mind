@@ -134,7 +134,7 @@ export function ResetPasswordForm({
                 onChange={(event) => setEmail(event.target.value)}
               />
             </label>
-            <TurnstileWidget key={captcha.generation} onToken={captcha.setToken} />
+            <TurnstileWidget key={captcha.generation} locale={locale} onToken={captcha.setToken} />
             {message && (
               <p className="success" role="status">
                 {message}

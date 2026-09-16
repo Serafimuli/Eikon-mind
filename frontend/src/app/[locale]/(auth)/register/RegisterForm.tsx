@@ -75,7 +75,7 @@ export function RegisterForm({ locale }: { locale: Locale }) {
             : "Read the data-processing notice before creating an account."}
         </Link>
       </p>
-      <TurnstileWidget key={captcha.generation} onToken={captcha.setToken} />
+      <TurnstileWidget key={captcha.generation} locale={locale} onToken={captcha.setToken} />
       {error && (
         <p className="error" role="alert">
           {error}
