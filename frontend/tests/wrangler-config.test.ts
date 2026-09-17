@@ -16,8 +16,8 @@ const baseDeployment = {
   turnstile_sitekey: "0x4AAAAAAACI",
   worker_name: "eikon-mind-test",
   hostname: "eikon-mind-test.eikon-dev.workers.dev",
-  email_from_address: "onboarding@resend.dev",
-  operations_mailbox: "operations@example.com",
+  email_from_address: "onboarding@eikon-mind.ro",
+  operations_mailbox: "operations@eikon-mind.ro",
   retention: {
     appointment_days: 30,
     cancelled_appointment_days: 14,
