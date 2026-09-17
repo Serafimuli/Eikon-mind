@@ -5,6 +5,7 @@ import { getD1, getDb } from "@/lib/db";
 import { appointments } from "@/lib/db/schema";
 import { listOpenAvailability } from "@/lib/db/repositories";
 import { DomainError } from "@/lib/errors";
+import { resourceIdSchema } from "@/lib/validation";
 
 const SLOT_MINUTES_MIN = 15;
 const SLOT_MINUTES_MAX = 180;
@@ -54,7 +55,7 @@ export async function createAvailabilitySlot(therapistId: string, startsAt: Date
 }
 
 export async function claimAvailabilitySlot(clientId: string, slotId: string) {
-  if (!/^[0-9a-f-]{36}$/i.test(slotId)) throw new Error("Invalid availability slot");
+  if (!resourceIdSchema.safeParse(slotId).success) throw new Error("Invalid availability slot");
   const appointmentId = crypto.randomUUID();
   const now = Date.now();
   const db = getD1();

@@ -1,9 +1,10 @@
 export const E2E_FIXTURES = Object.freeze({
   password: "EikonE2e!Password2026",
-  clientId: "11111111-1111-4111-8111-111111111111",
-  therapistId: "22222222-2222-4222-8222-222222222222",
-  adminId: "33333333-3333-4333-8333-333333333333",
-  auditClientId: "88888888-8888-4888-8888-888888888888",
+  clientId: "client00000000000000000000000000",
+  therapistId: "therapist00000000000000000000000",
+  adminId: "admin000000000000000000000000000",
+  auditClientId: "auditclient000000000000000000000",
+  roleChangeTargetId: "rolechange0000000000000000000000",
   slotId: "44444444-4444-4444-8444-444444444444",
   rescheduleSlotId: "66666666-6666-4666-8666-666666666666",
   spareSlotId: "77777777-7777-4777-8777-777777777777",
@@ -18,6 +19,7 @@ export const E2E_FIXTURES = Object.freeze({
   therapistEmail: "e2e.therapist@example.invalid",
   adminEmail: "e2e.admin@example.invalid",
   auditClientEmail: "e2e.audit-client@example.invalid",
+  roleChangeTargetEmail: "e2e.role-change@example.invalid",
   therapistBackupCode: "THERA-PIST1",
   adminBackupCode: "ADMIN-TEST1",
 });

@@ -31,8 +31,9 @@ import { requireAdmin, requireClient, requireStaff, requireUser } from "@/lib/se
 import {
   appointmentStatusSchema,
   availabilityFormSchema,
-  idSchema,
+  betterAuthUserIdSchema,
   parseLocale,
+  resourceIdSchema,
   roleSchema,
 } from "@/lib/validation";
 
@@ -57,7 +58,8 @@ export async function createAvailability(localeInput: string, formData: FormData
     throw new DomainError("Select a therapist", "INVALID_INPUT");
   }
 
-  const therapistId = actor.role === "ADMIN" ? idSchema.parse(input.therapistId) : actor.id;
+  const therapistId =
+    actor.role === "ADMIN" ? betterAuthUserIdSchema.parse(input.therapistId) : actor.id;
   if (therapistId !== actor.id) {
     const therapist = await findTherapistById(therapistId);
     if (!therapist?.emailVerified || !therapist.twoFactorEnabled) {
@@ -74,7 +76,7 @@ export async function createAvailability(localeInput: string, formData: FormData
 
 export async function blockAvailability(localeInput: string, slotIdInput: string) {
   const locale = parseLocale(localeInput);
-  const slotId = idSchema.parse(slotIdInput);
+  const slotId = resourceIdSchema.parse(slotIdInput);
   const actor = await requireStaff(locale);
   await blockOpenAvailability(actor, slotId);
   refreshAppointmentViews(locale);
@@ -86,7 +88,7 @@ export async function updateAppointmentStatus(
   statusInput: string,
 ) {
   const locale = parseLocale(localeInput);
-  const appointmentId = idSchema.parse(appointmentIdInput);
+  const appointmentId = resourceIdSchema.parse(appointmentIdInput);
   const status = appointmentStatusSchema.parse(statusInput);
   const actor = await requireStaff(locale);
   await transitionAppointmentForStaff(actor, appointmentId, status);
@@ -95,7 +97,7 @@ export async function updateAppointmentStatus(
 
 export async function cancelOwnAppointment(localeInput: string, appointmentIdInput: string) {
   const locale = parseLocale(localeInput);
-  const appointmentId = idSchema.parse(appointmentIdInput);
+  const appointmentId = resourceIdSchema.parse(appointmentIdInput);
   const user = await requireClient(locale);
   await cancelAppointmentForClient(user.id, appointmentId);
   refreshAppointmentViews(locale);
@@ -107,7 +109,7 @@ export async function deleteOwnAppointment(
   formData: FormData,
 ) {
   const locale = parseLocale(localeInput);
-  const appointmentId = idSchema.parse(appointmentIdInput);
+  const appointmentId = resourceIdSchema.parse(appointmentIdInput);
   if (formData.get("confirmation") !== "DELETE") {
     throw new DomainError("Appointment deletion was not confirmed", "INVALID_INPUT");
   }
@@ -124,7 +126,7 @@ export async function changeStaffRole(
   nextRoleInput: string,
 ) {
   const locale = parseLocale(localeInput);
-  const targetUserId = idSchema.parse(targetUserIdInput);
+  const targetUserId = betterAuthUserIdSchema.parse(targetUserIdInput);
   const nextRole = roleSchema.parse(nextRoleInput);
   const actor = await requireAdmin(locale);
 

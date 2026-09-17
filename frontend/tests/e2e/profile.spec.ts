@@ -48,7 +48,9 @@ test("profile settings present responsive, accessible account controls", async (
   ).toEqual([]);
 });
 
-test("TOTP setup displays an SVG QR code and never the raw provisioning URI", async ({ page }) => {
+test("TOTP setup displays QR and per-code copy controls without exposing the provisioning URI", async ({
+  page,
+}) => {
   await signIn(page);
   await page.goto("/en/client/profile");
   await page.route("**/api/auth/two-factor/enable", async (route) => {
@@ -57,7 +59,7 @@ test("TOTP setup displays an SVG QR code and never the raw provisioning URI", as
       body: JSON.stringify({
         method: "totp",
         totpURI: "otpauth://totp/Eikon%20Mind:client?secret=JBSWY3DPEHPK3PXP",
-        backupCodes: ["one-time-code"],
+        backupCodes: ["one-time-code", "second-time-code"],
       }),
     });
   });
@@ -68,5 +70,20 @@ test("TOTP setup displays an SVG QR code and never the raw provisioning URI", as
 
   await expect(page.locator(".two-factor-qr svg")).toBeVisible();
   await expect(page.getByText(/otpauth:/i)).toHaveCount(0);
-  await expect(page.getByText("one-time-code")).toBeVisible();
+  const backupCodes = ["one-time-code", "second-time-code"];
+  const backupCodeRows = twoFactorCard.locator(".backup-codes li");
+  await expect(backupCodeRows).toHaveCount(backupCodes.length);
+
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: "http://localhost:3000",
+  });
+
+  for (const [index, backupCode] of backupCodes.entries()) {
+    const copyButton = backupCodeRows.nth(index).getByRole("button");
+    await expect(copyButton).toHaveAccessibleName("Copy backup code");
+    await copyButton.click();
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(backupCode);
+    await expect(copyButton).toHaveAccessibleName("Backup code copied.");
+    await expect(twoFactorCard.getByRole("status")).toHaveText("Backup code copied.");
+  }
 });

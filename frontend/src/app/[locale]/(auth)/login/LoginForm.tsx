@@ -79,7 +79,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
           {error || copy.signInFailed}
         </p>
       )}
-      <button className="button" disabled={busy || !captcha.token}>
+      <button className="button" type="submit" disabled={busy || !captcha.token}>
         {busy ? "…" : locale === "ro" ? "Autentificare" : "Sign in"}
       </button>
       <div className="auth-divider" aria-hidden="true">

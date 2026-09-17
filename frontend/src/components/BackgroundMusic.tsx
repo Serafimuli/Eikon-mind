@@ -8,10 +8,6 @@ const MUSIC_PREFERENCE_KEY = "eikon-music-enabled";
 const BACKGROUND_VOLUME = 0.25;
 const MUSIC_TOGGLE_EVENT = "eikon-music-toggle";
 
-function isProtectedPath(pathname: string | null) {
-  return /^\/(?:en|ro)\/(?:client|admin)(?:\/|$)/.test(pathname ?? "");
-}
-
 function readMusicPreference() {
   try {
     return localStorage.getItem(MUSIC_PREFERENCE_KEY) === "true";
@@ -31,7 +27,6 @@ function storeMusicPreference(enabled: boolean) {
 export function BackgroundMusic() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const autoplayAttemptedRef = useRef(false);
-  const pathname = usePathname();
   const [, setPlaying] = useState(false);
 
   useEffect(() => {
@@ -95,12 +90,12 @@ export function BackgroundMusic() {
         onPause={() => setPlaying(false)}
         onError={() => setPlaying(false)}
       />
-      {!isProtectedPath(pathname) && <MusicToggleButton variant="floating" />}
+      <MusicToggleButton />
     </>
   );
 }
 
-export function MusicToggleButton({ variant = "header" }: { variant?: "floating" | "header" }) {
+export function MusicToggleButton() {
   const pathname = usePathname();
   const [playing, setPlaying] = useState(false);
   const isRomanian = pathname === "/ro" || pathname?.startsWith("/ro/") || !pathname;
@@ -130,7 +125,7 @@ export function MusicToggleButton({ variant = "header" }: { variant?: "floating"
 
   return (
     <button
-      className={`music-toggle music-toggle--${variant}`}
+      className="music-toggle music-toggle--floating"
       type="button"
       aria-label={label}
       aria-pressed={playing}

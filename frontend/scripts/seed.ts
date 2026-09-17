@@ -81,6 +81,15 @@ const users = [
     0,
   ],
   [
+    E2E_FIXTURES.roleChangeTargetId,
+    "E2E Role Change Target",
+    E2E_FIXTURES.roleChangeTargetEmail,
+    "E2E",
+    "Role Target",
+    "USER",
+    1,
+  ],
+  [
     E2E_FIXTURES.therapistId,
     "E2E Therapist",
     E2E_FIXTURES.therapistEmail,
@@ -156,7 +165,7 @@ const statements = [
     ([id]) =>
       `INSERT INTO account (id, issuer, account_id, provider_id, user_id, password, created_at, updated_at) VALUES (${quote(`account-${id}`)}, 'local:credential', ${quote(id)}, 'credential', ${quote(id)}, ${quote(passwordHash)}, ${now}, ${now})`,
   ),
-  ...[E2E_FIXTURES.therapistId, E2E_FIXTURES.adminId].map(
+  ...[E2E_FIXTURES.therapistId, E2E_FIXTURES.adminId, E2E_FIXTURES.roleChangeTargetId].map(
     (id) =>
       `INSERT INTO "twoFactor" (id, userId, secret, backupCodes, verified, failedVerificationCount, lockedUntil) VALUES (${quote(`2fa-${id}`)}, ${quote(id)}, ${quote(encryptedSecret)}, ${quote(encryptedBackupCodes)}, 1, 0, NULL)`,
   ),

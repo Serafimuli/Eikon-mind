@@ -44,6 +44,14 @@ test("TOTP setup renders a QR code without exposing the provisioning URI as text
 
   assert.match(source, /QRCodeSVG/);
   assert.match(source, /value=\{uri\}/);
+  assert.match(source, /navigator\.clipboard\.writeText\(backupCode\)/);
+  assert.match(source, /type="button"/);
+  assert.match(source, /className="backup-code-copy"/);
+  assert.match(source, /Copiază codul de rezervă/);
+  assert.match(source, /Backup code copied\./);
+  assert.match(source, /Cod de rezervă copiat\./);
+  assert.match(source, /Could not copy backup code\./);
+  assert.match(source, /Codul de rezervă nu a putut fi copiat\./);
   assert.doesNotMatch(source, /wrap-code.*uri/);
   assert.doesNotMatch(source, /Scan or add this URI/);
 });
@@ -60,4 +68,6 @@ test("profile layout is organized into responsive settings and security regions"
   assert.match(css, /\.profile-settings-grid/);
   assert.match(css, /\.profile-security-grid/);
   assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.profile-settings-grid/);
+  assert.match(css, /\.destructive-form\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/);
+  assert.match(css, /\.destructive-form \.button--danger\s*\{[\s\S]*justify-self:\s*start/);
 });

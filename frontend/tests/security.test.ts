@@ -8,8 +8,10 @@ import { canManageTherapist, isStaff } from "../src/lib/roles";
 import {
   availabilityFormSchema,
   bookingRequestSchema,
+  betterAuthUserIdSchema,
   localeSchema,
   parseBucharestLocalDateTime,
+  resourceIdSchema,
 } from "../src/lib/validation";
 
 test("staff authorization never permits a therapist to manage a peer", () => {
@@ -30,6 +32,34 @@ test("appointment state transitions are explicit and terminal states stay termin
 });
 
 test("request validation rejects unknown locales, malformed IDs, and extra booking fields", () => {
+  const betterAuthUserId = "rolechange0000000000000000000000";
+  assert.equal(betterAuthUserIdSchema.safeParse(betterAuthUserId).success, true);
+  assert.equal(betterAuthUserIdSchema.safeParse("A".repeat(31)).success, false);
+  assert.equal(betterAuthUserIdSchema.safeParse("A".repeat(33)).success, false);
+  assert.equal(betterAuthUserIdSchema.safeParse(`${"A".repeat(31)}!`).success, false);
+  assert.equal(betterAuthUserIdSchema.safeParse(`${"A".repeat(31)} `).success, false);
+  assert.equal(betterAuthUserIdSchema.safeParse("").success, false);
+  assert.equal(
+    betterAuthUserIdSchema.safeParse("550e8400-e29b-41d4-a716-446655440000").success,
+    false,
+  );
+  assert.equal(resourceIdSchema.safeParse("550e8400-e29b-41d4-a716-446655440000").success, true);
+  assert.equal(
+    availabilityFormSchema.safeParse({
+      therapistId: betterAuthUserId,
+      startsAt: "2030-01-15T10:00",
+      endsAt: "2030-01-15T11:00",
+    }).success,
+    true,
+  );
+  assert.equal(
+    availabilityFormSchema.safeParse({
+      therapistId: "550e8400-e29b-41d4-a716-446655440000",
+      startsAt: "2030-01-15T10:00",
+      endsAt: "2030-01-15T11:00",
+    }).success,
+    false,
+  );
   assert.equal(localeSchema.safeParse("ro").success, true);
   assert.equal(localeSchema.safeParse("fr").success, false);
   assert.equal(
@@ -51,6 +81,7 @@ test("request validation rejects unknown locales, malformed IDs, and extra booki
     false,
   );
   assert.equal(bookingRequestSchema.safeParse({ slotId: "not-an-id" }).success, false);
+  assert.equal(bookingRequestSchema.safeParse({ slotId: betterAuthUserId }).success, false);
   assert.equal(
     bookingRequestSchema.safeParse({
       slotId: "550e8400-e29b-41d4-a716-446655440000",

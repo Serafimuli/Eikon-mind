@@ -81,7 +81,7 @@ export function RegisterForm({ locale }: { locale: Locale }) {
           {error}
         </p>
       )}
-      <button className="button" disabled={busy || !captcha.token}>
+      <button className="button" type="submit" disabled={busy || !captcha.token}>
         {busy ? "…" : locale === "ro" ? "Înregistrează-te" : "Register"}
       </button>
       <div className="auth-divider" aria-hidden="true">

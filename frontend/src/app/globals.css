@@ -457,13 +457,6 @@ strong {
   height: 48px;
 }
 
-.music-toggle--header {
-  position: static;
-  background: var(--canvas);
-  color: var(--primary);
-  box-shadow: none;
-}
-
 .back-to-top[inert],
 .music-toggle[inert] {
   visibility: hidden;
@@ -1927,12 +1920,65 @@ strong {
 }
 
 .backup-codes li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
   padding: 7px 9px;
   border-radius: 6px;
   background: var(--canvas);
   font-family: var(--font-code);
   font-size: 13px;
-  text-align: center;
+  text-align: left;
+}
+
+.backup-codes li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.backup-code-copy {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 32px;
+  padding: 0;
+  border: 1px solid var(--surface-dark-elevated);
+  border-radius: 4px;
+  background: var(--surface-dark-elevated);
+  color: var(--on-dark);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.backup-code-copy:hover {
+  border-color: var(--surface-dark-soft);
+  background: var(--surface-dark-soft);
+  transform: translateY(-1px);
+}
+
+.backup-code-copy:active {
+  transform: translateY(0);
+}
+
+.backup-code-copy svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.backup-codes__feedback {
+  margin: 12px 0 0;
 }
 
 .private-head {
@@ -2030,10 +2076,14 @@ strong {
 
 .destructive-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 20px;
   margin-top: 24px;
+}
+
+.destructive-form .button--danger {
+  justify-self: start;
 }
 
 .destructive-form .action-form__pending,
@@ -2983,10 +3033,6 @@ a.appointment {
   .destructive-form {
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
-  }
-
-  .destructive-form .button {
-    width: 100%;
   }
 
   .profile-account-actions {

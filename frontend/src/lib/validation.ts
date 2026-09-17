@@ -2,7 +2,10 @@ import { z } from "zod";
 import { APPOINTMENT_STATUSES } from "@/lib/appointment-types";
 
 export const localeSchema = z.enum(["ro", "en"]);
-export const idSchema = z.string().uuid();
+// Better Auth's default ID generator creates 32-character alphanumeric IDs.
+// Keep this separate from UUIDs used by application-owned resources.
+export const betterAuthUserIdSchema = z.string().regex(/^[A-Za-z0-9]{32}$/);
+export const resourceIdSchema = z.string().uuid();
 export const roleSchema = z.enum(["USER", "THERAPIST", "ADMIN"]);
 export const appointmentStatusSchema = z.enum(APPOINTMENT_STATUSES);
 
@@ -83,7 +86,7 @@ const formDateSchema = z
 
 export const availabilityFormSchema = z
   .object({
-    therapistId: z.string().trim().max(36).optional().default(""),
+    therapistId: z.union([z.literal(""), betterAuthUserIdSchema]).default(""),
     startsAt: formDateSchema,
     endsAt: formDateSchema,
   })
@@ -94,8 +97,8 @@ export const availabilityFormSchema = z
 
 export const bookingRequestSchema = z
   .object({
-    slotId: idSchema,
-    rescheduleFromAppointmentId: idSchema.optional(),
+    slotId: resourceIdSchema,
+    rescheduleFromAppointmentId: resourceIdSchema.optional(),
   })
   .strict();
 

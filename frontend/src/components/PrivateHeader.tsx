@@ -56,7 +56,6 @@ export function PrivateHeader({ locale, role }: { locale: Locale; role: Role }) 
       onClose={closeMenu}
       onMenuToggle={() => setMenuOpen((open) => !open)}
       logoSize={36}
-      showMusicControl
     >
       <nav
         id="private-navigation"

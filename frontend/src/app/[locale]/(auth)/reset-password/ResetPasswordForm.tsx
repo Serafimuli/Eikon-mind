@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { useTurnstileChallenge } from "@/hooks/useTurnstileChallenge";
 import { authClient } from "@/lib/auth-client";
@@ -74,9 +74,14 @@ export function ResetPasswordForm({
     router.replace(`/${locale}/login?reset=complete`);
   };
 
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void (token ? resetPassword() : requestReset());
+  };
+
   return (
     <main className="private-shell">
-      <section className="form-card auth-card" aria-live="polite">
+      <form className="form-card auth-card" aria-live="polite" onSubmit={submit}>
         <p className="eyebrow">Eikon Mind</p>
         <h1>
           {token
@@ -97,8 +102,10 @@ export function ResetPasswordForm({
             <label>
               {locale === "ro" ? "Parolă nouă" : "New password"}
               <input
+                name="password"
                 type="password"
                 minLength={12}
+                required
                 autoComplete="new-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -109,12 +116,7 @@ export function ResetPasswordForm({
                 {error}
               </p>
             )}
-            <button
-              className="button"
-              type="button"
-              disabled={busy || password.length < 12}
-              onClick={resetPassword}
-            >
+            <button className="button" type="submit" disabled={busy || password.length < 12}>
               {busy ? "…" : locale === "ro" ? "Schimbă parola" : "Set password"}
             </button>
           </>
@@ -128,8 +130,10 @@ export function ResetPasswordForm({
             <label>
               Email
               <input
+                name="email"
                 type="email"
                 autoComplete="email"
+                required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
               />
@@ -145,12 +149,7 @@ export function ResetPasswordForm({
                 {error}
               </p>
             )}
-            <button
-              className="button"
-              type="button"
-              disabled={busy || !email || !captcha.token}
-              onClick={requestReset}
-            >
+            <button className="button" type="submit" disabled={busy || !email || !captcha.token}>
               {busy ? "…" : locale === "ro" ? "Trimite linkul" : "Send reset link"}
             </button>
           </>
@@ -160,7 +159,7 @@ export function ResetPasswordForm({
             {locale === "ro" ? "Înapoi la autentificare" : "Back to sign in"}
           </Link>
         </p>
-      </section>
+      </form>
     </main>
   );
 }

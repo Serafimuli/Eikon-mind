@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { authClient, resolveAuthDestination } from "@/lib/auth-client";
 import type { Locale } from "@/lib/site-content";
 
@@ -31,8 +31,14 @@ export function TwoFactorChallenge({ locale, returnTo }: { locale: Locale; retur
     }
   };
 
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!code && !backupCode) return;
+    void verify();
+  };
+
   return (
-    <section className="form-card auth-card" aria-live="polite">
+    <form className="form-card auth-card" aria-live="polite" onSubmit={submit}>
       <p className="eyebrow">Eikon Mind</p>
       <h1>{locale === "ro" ? "Verificare în doi pași" : "Two-factor verification"}</h1>
       <p>
@@ -68,14 +74,9 @@ export function TwoFactorChallenge({ locale, returnTo }: { locale: Locale; retur
           {error}
         </p>
       )}
-      <button
-        className="button"
-        type="button"
-        disabled={busy || (!code && !backupCode)}
-        onClick={verify}
-      >
+      <button className="button" type="submit" disabled={busy || (!code && !backupCode)}>
         {busy ? "…" : locale === "ro" ? "Verifică" : "Verify"}
       </button>
-    </section>
+    </form>
   );
 }

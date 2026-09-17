@@ -167,7 +167,7 @@ export function ProfileSettings({ locale, user, hasCredentialPassword }: Profile
             <span className="profile-email-value">{user.email}</span>
           </div>
           <p>{text.emailDescription}</p>
-          <form onSubmit={submitEmail} noValidate>
+          <form onSubmit={submitEmail}>
             <label>
               {text.newEmail}
               <input
@@ -217,7 +217,7 @@ export function ProfileSettings({ locale, user, hasCredentialPassword }: Profile
               </div>
             </div>
             <p>{text.passwordDescription}</p>
-            <form onSubmit={submitPassword} noValidate>
+            <form onSubmit={submitPassword}>
               <label>
                 {text.currentPassword}
                 <input

@@ -211,6 +211,20 @@ test("protected actions disclose confirmation and staff eligibility before mutat
   await therapist.getByRole("button", { name: "Make administrator" }).click();
   await expect(therapist.getByText(/Change E2E Therapist’s role to Administrator/)).toBeVisible();
   await expect(therapist.getByRole("button", { name: "Confirm role change" })).toBeVisible();
+
+  const roleChangeTarget = page.locator(".staff-card", {
+    hasText: E2E_FIXTURES.roleChangeTargetEmail,
+  });
+  await roleChangeTarget.getByRole("button", { name: "Make therapist" }).click();
+  await roleChangeTarget.getByRole("button", { name: "Confirm role change" }).click();
+  await expect(roleChangeTarget.locator("form")).toHaveAttribute("aria-busy", "false");
+  await expect(roleChangeTarget.getByText("The staff role could not be changed.")).toHaveCount(0);
+  await page.goto("/en/admin/staff");
+  await expect(
+    page
+      .locator(".staff-card", { hasText: E2E_FIXTURES.roleChangeTargetEmail })
+      .getByText("Therapist", { exact: true }),
+  ).toBeVisible();
 });
 
 test("unauthorized roles return to their localized dashboard with an explanation", async ({
@@ -236,14 +250,22 @@ test("mobile private navigation is top-aligned, modal, role-aware, and target-si
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/en/admin");
 
-  await expectMinimumTarget(page.getByRole("button", { name: "Turn music on" }));
+  const musicToggle = page.getByRole("button", { name: "Turn music on" });
+  await expectMinimumTarget(musicToggle);
+  await expect(musicToggle).toHaveCSS("position", "fixed");
+  await expect(musicToggle).toHaveCSS("right", "16px");
+  await expect(musicToggle).toHaveCSS("bottom", "16px");
   await expectMinimumTarget(page.getByRole("button", { name: "Toggle theme" }));
   await expectMinimumTarget(page.getByRole("button", { name: "Menu" }));
   await expectMinimumTarget(page.getByRole("link", { name: "Manage staff" }));
 
   await page.goto("/en/client/profile");
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  await expect(page.getByRole("button", { name: "Back to top" })).toBeVisible();
+  const backToTop = page.getByRole("button", { name: "Back to top" });
+  await expect(backToTop).toBeVisible();
+  await expect(backToTop).toHaveCSS("position", "fixed");
+  await expect(backToTop).toHaveCSS("right", "16px");
+  await expect(backToTop).toHaveCSS("bottom", "76px");
   const menuButton = page.getByRole("button", { name: "Menu" });
   await menuButton.click();
 
@@ -251,8 +273,9 @@ test("mobile private navigation is top-aligned, modal, role-aware, and target-si
   await expect(navigation.getByRole("link", { name: "Dashboard" })).toBeFocused();
   await expect(page.locator("main")).toHaveAttribute("inert", "");
   await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
-  await expect(page.locator(".music-toggle")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Back to top" })).toBeHidden();
+  await expect(musicToggle).toHaveAttribute("inert", "");
+  await expect(musicToggle).toBeHidden();
+  await expect(backToTop).toBeHidden();
   await expect(navigation.getByRole("link", { name: "Profile" })).toHaveAttribute(
     "aria-current",
     "page",
@@ -274,6 +297,7 @@ test("mobile private navigation is top-aligned, modal, role-aware, and target-si
   await expect(menuButton).toBeFocused();
   await expect(navigation).toBeHidden();
   await expect(page.locator("main")).not.toHaveAttribute("inert", "");
+  await expect(musicToggle).toBeVisible();
 
   await page.getByRole("button", { name: "Menu" }).click();
   await navigation.getByRole("link", { name: "Profile" }).click();

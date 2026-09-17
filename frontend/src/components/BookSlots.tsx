@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { formatDateTime, formatTime } from "@/lib/presentation";
 import type { Locale } from "@/lib/site-content";
 
@@ -68,8 +68,13 @@ export function BookSlots({
     }
   };
 
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void book();
+  };
+
   return (
-    <section className="form-card">
+    <form className="form-card" onSubmit={submit}>
       <p className="eyebrow">Eikon Mind</p>
       <h1>
         {rescheduleFromAppointmentId
@@ -119,7 +124,7 @@ export function BookSlots({
                 : "Read the booking data-processing notice."}
             </Link>
           </p>
-          <button type="button" className="button" disabled={busy || !slotId} onClick={book}>
+          <button type="submit" className="button" disabled={busy || !slotId}>
             {busy
               ? "…"
               : rescheduleFromAppointmentId
@@ -142,6 +147,6 @@ export function BookSlots({
           )}
         </div>
       )}
-    </section>
+    </form>
   );
 }

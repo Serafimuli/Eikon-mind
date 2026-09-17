@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Route } from "next";
 import { useEffect, useRef, type ReactNode } from "react";
-import { MusicToggleButton } from "@/components/BackgroundMusic";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import type { Locale } from "@/lib/site-content";
 
@@ -18,7 +17,6 @@ export function HeaderShell({
   children,
   scheduleAction,
   logoSize = 48,
-  showMusicControl = false,
 }: {
   locale: Locale;
   homeHref: Route;
@@ -29,7 +27,6 @@ export function HeaderShell({
   children: ReactNode;
   scheduleAction?: { href: Route; label: string };
   logoSize?: number;
-  showMusicControl?: boolean;
 }) {
   const headerRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -131,7 +128,6 @@ export function HeaderShell({
         </Link>
         {children}
         <div className="site-header__actions">
-          {showMusicControl && !menuOpen && <MusicToggleButton />}
           <ThemeToggle />
           {scheduleAction && (
             <Link className="schedule-button" href={scheduleAction.href} onClick={onClose}>

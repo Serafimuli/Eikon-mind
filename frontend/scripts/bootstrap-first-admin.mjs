@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 const [configPath, userId] = process.argv.slice(2);
-if (!configPath || !/^[0-9a-f-]{36}$/i.test(userId ?? "")) {
+if (!configPath || !/^[A-Za-z0-9]{32}$/.test(userId ?? "")) {
   throw new Error(
-    "Usage: node scripts/bootstrap-first-admin.mjs <generated-wrangler-config> <verified-totp-user-uuid>",
+    "Usage: node scripts/bootstrap-first-admin.mjs <generated-wrangler-config> <verified-totp-user-id>",
   );
 }
 

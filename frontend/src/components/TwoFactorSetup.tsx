@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { authClient } from "@/lib/auth-client";
 import type { Locale } from "@/lib/site-content";
@@ -12,6 +12,22 @@ export function TwoFactorSetup({ enabled, locale }: { enabled: boolean; locale: 
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [copyError, setCopyError] = useState("");
+  const copyResetTimer = useRef<number | null>(null);
+
+  const copyText = {
+    copy: locale === "ro" ? "Copiază codul de rezervă" : "Copy backup code",
+    copied: locale === "ro" ? "Cod de rezervă copiat." : "Backup code copied.",
+    error:
+      locale === "ro" ? "Codul de rezervă nu a putut fi copiat." : "Could not copy backup code.",
+  };
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimer.current !== null) window.clearTimeout(copyResetTimer.current);
+    };
+  }, []);
 
   const start = async () => {
     setBusy(true);
@@ -37,6 +53,31 @@ export function TwoFactorSetup({ enabled, locale }: { enabled: boolean; locale: 
     window.location.reload();
   };
 
+  const copyBackupCode = async (backupCode: string) => {
+    setCopyError("");
+    if (copyResetTimer.current !== null) {
+      window.clearTimeout(copyResetTimer.current);
+      copyResetTimer.current = null;
+    }
+
+    try {
+      await navigator.clipboard.writeText(backupCode);
+      setCopiedCode(backupCode);
+      copyResetTimer.current = window.setTimeout(() => {
+        setCopiedCode((current) => (current === backupCode ? null : current));
+        copyResetTimer.current = null;
+      }, 1600);
+    } catch {
+      setCopiedCode(null);
+      setCopyError(copyText.error);
+    }
+  };
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void (uri ? verify() : start());
+  };
+
   if (enabled)
     return (
       <section className="card profile-card profile-card--security" aria-live="polite">
@@ -50,7 +91,7 @@ export function TwoFactorSetup({ enabled, locale }: { enabled: boolean; locale: 
     );
 
   return (
-    <section className="card profile-card profile-card--security" aria-live="polite">
+    <form className="card profile-card profile-card--security" aria-live="polite" onSubmit={submit}>
       <h2>{locale === "ro" ? "Activează TOTP" : "Enable TOTP"}</h2>
       <p>
         {locale === "ro"
@@ -62,19 +103,16 @@ export function TwoFactorSetup({ enabled, locale }: { enabled: boolean; locale: 
           <label>
             {locale === "ro" ? "Parola curentă" : "Current password"}
             <input
+              name="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               type="password"
               minLength={12}
+              required
               autoComplete="current-password"
             />
           </label>
-          <button
-            type="button"
-            className="button"
-            disabled={busy || password.length < 12}
-            onClick={start}
-          >
+          <button type="submit" className="button" disabled={busy || password.length < 12}>
             {busy ? "…" : locale === "ro" ? "Generează configurarea" : "Create TOTP setup"}
           </button>
         </>
@@ -104,25 +142,71 @@ export function TwoFactorSetup({ enabled, locale }: { enabled: boolean; locale: 
             </p>
             <ul>
               {backupCodes.map((backupCode) => (
-                <li key={backupCode}>{backupCode}</li>
+                <li key={backupCode}>
+                  <span>{backupCode}</span>
+                  <button
+                    type="button"
+                    className="backup-code-copy"
+                    aria-label={copiedCode === backupCode ? copyText.copied : copyText.copy}
+                    title={copiedCode === backupCode ? copyText.copied : copyText.copy}
+                    onClick={() => void copyBackupCode(backupCode)}
+                  >
+                    {copiedCode === backupCode ? (
+                      <svg viewBox="0 0 24 24" fill="none" focusable="false" aria-hidden="true">
+                        <path
+                          d="m5 12 4 4L19 6"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="none" focusable="false" aria-hidden="true">
+                        <rect
+                          x="8"
+                          y="8"
+                          width="10"
+                          height="10"
+                          rx="1.5"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                        />
+                        <path
+                          d="M16 8V6.5A1.5 1.5 0 0 0 14.5 5h-8A1.5 1.5 0 0 0 5 6.5v8A1.5 1.5 0 0 0 6.5 16H8"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                </li>
               ))}
             </ul>
+            {(copyError || copiedCode) && (
+              <p
+                className={`backup-codes__feedback ${copyError ? "error" : "success"}`}
+                role={copyError ? "alert" : "status"}
+                aria-live="polite"
+              >
+                {copyError || copyText.copied}
+              </p>
+            )}
           </div>
           <label>
             {locale === "ro" ? "Codul aplicației" : "Authenticator code"}
             <input
+              name="code"
               value={code}
               onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 8))}
               inputMode="numeric"
+              minLength={6}
+              required
               autoComplete="one-time-code"
             />
           </label>
-          <button
-            type="button"
-            className="button"
-            disabled={busy || code.length < 6}
-            onClick={verify}
-          >
+          <button type="submit" className="button" disabled={busy || code.length < 6}>
             {busy ? "…" : locale === "ro" ? "Verifică și activează" : "Verify and enable"}
           </button>
         </>
@@ -132,6 +216,6 @@ export function TwoFactorSetup({ enabled, locale }: { enabled: boolean; locale: 
           {error}
         </p>
       )}
-    </section>
+    </form>
   );
 }

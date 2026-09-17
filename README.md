@@ -105,7 +105,7 @@ Provider limits and terms can change. Before each production release, re-check [
 
    ```sh
    pnpm exec wrangler d1 migrations apply eikon-mind-dev --remote --config .wrangler/generated/dev/wrangler.jsonc
-   node scripts/bootstrap-first-admin.mjs .wrangler/generated/dev/wrangler.jsonc <verified-totp-user-uuid>
+   node scripts/bootstrap-first-admin.mjs .wrangler/generated/dev/wrangler.jsonc <verified-totp-user-id>
    ```
 
    The command is conditional: it refuses to create a second first admin, an unverified user, or a user without TOTP. Further staff changes happen only in `/admin/staff` and require a verified, TOTP-enrolled user.
