@@ -2740,6 +2740,10 @@ a.appointment {
     min-height: 0;
   }
 
+  .about-story__row {
+    grid-template-columns: 1fr;
+  }
+
   .about-panel,
   .feature-panel {
     width: calc(100% - 32px);
