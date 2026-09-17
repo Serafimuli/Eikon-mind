@@ -200,10 +200,6 @@ function ContactPage({ locale, page }: { locale: Locale; page: PageContent }) {
                 <a href={`mailto:${contact.email}`}>{contact.email}</a>
               </div>
               <div>
-                <span>{locale === "ro" ? "Locația: " : "Location: "}</span>
-                <address>{contact.address}</address>
-              </div>
-              <div>
                 <span>{locale === "ro" ? "Program" : "Opening hours"}</span>
                 {contact.hours.map((hour) => (
                   <p key={hour}>{hour}</p>
