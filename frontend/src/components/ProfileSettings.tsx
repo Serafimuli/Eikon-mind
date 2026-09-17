@@ -7,8 +7,6 @@ import type { Locale } from "@/lib/site-content";
 type ProfileSettingsProps = {
   locale: Locale;
   user: {
-    firstName: string;
-    lastName: string;
     email: string;
     emailVerified: boolean;
   };
@@ -140,8 +138,12 @@ export function ProfileSettings({ locale, user, hasCredentialPassword }: Profile
       <section className="profile-hero" aria-labelledby="profile-title">
         <div className="profile-hero__identity">
           <span className="profile-avatar" aria-hidden="true">
-            {user.firstName.slice(0, 1)}
-            {user.lastName.slice(0, 1)}
+            <svg viewBox="0 0 24 24" fill="none" focusable="false">
+              <path
+                d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"
+                fill="currentColor"
+              />
+            </svg>
           </span>
           <div>
             <p className="eyebrow">Eikon Mind</p>

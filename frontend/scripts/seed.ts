@@ -150,7 +150,7 @@ const statements = [
   `DELETE FROM user WHERE id IN (${fixtureIds}) OR email IN (${users.map(([, , email]) => quote(email)).join(", ")})`,
   ...users.map(
     ([id, name, email, firstName, lastName, role, twoFactorEnabled]) =>
-      `INSERT INTO user (id, name, email, email_verified, image, first_name, last_name, role, two_factor_enabled, created_at, updated_at) VALUES (${quote(id)}, ${quote(name)}, ${quote(email)}, 1, NULL, ${quote(firstName)}, ${quote(lastName)}, ${quote(role)}, ${twoFactorEnabled}, ${now}, ${now})`,
+      `INSERT INTO user (id, name, email, email_verified, first_name, last_name, role, two_factor_enabled, created_at, updated_at) VALUES (${quote(id)}, ${quote(name)}, ${quote(email)}, 1, ${quote(firstName)}, ${quote(lastName)}, ${quote(role)}, ${twoFactorEnabled}, ${now}, ${now})`,
   ),
   ...users.map(
     ([id]) =>

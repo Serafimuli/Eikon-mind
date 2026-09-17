@@ -7,7 +7,6 @@ export const users = sqliteTable(
     name: text("name").notNull(),
     email: text("email").notNull(),
     emailVerified: integer("email_verified", { mode: "boolean" }).notNull().default(false),
-    image: text("image"),
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
     // This is always server-owned. Better Auth is configured with input: false.

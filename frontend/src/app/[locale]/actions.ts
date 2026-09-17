@@ -250,7 +250,6 @@ export async function requestAccountDeletion(localeInput: string, formData: Form
         lastName: "Account",
         email: anonymizedEmail,
         emailVerified: false,
-        image: null,
         role: "USER",
         twoFactorEnabled: false,
         updatedAt: now,

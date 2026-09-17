@@ -1,6 +1,8 @@
 import "server-only";
 
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import type { DBAdapter, DBTransactionAdapter } from "@better-auth/core/db/adapter";
+import type { BetterAuthOptions } from "@better-auth/core";
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { captcha, twoFactor } from "better-auth/plugins";
@@ -49,6 +51,48 @@ function googleProfileName(value: string | undefined, fallback: string) {
   return value?.trim().slice(0, 80) || fallback;
 }
 
+function omitProfileImage<T extends Record<string, unknown>>(data: T): T {
+  const withoutProfileImage = { ...data };
+  delete withoutProfileImage.image;
+  return withoutProfileImage as T;
+}
+
+type AuthAdapter = DBAdapter<BetterAuthOptions>;
+type AuthTransactionAdapter = DBTransactionAdapter<BetterAuthOptions>;
+
+function withoutStoredProfileImages(adapter: AuthAdapter): AuthAdapter;
+function withoutStoredProfileImages(adapter: AuthTransactionAdapter): AuthTransactionAdapter;
+function withoutStoredProfileImages(
+  adapter: AuthAdapter | AuthTransactionAdapter,
+): AuthAdapter | AuthTransactionAdapter {
+  const profileImageFreeAdapter = {
+    ...adapter,
+    create: (input: Parameters<AuthAdapter["create"]>[0]) =>
+      adapter.create({
+        ...input,
+        data: input.model === "user" ? omitProfileImage(input.data) : input.data,
+      }),
+    update: (input: Parameters<AuthAdapter["update"]>[0]) =>
+      adapter.update({
+        ...input,
+        update: input.model === "user" ? omitProfileImage(input.update) : input.update,
+      }),
+    updateMany: (input: Parameters<AuthAdapter["updateMany"]>[0]) =>
+      adapter.updateMany({
+        ...input,
+        update: input.model === "user" ? omitProfileImage(input.update) : input.update,
+      }),
+  };
+
+  if (!("transaction" in adapter)) return profileImageFreeAdapter as AuthTransactionAdapter;
+
+  return {
+    ...profileImageFreeAdapter,
+    transaction: <R>(callback: (transaction: AuthTransactionAdapter) => Promise<R>) =>
+      adapter.transaction((transaction) => callback(withoutStoredProfileImages(transaction))),
+  } as AuthAdapter;
+}
+
 export const getAuth = async () => {
   const env = getRuntimeEnv();
   const local = env.APP_ENV === "local";
@@ -67,6 +111,19 @@ export const getAuth = async () => {
   }
   const usesOfficialTurnstileTestKeys =
     local && usesOfficialTurnstileTestSitekey && usesOfficialTurnstileTestSecret;
+  const databaseAdapter = drizzleAdapter(getDb(), {
+    provider: "sqlite",
+    // Better Auth 1.7 resolves tables by its singular model names. Keep the
+    // application's plural exports while mapping the adapter explicitly.
+    schema: {
+      user: schema.users,
+      session: schema.sessions,
+      account: schema.accounts,
+      verification: schema.verifications,
+      rateLimit: schema.rateLimit,
+      twoFactor: schema.twoFactor,
+    },
+  });
   const turnstileHostnames = [
     new URL(baseURL).hostname,
     // Cloudflare's dummy Siteverify response currently reports example.com.
@@ -78,19 +135,7 @@ export const getAuth = async () => {
     appName: "Eikon Mind",
     baseURL,
     secrets: parseSigningKeys(signingSecrets),
-    database: drizzleAdapter(getDb(), {
-      provider: "sqlite",
-      // Better Auth 1.7 resolves tables by its singular model names. Keep the
-      // application's plural exports while mapping the adapter explicitly.
-      schema: {
-        user: schema.users,
-        session: schema.sessions,
-        account: schema.accounts,
-        verification: schema.verifications,
-        rateLimit: schema.rateLimit,
-        twoFactor: schema.twoFactor,
-      },
-    }),
+    database: (options: BetterAuthOptions) => withoutStoredProfileImages(databaseAdapter(options)),
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 12,

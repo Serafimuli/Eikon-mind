@@ -1401,6 +1401,10 @@ strong {
   background: var(--primary);
 }
 
+.booking-signup .button {
+  margin-top: 24px;
+}
+
 .inline-cta h2,
 .booking-card h2 {
   max-width: 650px;
@@ -1422,22 +1426,48 @@ strong {
   color: var(--ink) !important;
 }
 
-.about-gallery {
+.about-story {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  grid-template-rows: 280px 200px;
-  gap: 12px;
+  gap: 24px;
   margin-bottom: 32px;
 }
 
-.about-gallery__item {
-  min-height: 180px;
-  border-radius: 12px;
+.about-story__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.about-story__row--reverse .about-story__content {
+  order: 2;
+}
+
+.about-story__row--reverse .about-story__media {
+  order: 1;
+}
+
+.about-story__content,
+.about-story__media {
+  min-height: 100%;
+}
+
+.about-story__content .content-section {
+  height: 100%;
+  margin: 0;
+}
+
+.about-story__media {
+  position: relative;
+  overflow: hidden;
+  min-height: 320px;
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
   background: var(--surface-soft);
 }
 
-.about-gallery__item--1 {
-  grid-row: span 2;
+.about-story__media img {
+  object-fit: cover;
 }
 
 .simple-page__content,
@@ -1474,8 +1504,13 @@ strong {
   gap: 48px;
 }
 
+.contact-details {
+  display: grid;
+  gap: 24px;
+}
+
 .contact-details > .eyebrow {
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 .contact-card {
@@ -1495,9 +1530,12 @@ strong {
 }
 
 .contact-image {
+  width: 100%;
   min-height: 360px;
   aspect-ratio: 4 / 3;
   max-height: 420px;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
   border-radius: 16px;
   background: var(--surface-soft);
 }
@@ -1749,10 +1787,11 @@ strong {
   border-radius: 50%;
   background: var(--canvas);
   color: var(--primary);
-  font-family: var(--font-display);
-  font-size: 25px;
-  font-weight: 600;
-  letter-spacing: 1px;
+}
+
+.profile-avatar svg {
+  width: 32px;
+  height: 32px;
 }
 
 .profile-status {

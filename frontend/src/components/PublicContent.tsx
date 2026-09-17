@@ -107,25 +107,37 @@ function ServicePage({ locale, page }: { locale: Locale; page: PageContent }) {
 }
 
 function AboutPage({ locale, page }: { locale: Locale; page: PageContent }) {
+  const gallery = page.gallery ?? [];
+
   return (
     <div className="inner-page about-page">
       <PageHero page={page} />
       <div className="page-content">
-        <div className="about-gallery">
-          {page.gallery?.map((image, index) => (
-            <div className={`about-gallery__item about-gallery__item--${index + 1}`} key={image}>
-              <Picture
-                src={image}
-                alt={`${page.title} ${index + 1}`}
-                sizes="(max-width: 720px) 50vw, 40vw"
-              />
-            </div>
-          ))}
-        </div>
-        <div className="service-sections">
-          {page.sections?.map((section) => (
-            <SectionContent key={section.title} section={section} />
-          ))}
+        <div className="about-story">
+          {page.sections?.map((section, index) => {
+            const image = gallery[index];
+            const isReverse = index % 2 === 1;
+
+            return (
+              <div
+                className={`about-story__row ${isReverse ? "about-story__row--reverse" : ""}`}
+                key={section.title ?? `section-${index}`}
+              >
+                <div className="about-story__content">
+                  <SectionContent section={section} />
+                </div>
+                {image && (
+                  <div className="about-story__media">
+                    <Picture
+                      src={image}
+                      alt={`${page.title} ${index + 1}`}
+                      sizes="(max-width: 720px) 100vw, 50vw"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
         {page.cta && (
           <div className="inline-cta">
@@ -147,22 +159,20 @@ function BookingPage({ locale, page }: { locale: Locale; page: PageContent }) {
     <div className="inner-page simple-page">
       <PageHero page={page} />
       <div className="page-content simple-page__content">
-        {page.sections?.map((section) => (
-          <SectionContent key={section.title} section={section} />
-        ))}
-        <div className="booking-card">
-          <div>
-            <p className="eyebrow">{locale === "ro" ? "Pasul următor" : "Next step"}</p>
-            <h2>{page.cta}</h2>
-            <p>
-              {locale === "ro"
-                ? "Intră în spațiul securizat al aplicației pentru a verifica disponibilitatea și a trimite cererea."
-                : "Enter the secure app area to check availability and send your request."}
-            </p>
-          </div>
-          <Link className="button" href={`/${locale}/client/book`}>
-            {locale === "ro" ? "Continuă către programare" : "Continue to booking"}
-          </Link>
+        <div className="service-sections">
+          {page.sections?.map((section, index) => (
+            <div className="content-section booking-signup" key={section.title}>
+              {section.title && <h2>{section.title}</h2>}
+              {section.paragraphs?.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+              {index === 0 && (
+                <Link className="button" href={`/${locale}/client/book`}>
+                  {locale === "ro" ? "Înscrie-te pentru o programare" : "Sign up for a booking"}
+                </Link>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -182,15 +192,15 @@ function ContactPage({ locale, page }: { locale: Locale; page: PageContent }) {
           {contact && (
             <div className="contact-card">
               <div>
-                <span>{locale === "ro" ? "Telefon" : "Phone"}</span>
+                <span>{locale === "ro" ? "Telefon: " : "Phone: "}</span>
                 <a href={`tel:${contact.phone.replace(/\s/g, "")}`}>{contact.phone}</a>
               </div>
               <div>
-                <span>E-mail</span>
+                <span>E-mail: </span>
                 <a href={`mailto:${contact.email}`}>{contact.email}</a>
               </div>
               <div>
-                <span>{locale === "ro" ? "Locația" : "Location"}</span>
+                <span>{locale === "ro" ? "Locația: " : "Location: "}</span>
                 <address>{contact.address}</address>
               </div>
               <div>

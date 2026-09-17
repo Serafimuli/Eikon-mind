@@ -103,9 +103,6 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             onClick={handleServicesClick}
           >
             {copy.services}
-            <span className="service-menu__chevron" aria-hidden="true">
-              ⌄
-            </span>
           </button>
           <div
             id={servicesDropdownId}
