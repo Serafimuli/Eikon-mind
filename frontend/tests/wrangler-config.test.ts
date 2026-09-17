@@ -18,7 +18,7 @@ const baseDeployment = {
   hostname: "eikon-mind-test.eikon-dev.workers.dev",
   email_from_address: "onboarding@eikon-mind.ro",
   operations_mailbox: "operations@eikon-mind.ro",
-  retention: { 
+  retention: {
     appointment_days: 30,
     cancelled_appointment_days: 14,
     deidentified_record_days: 30,
