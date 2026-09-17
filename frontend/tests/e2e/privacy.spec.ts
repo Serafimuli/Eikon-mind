@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { PDFDocument } from "pdf-lib";
 import { expect, test, type Page } from "@playwright/test";
 import {
   installSuccessfulTurnstile,
@@ -107,34 +108,54 @@ test("local runtime uses the essential auth cookie and stores a theme only after
   expect(sessionCookie?.expires).toBeLessThan(Date.now() / 1_000 + 8 * 24 * 60 * 60);
 });
 
-test("privacy export requires authentication and returns a no-store attachment for the signed-in user", async ({
+test("privacy export requires authentication and returns localized PDF attachments", async ({
   page,
 }) => {
-  const unauthenticated = await page.goto("/api/privacy/export");
+  const unauthenticated = await page.goto("/api/privacy/export?locale=en");
   expect(unauthenticated?.status()).toBe(401);
   expect(unauthenticated?.headers()["cache-control"]).toContain("no-store");
 
+  const invalidLocale = await page.goto("/api/privacy/export?locale=fr");
+  expect(invalidLocale?.status()).toBe(400);
+  expect(invalidLocale?.headers()["cache-control"]).toContain("no-store");
+
   await signIn(page);
-  await page.goto("/en/client/profile");
-  await expect(page.getByRole("heading", { name: "Download your data" })).toBeVisible();
 
-  const responsePromise = page.waitForResponse(
-    (response) => new URL(response.url()).pathname === "/api/privacy/export",
-  );
-  const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("link", { name: "Download export" }).click();
-  const [response, download] = await Promise.all([responsePromise, downloadPromise]);
+  for (const locale of ["en", "ro"] as const) {
+    await page.goto(`/${locale}/client/profile`);
+    await expect(
+      page.getByRole("heading", {
+        name: locale === "en" ? "Download your data" : "Descarcă datele tale",
+      }),
+    ).toBeVisible();
 
-  expect(response.status()).toBe(200);
-  expect(response.headers()["cache-control"]).toContain("no-store");
-  expect(response.headers()["content-disposition"]).toContain("attachment");
-  expect(download.suggestedFilename()).toBe("eikon-mind-personal-data.json");
+    const responsePromise = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname === "/api/privacy/export" && url.searchParams.get("locale") === locale;
+    });
+    const downloadPromise = page.waitForEvent("download");
+    await page
+      .getByRole("link", { name: locale === "en" ? "Download PDF" : "Descarcă PDF" })
+      .click();
+    const [response, download] = await Promise.all([responsePromise, downloadPromise]);
 
-  const downloadedPath = await download.path();
-  expect(downloadedPath).not.toBeNull();
-  const data = JSON.parse(await readFile(downloadedPath!, "utf8")) as Record<string, unknown>;
-  expect((data.account as { email: string }).email).toBe(E2E_FIXTURES.clientEmail);
-  expect(JSON.stringify(data)).not.toMatch(
-    /password|secret|token|backup|security|therapistId|clientId/i,
-  );
+    expect(response.status()).toBe(200);
+    expect(response.headers()["cache-control"]).toContain("no-store");
+    expect(response.headers()["content-type"]).toBe("application/pdf");
+    expect(response.headers()["content-language"]).toBe(locale);
+    expect(response.headers()["content-disposition"]).toContain("attachment");
+    expect(download.suggestedFilename()).toBe("eikon-mind-personal-data.pdf");
+
+    const downloadedPath = await download.path();
+    expect(downloadedPath).not.toBeNull();
+    const pdfBytes = await readFile(downloadedPath!);
+    expect(pdfBytes.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+    const pdf = await PDFDocument.load(pdfBytes);
+    expect(pdf.getPages().length).toBeGreaterThan(0);
+    expect(pdf.getTitle()).toBe(
+      locale === "en"
+        ? "Eikon Mind - Personal data export"
+        : "Eikon Mind - Export de date personale",
+    );
+  }
 });

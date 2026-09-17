@@ -1,3 +1,5 @@
+import type { AppointmentStatus } from "@/lib/appointment-types";
+
 export type PortableExportInput = {
   exportedAt: Date;
   account: {
@@ -5,51 +7,48 @@ export type PortableExportInput = {
     lastName: string;
     email: string;
     emailVerified: boolean;
-    createdAt: Date;
-    updatedAt: Date;
   };
   authenticationProviders: Array<{
     provider: string;
-    linkedAt: Date;
   }>;
   appointments: Array<{
     startsAt: Date;
     endsAt: Date;
-    status: "REQUESTED" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+    status: AppointmentStatus;
     cancelledAt: Date | null;
-    createdAt: Date;
-    updatedAt: Date;
   }>;
 };
 
+export type PortableExportData = {
+  exportedAt: Date;
+  account: PortableExportInput["account"];
+  authenticationProviders: PortableExportInput["authenticationProviders"];
+  appointments: PortableExportInput["appointments"];
+};
+
 /**
- * Builds the portable subset of a data-subject access response. Keep this
+ * Builds the portable subset used by the user-facing data export. Keep this
  * boundary narrow: authentication secrets, provider tokens, sessions,
- * security events, and staff/other-client data must never cross it.
+ * security events, internal identifiers, and staff/other-client data must
+ * never cross it.
  */
-export function createPortableDataExport(input: PortableExportInput) {
+export function createPortableDataExport(input: PortableExportInput): PortableExportData {
   return {
-    format: "eikon-mind-personal-data-export/v1",
-    exportedAt: input.exportedAt.toISOString(),
+    exportedAt: new Date(input.exportedAt.getTime()),
     account: {
       firstName: input.account.firstName,
       lastName: input.account.lastName,
       email: input.account.email,
       emailVerified: input.account.emailVerified,
-      createdAt: input.account.createdAt.toISOString(),
-      updatedAt: input.account.updatedAt.toISOString(),
     },
     authenticationProviders: input.authenticationProviders.map((provider) => ({
       provider: provider.provider,
-      linkedAt: provider.linkedAt.toISOString(),
     })),
     appointments: input.appointments.map((appointment) => ({
-      startsAt: appointment.startsAt.toISOString(),
-      endsAt: appointment.endsAt.toISOString(),
+      startsAt: new Date(appointment.startsAt.getTime()),
+      endsAt: new Date(appointment.endsAt.getTime()),
       status: appointment.status,
-      cancelledAt: appointment.cancelledAt?.toISOString() ?? null,
-      createdAt: appointment.createdAt.toISOString(),
-      updatedAt: appointment.updatedAt.toISOString(),
+      cancelledAt: appointment.cancelledAt ? new Date(appointment.cancelledAt.getTime()) : null,
     })),
   };
 }

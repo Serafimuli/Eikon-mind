@@ -39,7 +39,7 @@ The application intentionally does not collect clinical notes, diagnoses, sympto
 | Notices did not fully satisfy Article 13 or accurately describe Google, Turnstile, transfers, or retention | Remediated in Romanian and English content | Controller validates factual accuracy before release |
 | Legacy cookie text named technologies not deployed by this application | Remediated with observed essential cookies, Turnstile, and local storage only | Re-test after any dependency or provider change |
 | Therapy testimonials disclosed health-related narratives with images/initials | Remediated by removing the public section | Keep removed unless documented explicit publication consent exists |
-| No self-service portability route | Remediated with authenticated account/booking JSON export | Controller handles non-portable or broader access requests by email |
+| No self-service portability route | Remediated with an authenticated account/booking PDF summary export | Controller handles non-portable or broader access requests by email |
 | Minor clinical consent/documents were not delimited from the app | Remediated in both Terms pages | Therapist handles representation and documents directly outside the app |
 | Production retention values and evidence are external to source control | Open release gate | Configure 30/14/30/14 values in the protected workspace and retain approval reference outside Git |
 

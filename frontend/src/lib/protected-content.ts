@@ -119,8 +119,9 @@ export const protectedCopy = {
       deleteAction: "Permanently delete account",
       deleteError: "The deletion confirmation is invalid.",
       exportTitle: "Download your data",
-      exportBody: "Download a copy of your account data and the appointments associated with it.",
-      exportAction: "Download export",
+      exportBody:
+        "Download a readable PDF summary of your account data and associated appointments.",
+      exportAction: "Download PDF",
     },
   },
   ro: {
@@ -240,8 +241,9 @@ export const protectedCopy = {
       deleteAction: "Șterge definitiv contul",
       deleteError: "Confirmarea ștergerii nu este validă.",
       exportTitle: "Descarcă datele tale",
-      exportBody: "Descarcă o copie a datelor de cont și a programărilor asociate contului tău.",
-      exportAction: "Descarcă exportul",
+      exportBody:
+        "Descarcă un rezumat PDF ușor de citit al datelor de cont și al programărilor asociate contului tău.",
+      exportAction: "Descarcă PDF",
     },
   },
 } as const;

@@ -84,7 +84,7 @@ export default async function Profile({ params }: { params: Promise<{ locale: Lo
           <p>{copy.exportBody}</p>
           <Link
             className="button button--secondary"
-            href={"/api/privacy/export" as Route}
+            href={`/api/privacy/export?locale=${locale}` as Route}
             prefetch={false}
           >
             {copy.exportAction}
