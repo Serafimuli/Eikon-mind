@@ -70,34 +70,9 @@ export function parseBucharestLocalDateTime(value: string) {
   return result;
 }
 
-const formDateSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(40)
-  .transform((value, context) => {
-    const date = parseBucharestLocalDateTime(value);
-    if (!date) {
-      context.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date and time" });
-      return z.NEVER;
-    }
-    return date;
-  });
-
-export const availabilityFormSchema = z
-  .object({
-    therapistId: z.union([z.literal(""), betterAuthUserIdSchema]).default(""),
-    startsAt: formDateSchema,
-    endsAt: formDateSchema,
-  })
-  .refine((value) => value.endsAt > value.startsAt, {
-    message: "End time must be after start time",
-    path: ["endsAt"],
-  });
-
 export const bookingRequestSchema = z
   .object({
-    slotId: resourceIdSchema,
+    startsAt: z.string().datetime({ offset: true }),
     rescheduleFromAppointmentId: resourceIdSchema.optional(),
   })
   .strict();

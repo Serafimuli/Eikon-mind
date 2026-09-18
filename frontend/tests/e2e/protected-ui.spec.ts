@@ -29,7 +29,6 @@ const roles: Record<AuditRole, { email: string; routes: (locale: "en" | "ro") =>
     routes: (locale) => [
       `/${locale}/admin`,
       `/${locale}/admin/appointments`,
-      `/${locale}/admin/appointments/new`,
       `/${locale}/client/profile`,
     ],
   },
@@ -38,7 +37,6 @@ const roles: Record<AuditRole, { email: string; routes: (locale: "en" | "ro") =>
     routes: (locale) => [
       `/${locale}/admin`,
       `/${locale}/admin/appointments`,
-      `/${locale}/admin/appointments/new`,
       `/${locale}/admin/staff`,
       `/${locale}/client/profile`,
     ],
@@ -136,7 +134,6 @@ test("all protected role, locale, theme, and viewport states render cleanly", as
             for (const fragment of [
               "Data minimisation",
               "Therapist workspace",
-              "Add availability",
               "View appointments",
               "Manage staff",
               "TOTP enabled",
@@ -174,12 +171,9 @@ test("dashboard totals and administrator context reflect the full fixture", asyn
 
   await signIn(page, "admin");
   await page.goto("/en/admin/appointments");
-  const auditAppointment = page.locator(
-    `.appointment[data-appointment-id="${E2E_FIXTURES.auditAppointmentId}"]`,
-  );
-  await expect(auditAppointment).toContainText("Therapist: E2E Therapist");
-  await page.goto("/en/admin/appointments/new");
-  await expect(page.locator(".appointment").first()).toContainText("Therapist: E2E Therapist");
+  await expect(
+    page.getByRole("heading", { name: "Appointment calendar", exact: true }),
+  ).toBeVisible();
 });
 
 test("protected actions disclose confirmation and staff eligibility before mutation", async ({
@@ -194,10 +188,12 @@ test("protected actions disclose confirmation and staff eligibility before mutat
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Back", exact: true })).toBeVisible();
 
-  await signIn(page, "admin");
-  await page.goto("/en/admin/appointments/new");
-  await page.getByRole("button", { name: "Block", exact: true }).first().click();
-  await expect(page.getByText(/Block this availability time/)).toBeVisible();
+  await signIn(page, "therapist");
+  await page.goto("/en/admin/appointments");
+  await expect(
+    page.getByRole("heading", { name: "Appointment calendar", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Block time", exact: true })).toBeVisible();
 
   await page.goto("/en/admin/staff");
   const auditClient = page.locator(".staff-card", { hasText: E2E_FIXTURES.auditClientEmail });

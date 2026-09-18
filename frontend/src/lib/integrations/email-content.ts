@@ -23,7 +23,7 @@ export function passwordChangedEmail(): TransactionalEmailMessage {
 }
 
 export function appointmentEmail(
-  kind: "confirmed" | "cancelled" | "requested",
+  kind: "confirmed" | "cancelled" | "requested" | "updated",
 ): TransactionalEmailMessage {
   if (kind === "confirmed") {
     return {
@@ -35,6 +35,12 @@ export function appointmentEmail(
     return {
       subject: "New Eikon Mind appointment request",
       body: "A new appointment request is available. Sign in to review it.",
+    };
+  }
+  if (kind === "updated") {
+    return {
+      subject: "Your Eikon Mind appointment was updated",
+      body: "Your appointment time was updated. Sign in to view the current appointment details.",
     };
   }
   return {

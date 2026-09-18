@@ -131,30 +131,40 @@ export const appointments = sqliteTable(
   ],
 );
 
-export const availabilitySlots = sqliteTable(
-  "availability_slot",
+// Google-owned events created by this application.  BLOCK rows have no
+// appointment and are only used to make time unavailable to clients.
+export const calendarManagedItems = sqliteTable(
+  "calendar_managed_item",
   {
     id: text("id").primaryKey(),
-    therapistId: text("therapist_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    appointmentId: text("appointment_id").references(() => appointments.id, {
+      onDelete: "cascade",
+    }),
+    eventId: text("event_id").notNull(),
+    kind: text("kind", { enum: ["APPOINTMENT", "BLOCK"] }).notNull(),
+    etag: text("etag"),
     startsAt: integer("starts_at", { mode: "timestamp_ms" }).notNull(),
     endsAt: integer("ends_at", { mode: "timestamp_ms" }).notNull(),
-    state: text("state", { enum: ["OPEN", "RESERVED", "BLOCKED"] })
-      .notNull()
-      .default("OPEN"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [
-    uniqueIndex("availability_therapist_window_unique").on(
-      table.therapistId,
-      table.startsAt,
-      table.endsAt,
-    ),
-    index("availability_open_starts_idx").on(table.state, table.startsAt),
+    uniqueIndex("calendar_managed_item_appointment_unique").on(table.appointmentId),
+    uniqueIndex("calendar_managed_item_event_unique").on(table.eventId),
+    index("calendar_managed_item_window_idx").on(table.startsAt, table.endsAt),
   ],
 );
+
+export const calendarSyncState = sqliteTable("calendar_sync_state", {
+  id: integer("id").primaryKey(),
+  syncToken: text("sync_token"),
+  channelId: text("channel_id"),
+  channelResourceId: text("channel_resource_id"),
+  channelToken: text("channel_token"),
+  channelExpiresAt: integer("channel_expires_at", { mode: "timestamp_ms" }),
+  syncRequestedAt: integer("sync_requested_at", { mode: "timestamp_ms" }),
+  updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+});
 
 // Better Auth two-factor plugin schema. Secrets and backup codes are never
 // selected by application code and are not emitted in logs.
@@ -172,58 +182,6 @@ export const twoFactor = sqliteTable(
     lockedUntil: integer("lockedUntil", { mode: "timestamp_ms" }),
   },
   (table) => [index("two_factor_user_idx").on(table.userId)],
-);
-
-export const calendarEventReferences = sqliteTable(
-  "calendar_event_reference",
-  {
-    id: text("id").primaryKey(),
-    appointmentId: text("appointment_id")
-      .notNull()
-      .references(() => appointments.id, { onDelete: "cascade" }),
-    provider: text("provider", { enum: ["GOOGLE"] })
-      .notNull()
-      .default("GOOGLE"),
-    eventId: text("event_id").notNull(),
-    syncStatus: text("sync_status", { enum: ["PENDING", "SYNCED", "FAILED", "CANCELLED"] })
-      .notNull()
-      .default("PENDING"),
-    lastSyncedAt: integer("last_synced_at", { mode: "timestamp_ms" }),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
-  },
-  (table) => [
-    uniqueIndex("calendar_event_appointment_unique").on(table.appointmentId),
-    uniqueIndex("calendar_event_provider_event_unique").on(table.provider, table.eventId),
-  ],
-);
-
-// Minimal integration outbox: references only, no message, calendar content,
-// recipient address, notes, or health information.
-export const integrationJobs = sqliteTable(
-  "integration_job",
-  {
-    id: text("id").primaryKey(),
-    appointmentId: text("appointment_id")
-      .notNull()
-      .references(() => appointments.id, { onDelete: "cascade" }),
-    kind: text("kind", { enum: ["CALENDAR_UPSERT", "CALENDAR_CANCEL"] }).notNull(),
-    attempts: integer("attempts").notNull().default(0),
-    state: text("state", {
-      enum: ["PENDING", "PROCESSING", "COMPLETED", "FAILED"],
-    })
-      .notNull()
-      .default("PENDING"),
-    notBeforeAt: integer("not_before_at", { mode: "timestamp_ms" }).notNull(),
-    leaseExpiresAt: integer("lease_expires_at", { mode: "timestamp_ms" }),
-    processedAt: integer("processed_at", { mode: "timestamp_ms" }),
-    alertedAt: integer("alerted_at", { mode: "timestamp_ms" }),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  },
-  (table) => [
-    index("integration_jobs_pending_idx").on(table.state, table.notBeforeAt),
-    uniqueIndex("integration_job_appointment_kind_unique").on(table.appointmentId, table.kind),
-  ],
 );
 
 export const securityEvents = sqliteTable(

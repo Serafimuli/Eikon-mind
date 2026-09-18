@@ -1,5 +1,3 @@
-import { processPendingIntegrationJobs } from "../src/lib/integrations/calendar";
-
 type MaintenanceEnv = Pick<
   CloudflareEnv,
   | "DB"
@@ -64,11 +62,8 @@ export async function runRetention(env: MaintenanceEnv) {
       "DELETE FROM calendar_event_reference WHERE appointment_id NOT IN (SELECT id FROM appointment)",
     ),
     env.DB.prepare(
-      "DELETE FROM integration_job WHERE processed_at IS NOT NULL AND processed_at < ?",
-    ).bind(normalCutoff),
-    env.DB.prepare(
-      "DELETE FROM integration_job WHERE state = 'FAILED' AND alerted_at IS NOT NULL AND created_at < ?",
-    ).bind(normalCutoff),
+      "DELETE FROM calendar_managed_item WHERE appointment_id IS NOT NULL AND appointment_id NOT IN (SELECT id FROM appointment)",
+    ),
     env.DB.prepare("DELETE FROM security_event WHERE created_at < ?").bind(auditCutoff),
     env.DB.prepare('DELETE FROM "rateLimit" WHERE lastRequest < ?').bind(now - 86_400_000),
     env.DB.prepare(
@@ -78,7 +73,11 @@ export async function runRetention(env: MaintenanceEnv) {
 }
 
 async function runMaintenance(env: MaintenanceEnv) {
-  await processPendingIntegrationJobs(env, 10);
+  // Keep the privileged Calendar module behind the scheduled execution path.
+  // This also lets retention-only tests run without emulating Next's
+  // server-only module marker.
+  const { processCalendarMaintenance } = await import("../src/lib/integrations/calendar-google");
+  await processCalendarMaintenance(env);
   await runRetention(env);
 }
 

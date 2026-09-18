@@ -50,7 +50,7 @@ test("privacy notice links are prominent in registration, sign-in, Google sign-i
     ),
     readFile(new URL("../src/app/[locale]/(auth)/login/LoginForm.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/GoogleSignInButton.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../src/components/BookSlots.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/BookingCalendar.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/app/[locale]/client/profile/page.tsx", import.meta.url), "utf8"),
   ]);
 

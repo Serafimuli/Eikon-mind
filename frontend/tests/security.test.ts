@@ -6,7 +6,6 @@ import { authDestination } from "../src/lib/auth-routing";
 import { createTextEmail } from "../src/lib/integrations/email-message";
 import { canManageTherapist, isStaff } from "../src/lib/roles";
 import {
-  availabilityFormSchema,
   bookingRequestSchema,
   betterAuthUserIdSchema,
   localeSchema,
@@ -31,7 +30,7 @@ test("appointment state transitions are explicit and terminal states stay termin
   assert.equal(canStaffTransitionAppointment("CANCELLED", "CONFIRMED"), false);
 });
 
-test("request validation rejects unknown locales, malformed IDs, and extra booking fields", () => {
+test("request validation preserves ID boundaries and accepts only timestamp-based booking input", () => {
   const betterAuthUserId = "rolechange0000000000000000000000";
   assert.equal(betterAuthUserIdSchema.safeParse(betterAuthUserId).success, true);
   assert.equal(betterAuthUserIdSchema.safeParse("A".repeat(31)).success, false);
@@ -44,47 +43,32 @@ test("request validation rejects unknown locales, malformed IDs, and extra booki
     false,
   );
   assert.equal(resourceIdSchema.safeParse("550e8400-e29b-41d4-a716-446655440000").success, true);
-  assert.equal(
-    availabilityFormSchema.safeParse({
-      therapistId: betterAuthUserId,
-      startsAt: "2030-01-15T10:00",
-      endsAt: "2030-01-15T11:00",
-    }).success,
-    true,
-  );
-  assert.equal(
-    availabilityFormSchema.safeParse({
-      therapistId: "550e8400-e29b-41d4-a716-446655440000",
-      startsAt: "2030-01-15T10:00",
-      endsAt: "2030-01-15T11:00",
-    }).success,
-    false,
-  );
   assert.equal(localeSchema.safeParse("ro").success, true);
   assert.equal(localeSchema.safeParse("fr").success, false);
   assert.equal(
-    bookingRequestSchema.safeParse({ slotId: "550e8400-e29b-41d4-a716-446655440000" }).success,
+    bookingRequestSchema.safeParse({ startsAt: "2026-09-21T06:00:00.000Z" }).success,
     true,
   );
   assert.equal(
     bookingRequestSchema.safeParse({
-      slotId: "550e8400-e29b-41d4-a716-446655440000",
+      startsAt: "2026-09-21T06:00:00.000Z",
       rescheduleFromAppointmentId: "11111111-1111-4111-8111-111111111111",
     }).success,
     true,
   );
   assert.equal(
     bookingRequestSchema.safeParse({
-      slotId: "550e8400-e29b-41d4-a716-446655440000",
+      startsAt: "2026-09-21T06:00:00.000Z",
       rescheduleFromAppointmentId: "not-an-id",
     }).success,
     false,
   );
   assert.equal(bookingRequestSchema.safeParse({ slotId: "not-an-id" }).success, false);
   assert.equal(bookingRequestSchema.safeParse({ slotId: betterAuthUserId }).success, false);
+  assert.equal(bookingRequestSchema.safeParse({ startsAt: "not-a-date" }).success, false);
   assert.equal(
     bookingRequestSchema.safeParse({
-      slotId: "550e8400-e29b-41d4-a716-446655440000",
+      startsAt: "2026-09-21T06:00:00.000Z",
       role: "ADMIN",
     }).success,
     false,
@@ -98,13 +82,6 @@ test("Bucharest local times use the correct offset and reject DST gaps", () => {
   );
   assert.equal(parseBucharestLocalDateTime("2026-03-29T03:30"), null);
   assert.equal(parseBucharestLocalDateTime("2026-02-30T10:00"), null);
-  assert.equal(
-    availabilityFormSchema.safeParse({
-      startsAt: "2026-01-15T11:00",
-      endsAt: "2026-01-15T10:00",
-    }).success,
-    false,
-  );
 });
 
 test("email construction blocks header injection and validates destinations", () => {
@@ -136,12 +113,6 @@ test("migration removes free-text appointment notes and preserves slot uniquenes
   assert.match(sql, /DROP TABLE appointment/);
   assert.match(sql, /availability_slot_id text UNIQUE/);
   assert.doesNotMatch(sql, /notes text/i);
-});
-
-test("booking uses a single D1 batch and conditional reservation", async () => {
-  const source = await readFile(new URL("../src/lib/appointments.ts", import.meta.url), "utf8");
-  assert.match(source, /await db\.batch/);
-  assert.match(source, /changes\(\) = 1/);
 });
 
 test("appointment visibility migration is additive and indexed for client reads", async () => {
@@ -178,65 +149,43 @@ test("hidden appointment routes provide bilingual not-found recovery", async () 
   assert.match(source, /Înapoi la programări/);
 });
 
-test("client cancellation, deletion, and rescheduling enforce visibility and state guards", async () => {
+test("Google-authoritative cancellation removes the managed event rather than reopening an app slot", async () => {
   const source = await readFile(
-    new URL("../src/lib/appointment-transitions.ts", import.meta.url),
+    new URL("../src/lib/calendar-appointments.ts", import.meta.url),
     "utf8",
   );
-  assert.match(source, /eq\(appointments\.clientId, clientId\)/);
-  assert.match(source, /isNull\(appointments\.clientHiddenAt\)/);
-  assert.match(source, /status !== "REQUESTED"[\s\S]*status !== "CONFIRMED"/);
-  assert.match(source, /appointment\.startsAt\.getTime\(\) <= Date\.now\(\)/);
-  assert.match(source, /appointment\.availabilitySlotId === slotId/);
-  assert.match(
-    source,
-    /SET status = 'CANCELLED', cancelled_at = \?, client_hidden_at = \?, updated_at = \?/,
-  );
-  assert.match(source, /SET client_hidden_at = \?, updated_at = \?/);
+  assert.match(source, /deleteManagedGoogleEvent/);
+  assert.match(source, /DELETE FROM calendar_managed_item/);
+  assert.doesNotMatch(source, /SET state = 'OPEN'/);
 });
 
-test("every cancellation releases only future reserved slots and detaches the retained record", async () => {
-  const source = await readFile(
-    new URL("../src/lib/appointment-transitions.ts", import.meta.url),
-    "utf8",
-  );
-  assert.match(source, /SET state = 'OPEN', updated_at = \?/);
-  assert.match(source, /state = 'RESERVED' AND starts_at > \?/);
-  assert.match(source, /SET availability_slot_id = NULL/);
-  assert.match(source, /transitionAppointmentForStaff[\s\S]*releaseFutureSlotSql/);
-  assert.match(source, /cancelAppointmentForClient[\s\S]*releaseFutureSlotSql/);
-});
-
-test("a reschedule slot race preserves cancellation and returns structured recovery", async () => {
-  const transitionSource = await readFile(
-    new URL("../src/lib/appointment-transitions.ts", import.meta.url),
+test("a failed replacement leaves the original appointment in place", async () => {
+  const calendarSource = await readFile(
+    new URL("../src/lib/calendar-appointments.ts", import.meta.url),
     "utf8",
   );
   const routeSource = await readFile(
     new URL("../src/app/api/appointments/book/route.ts", import.meta.url),
     "utf8",
   );
-  assert.match(transitionSource, /appointmentId: null, originalAppointmentCancelled: true/);
-  assert.match(
-    transitionSource,
-    /status = 'CANCELLED'[\s\S]*state = 'OPEN'[\s\S]*state = 'RESERVED'/,
-  );
-  assert.match(routeSource, /originalAppointmentCancelled: true/);
+  assert.match(calendarSource, /const replacement = await createClientAppointmentRequest/);
+  assert.match(calendarSource, /const oldItem = await getD1/);
+  assert.match(calendarSource, /await cancelTherapistCalendarItem\(oldItem\.id\)/);
+  assert.match(routeSource, /startsAt/);
   assert.match(routeSource, /409/);
 });
 
-test("reschedule notifications use only the verified assigned therapist and generic copy", async () => {
-  const transitionSource = await readFile(
-    new URL("../src/lib/appointment-transitions.ts", import.meta.url),
+test("calendar appointments use generic client notifications without a legacy outbox", async () => {
+  const calendarSource = await readFile(
+    new URL("../src/lib/calendar-appointments.ts", import.meta.url),
     "utf8",
   );
   const emailSource = await readFile(
     new URL("../src/lib/integrations/email-content.ts", import.meta.url),
     "utf8",
   );
-  assert.match(transitionSource, /notifyTherapist\(replacement\.therapistId\)/);
-  assert.match(transitionSource, /therapist\?\.emailVerified/);
-  assert.match(transitionSource, /therapist\.role !== "THERAPIST"/);
+  assert.match(calendarSource, /notifyClient/);
+  assert.doesNotMatch(calendarSource, /integration_job|calendar_event_reference/);
   assert.match(emailSource, /A new appointment request is available\. Sign in to review it\./);
   assert.doesNotMatch(
     emailSource.match(/if \(kind === "requested"\)[\s\S]*?\n  }/)?.[0] ?? "",

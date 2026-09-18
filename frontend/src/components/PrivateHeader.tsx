@@ -29,9 +29,9 @@ export function PrivateHeader({ locale, role }: { locale: Locale; role: Role }) 
       ? [{ key: "book", label: copy.navigation.book, href: route(`${base}/book`) }]
       : [
           {
-            key: "availability",
-            label: copy.navigation.availability,
-            href: route(`${base}/appointments/new`),
+            key: "calendar",
+            label: copy.navigation.calendar,
+            href: route(`${base}/appointments`),
           },
         ]),
     ...(role === "ADMIN"

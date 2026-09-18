@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
-import { BookSlots } from "@/components/BookSlots";
+import { BookingCalendar } from "@/components/BookingCalendar";
 import { isFutureAppointment } from "@/lib/appointment-types";
-import { listOpenSlots } from "@/lib/appointments";
+import { bucharestDate, clientBookingDateBounds } from "@/lib/calendar-scheduling";
 import { findAppointmentForClient } from "@/lib/db/repositories";
 import { requireClient } from "@/lib/session";
 import type { Locale } from "@/lib/site-content";
@@ -14,20 +14,22 @@ export default async function RescheduleAppointment({
   const { locale, id } = await params;
   const user = await requireClient(locale);
   const appointment = await findAppointmentForClient(id, user.id);
+  const bounds = clientBookingDateBounds();
   if (
     !appointment ||
     !["REQUESTED", "CONFIRMED"].includes(appointment.status) ||
-    !isFutureAppointment(appointment.startsAt)
+    !isFutureAppointment(appointment.startsAt) ||
+    appointment.startsAt.getTime() < bounds.earliest.getTime()
   ) {
     notFound();
   }
 
-  const slots = await listOpenSlots();
   return (
     <main className="private-shell">
-      <BookSlots
+      <BookingCalendar
         locale={locale}
-        slots={slots}
+        minDate={bucharestDate(bounds.earliest)}
+        maxDate={bucharestDate(bounds.latest)}
         verified={user.emailVerified}
         rescheduleFromAppointmentId={appointment.id}
       />

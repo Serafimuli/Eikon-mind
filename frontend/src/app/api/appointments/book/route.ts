@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { rescheduleAppointmentForClient } from "@/lib/appointment-transitions";
 import { getAuth } from "@/lib/auth";
-import { claimAvailabilitySlot } from "@/lib/appointments";
+import { createClientAppointmentRequest, rescheduleClientAppointment } from "@/lib/calendar-appointments";
 import { findUserById } from "@/lib/db/repositories";
 import { getApplicationOrigin } from "@/lib/platform-env";
 import { bookingRequestSchema } from "@/lib/validation";
@@ -32,24 +31,11 @@ export async function POST(request: Request) {
   if (!body.success) return json({ error: "Invalid booking request" }, 400);
   try {
     if (body.data.rescheduleFromAppointmentId) {
-      const result = await rescheduleAppointmentForClient(
-        user.id,
-        body.data.rescheduleFromAppointmentId,
-        body.data.slotId,
-      );
-      if (result.originalAppointmentCancelled) {
-        return json(
-          {
-            error: "That time is no longer available",
-            originalAppointmentCancelled: true,
-          },
-          409,
-        );
-      }
-      return json({ appointmentId: result.appointmentId }, 201);
+      const appointment = await rescheduleClientAppointment(user.id, body.data.rescheduleFromAppointmentId, new Date(body.data.startsAt));
+      return json({ appointmentId: appointment.id }, 201);
     }
 
-    const appointment = await claimAvailabilitySlot(user.id, body.data.slotId);
+    const appointment = await createClientAppointmentRequest(user.id, new Date(body.data.startsAt));
     return json({ appointmentId: appointment.id }, 201);
   } catch {
     // No details about users or availability are exposed to the caller.

@@ -9,9 +9,9 @@ Browser --HTTPS/Turnstile--> Cloudflare Custom Domain or workers.dev --> OpenNex
                                                                   |-- D1 (EU jurisdiction, no replicas)
                                                                   |-- Secrets Store bindings
                                                                   |-- Resend Free API (hard-capped)
-                                                                  `-- Google Calendar API (one-way, generic events)
+                                                                  `-- Google Calendar API (authoritative availability, generic events)
 
-Scheduled maintenance Worker ------------------------------------`-- D1 retention + Calendar outbox retries
+Scheduled maintenance Worker ------------------------------------`-- D1 retention + Calendar reconciliation/watch renewal
 ```
 
 The application stores the minimum account and scheduling data needed for an appointment: name, verified email, authentication records, role, availability time, appointment time/status, and an opaque Calendar event reference. It does **not** store appointment notes, clinical notes, medical history, diagnoses, or therapy details. Old free-text appointment notes are removed in `0001_production_security.sql`.
@@ -23,7 +23,7 @@ Controls implemented here include:
 - verified email, 12-character minimum passwords, reset-session revocation, Turnstile on authentication, TOTP plus backup codes before staff promotion, and account-level TOTP lockouts.
 - versioned scrypt password hashes using a unique 128-bit salt (`N=16384`, `r=8`, `p=5`, 64-byte output), encrypted TOTP/backup-code material, and multi-key Better Auth signing-key rotation.
 - HTTPS redirect, TLS 1.2 minimum, Free-plan-compatible path rate limiting for sensitive POST endpoints, host-only secure Better Auth cookies in production, no-store private responses, CSP nonce, HSTS (without preload), `nosniff`, frame denial, referrer, and permissions policies.
-- atomic D1 slot claim and state transitions, leased/idempotent Calendar outbox retries, recipient-validated generic email, privacy-minimal security events, retention/de-identification jobs, and no application logging of personal or health data.
+- server-validated weekday booking claims, Google FreeBusy availability, two-way Calendar reconciliation, recipient-validated generic email, privacy-minimal security events, retention/de-identification jobs, and no application logging of personal or health data.
 - server-rendered account security pages cover email verification, password reset, role-aware post-login routing, staff TOTP challenges, and one-time backup-code enrolment; role changes revoke existing sessions.
 
 Important limitations: D1 EU jurisdiction constrains D1 storage/replicas; it does not by itself constrain global Worker execution. Cloudflare Regional Services and Customer Metadata Boundary require an entitled Data Localization Suite contract and are deliberately not used by this free-tier deployment. Resend and Google are separate processors/recipients and require legal review. These measures reduce risk; they do not by themselves make the controller GDPR compliant.
@@ -93,7 +93,7 @@ Provider limits and terms can change. Before each production release, re-check [
    ```
 
 7. Create separate **Resend Free** accounts for development and production and keep pay-as-you-go disabled. Production must verify a sending domain and use a restricted API key. A no-domain development environment may use `onboarding@resend.dev`, but Resend permits that sender to deliver only to the email address on the development Resend account; store its API key as `RESEND_API_KEY`. Cloudflare Email Sending must remain unconfigured because arbitrary recipients require Workers Paid. Application code derives customer recipients from authenticated server-side records, validates every address, and atomically stops at 100 sends/day or 3,000/month.
-8. Create a dedicated Google OAuth client and refresh token with only the Calendar scope/calendar needed by this application. Give it access only to a dedicated calendar. Calendar events are generic `Reserved time` events with an opaque ID and no client name, email, service, notes, or clinical data.
+8. Create a dedicated Google OAuth client and refresh token with the full Calendar scope needed for FreeBusy, event writes, incremental event reads, and event watches. Give it access only to the single therapist calendar. Calendar events are generic `Reserved time` events with an opaque ID and no client name, email, service, notes, or clinical data. Configure the Calendar API webhook callback at `https://<hostname>/api/calendar/webhook`; the application registers and renews the watch channel after deployment.
 9. Populate the Secrets Store interactively—never use `--value` in shell history and never put values in Terraform, `.tfvars`, GitHub secrets, or Git. For each secret use Wrangler's prompt-only command:
 
    ```sh
@@ -180,9 +180,9 @@ The scheduled maintenance Worker applies the following strict older-than rules. 
 | --- | --- |
 | `CANCELLED` appointments | Delete when `updated_at < now - RETENTION_CANCELLED_APPOINTMENT_DAYS`. |
 | `REQUESTED`, `CONFIRMED`, and `COMPLETED` appointments | Delete when `starts_at < now - RETENTION_APPOINTMENT_DAYS`. A forgotten past `CONFIRMED` appointment therefore cannot remain indefinitely. |
-| Availability slots | Delete when `ends_at < now - RETENTION_APPOINTMENT_DAYS`, but only after no appointment references the slot. |
-| Calendar references | Delete after their appointment has been deleted. |
-| Completed or acknowledged-failed integration jobs | Delete after the normal appointment period, using `processed_at` or `created_at` respectively. |
+| Legacy availability slots | Delete when `ends_at < now - RETENTION_APPOINTMENT_DAYS`, but only after no appointment references the slot. New availability is never stored in this table. |
+| Managed Calendar references | Delete after their appointment has been deleted; busy blocks are removed when the therapist cancels them. |
+| Calendar synchronization state | Retain only the opaque cursor/channel metadata needed to reconcile the configured calendar. |
 | Security events | Delete when `created_at < now - RETENTION_AUDIT_EVENT_DAYS`. |
 | Expired verification/session and stale rate-limit records | Delete after expiry, or after one day for rate-limit records. |
 | Users with approved account-deletion requests | Delete when the request is older than `RETENTION_DEIDENTIFIED_RECORD_DAYS`; database cascades/restrictions then apply. |

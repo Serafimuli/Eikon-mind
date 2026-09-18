@@ -5,15 +5,16 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { eq, or } from "drizzle-orm";
 import {
-  blockOpenAvailability,
-  cancelAppointmentForClient,
-  hideAppointmentForClient,
-  transitionAppointmentForStaff,
-} from "@/lib/appointment-transitions";
-import { createAvailabilitySlot } from "@/lib/appointments";
+  approveTherapistAppointment,
+  cancelClientAppointment,
+  cancelTherapistCalendarItem,
+  createTherapistAppointment,
+  createTherapistBusyBlock,
+  moveTherapistCalendarItem,
+} from "@/lib/calendar-appointments";
 import { getAuth } from "@/lib/auth";
 import { getD1, getDb } from "@/lib/db";
-import { findTherapistById, findUserById } from "@/lib/db/repositories";
+import { findUserById } from "@/lib/db/repositories";
 import {
   accountDeletionRequests,
   accounts,
@@ -30,9 +31,9 @@ import { alertCriticalSecurityEvent, securityEventValues } from "@/lib/security/
 import { requireAdmin, requireClient, requireStaff, requireUser } from "@/lib/session";
 import {
   appointmentStatusSchema,
-  availabilityFormSchema,
   betterAuthUserIdSchema,
   parseLocale,
+  parseBucharestLocalDateTime,
   resourceIdSchema,
   roleSchema,
 } from "@/lib/validation";
@@ -45,40 +46,78 @@ function refreshAppointmentViews(locale: "ro" | "en") {
   revalidatePath(`/${locale}/admin/appointments`);
 }
 
-export async function createAvailability(localeInput: string, formData: FormData) {
-  const locale = parseLocale(localeInput);
+function calendarTime(value: FormDataEntryValue | null) {
+  const parsed = parseBucharestLocalDateTime(String(value ?? ""));
+  if (!parsed) throw new DomainError("Choose a valid Bucharest date and time", "INVALID_INPUT");
+  return parsed;
+}
+
+async function requireCalendarTherapist(locale: "ro" | "en") {
   const actor = await requireStaff(locale);
-  const input = availabilityFormSchema.parse({
-    therapistId: formData.get("therapistId") ?? "",
-    startsAt: formData.get("startsAt"),
-    endsAt: formData.get("endsAt"),
-  });
-
-  if (actor.role === "ADMIN" && !input.therapistId) {
-    throw new DomainError("Select a therapist", "INVALID_INPUT");
+  if (actor.role !== "THERAPIST") {
+    throw new DomainError(
+      "Only the configured therapist can manage this calendar",
+      "ACCESS_DENIED",
+    );
   }
-
-  const therapistId =
-    actor.role === "ADMIN" ? betterAuthUserIdSchema.parse(input.therapistId) : actor.id;
-  if (therapistId !== actor.id) {
-    const therapist = await findTherapistById(therapistId);
-    if (!therapist?.emailVerified || !therapist.twoFactorEnabled) {
-      throw new DomainError(
-        "Availability can only be assigned to an enrolled therapist",
-        "INVALID_INPUT",
-      );
-    }
+  const therapists = await getD1()
+    .prepare(
+      "SELECT id FROM user WHERE role = 'THERAPIST' AND email_verified = 1 AND two_factor_enabled = 1 ORDER BY id LIMIT 2",
+    )
+    .all<{ id: string }>();
+  if (therapists.results.length !== 1 || therapists.results[0].id !== actor.id) {
+    throw new DomainError("The single therapist calendar is not configured", "CONFLICT");
   }
+  return actor;
+}
 
-  await createAvailabilitySlot(therapistId, input.startsAt, input.endsAt);
+export async function approveCalendarAppointment(localeInput: string, appointmentIdInput: string) {
+  const locale = parseLocale(localeInput);
+  await requireCalendarTherapist(locale);
+  await approveTherapistAppointment(resourceIdSchema.parse(appointmentIdInput));
   refreshAppointmentViews(locale);
 }
 
-export async function blockAvailability(localeInput: string, slotIdInput: string) {
+export async function moveCalendarItem(
+  localeInput: string,
+  itemIdInput: string,
+  formData: FormData,
+) {
   const locale = parseLocale(localeInput);
-  const slotId = resourceIdSchema.parse(slotIdInput);
-  const actor = await requireStaff(locale);
-  await blockOpenAvailability(actor, slotId);
+  await requireCalendarTherapist(locale);
+  await moveTherapistCalendarItem(
+    resourceIdSchema.parse(itemIdInput),
+    calendarTime(formData.get("startsAt")),
+    calendarTime(formData.get("endsAt")),
+  );
+  refreshAppointmentViews(locale);
+}
+
+export async function cancelCalendarItem(localeInput: string, itemIdInput: string) {
+  const locale = parseLocale(localeInput);
+  await requireCalendarTherapist(locale);
+  await cancelTherapistCalendarItem(resourceIdSchema.parse(itemIdInput));
+  refreshAppointmentViews(locale);
+}
+
+export async function createCalendarAppointment(localeInput: string, formData: FormData) {
+  const locale = parseLocale(localeInput);
+  await requireCalendarTherapist(locale);
+  await createTherapistAppointment(
+    betterAuthUserIdSchema.parse(String(formData.get("clientId") ?? "")),
+    calendarTime(formData.get("startsAt")),
+    calendarTime(formData.get("endsAt")),
+  );
+  refreshAppointmentViews(locale);
+}
+
+export async function createCalendarBusyBlock(localeInput: string, formData: FormData) {
+  const locale = parseLocale(localeInput);
+  await requireCalendarTherapist(locale);
+  await createTherapistBusyBlock(
+    calendarTime(formData.get("startsAt")),
+    calendarTime(formData.get("endsAt")),
+  );
   refreshAppointmentViews(locale);
 }
 
@@ -90,8 +129,22 @@ export async function updateAppointmentStatus(
   const locale = parseLocale(localeInput);
   const appointmentId = resourceIdSchema.parse(appointmentIdInput);
   const status = appointmentStatusSchema.parse(statusInput);
-  const actor = await requireStaff(locale);
-  await transitionAppointmentForStaff(actor, appointmentId, status);
+  await requireCalendarTherapist(locale);
+  if (status === "CONFIRMED") {
+    await approveTherapistAppointment(appointmentId);
+  } else if (status === "CANCELLED") {
+    const item = await getD1()
+      .prepare("SELECT id FROM calendar_managed_item WHERE appointment_id = ?")
+      .bind(appointmentId)
+      .first<{ id: string }>();
+    if (!item) throw new DomainError("Appointment calendar reference not found", "NOT_FOUND");
+    await cancelTherapistCalendarItem(item.id);
+  } else {
+    throw new DomainError(
+      "Complete appointments are inferred from their calendar time",
+      "INVALID_INPUT",
+    );
+  }
   refreshAppointmentViews(locale);
 }
 
@@ -99,7 +152,7 @@ export async function cancelOwnAppointment(localeInput: string, appointmentIdInp
   const locale = parseLocale(localeInput);
   const appointmentId = resourceIdSchema.parse(appointmentIdInput);
   const user = await requireClient(locale);
-  await cancelAppointmentForClient(user.id, appointmentId);
+  await cancelClientAppointment(user.id, appointmentId);
   refreshAppointmentViews(locale);
 }
 
@@ -115,7 +168,22 @@ export async function deleteOwnAppointment(
   }
 
   const user = await requireClient(locale);
-  await hideAppointmentForClient(user.id, appointmentId);
+  const appointment = await getDb().query.appointments.findFirst({
+    where: eq(appointments.id, appointmentId),
+  });
+  if (!appointment || appointment.clientId !== user.id || appointment.clientHiddenAt) {
+    throw new DomainError("Appointment not found", "NOT_FOUND");
+  }
+  if (
+    (appointment.status === "REQUESTED" || appointment.status === "CONFIRMED") &&
+    appointment.startsAt.getTime() >= Date.now() + 24 * 60 * 60 * 1000
+  ) {
+    await cancelClientAppointment(user.id, appointmentId);
+  }
+  await getDb()
+    .update(appointments)
+    .set({ clientHiddenAt: new Date(), updatedAt: new Date() })
+    .where(eq(appointments.id, appointmentId));
   refreshAppointmentViews(locale);
   redirect(`/${locale}/client/appointments`);
 }
@@ -143,6 +211,16 @@ export async function changeStaffRole(
     );
   }
   if (target.role === nextRole) return;
+
+  if (nextRole === "THERAPIST") {
+    const existing = await getD1()
+      .prepare("SELECT COUNT(*) AS count FROM user WHERE role = 'THERAPIST' AND id <> ?")
+      .bind(targetUserId)
+      .first<{ count: number }>();
+    if ((existing?.count ?? 0) > 0) {
+      throw new DomainError("This application supports one therapist calendar", "CONFLICT");
+    }
+  }
 
   const now = Date.now();
   const event = securityEventValues({

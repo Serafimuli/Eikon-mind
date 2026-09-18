@@ -1,15 +1,15 @@
-import { BookSlots } from "@/components/BookSlots";
-import { listOpenSlots } from "@/lib/appointments";
+import { BookingCalendar } from "@/components/BookingCalendar";
+import { bucharestDate, clientBookingDateBounds } from "@/lib/calendar-scheduling";
 import { requireClient } from "@/lib/session";
 import type { Locale } from "@/lib/site-content";
 
 export default async function Book({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
   const user = await requireClient(locale);
-  const slots = await listOpenSlots();
+  const bounds = clientBookingDateBounds();
   return (
     <main className="private-shell">
-      <BookSlots locale={locale} slots={slots} verified={user.emailVerified} />
+      <BookingCalendar locale={locale} minDate={bucharestDate(bounds.earliest)} maxDate={bucharestDate(bounds.latest)} verified={user.emailVerified} />
     </main>
   );
 }

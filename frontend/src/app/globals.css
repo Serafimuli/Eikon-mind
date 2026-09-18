@@ -2271,25 +2271,12 @@ a.appointment {
   box-shadow: var(--shadow-hover);
 }
 
-.appointment form {
-  margin: 0;
-}
-
-.appointment form .icon-button {
-  width: auto;
-  min-width: 44px;
-  padding: 0 12px;
-  border-radius: 8px;
-}
-
-.appointment-meta,
 .staff-card__identity {
   min-width: 0;
   display: grid;
   gap: 4px;
 }
 
-.appointment-meta span,
 .staff-card__identity > span {
   overflow-wrap: anywhere;
 }
@@ -2308,14 +2295,15 @@ a.appointment {
   margin-top: 20px;
 }
 
-.appointment > .appointment-actions,
-.appointment > .staff-actions {
-  margin-top: 0;
-}
-
 .action-form__controls {
   display: contents;
   margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.booking-calendar fieldset {
+  margin: 24px 0;
   padding: 0;
   border: 0;
 }
@@ -2359,6 +2347,83 @@ a.appointment {
 .empty-state,
 .notice {
   padding: 20px 24px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: var(--surface-card);
+}
+
+.booking-calendar legend {
+  margin-bottom: 10px;
+  color: var(--body-strong);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.booking-times {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.booking-time {
+  display: block !important;
+  margin: 0 !important;
+}
+
+.booking-time input {
+  position: absolute;
+  opacity: 0;
+}
+
+.booking-time span {
+  display: block;
+  padding: 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--canvas);
+  text-align: center;
+}
+
+.booking-time input:checked + span {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 13%, var(--canvas));
+  color: var(--ink);
+}
+
+.calendar-nav,
+.calendar-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.calendar-create-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.calendar-create-form {
+  padding: 24px;
+}
+
+.calendar-create-form h2,
+.week-day h2 {
+  font-size: 24px;
+}
+
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(190px, 1fr));
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+}
+
+.week-day {
+  min-height: 260px;
+  padding: 16px;
   border: 1px solid var(--hairline);
   border-radius: 12px;
   background: var(--surface-card);
@@ -2443,6 +2508,35 @@ a.appointment {
 
 .staff-actions {
   max-width: 420px;
+}
+
+.calendar-item,
+.calendar-external-busy {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.calendar-item {
+  border-left: 4px solid var(--success);
+  background: var(--canvas);
+}
+
+.calendar-item--block,
+.calendar-external-busy {
+  border-left: 4px solid var(--muted-soft);
+  background: var(--surface-soft);
+}
+
+.calendar-item-actions form {
+  margin: 6px 0 0;
+}
+
+.calendar-item-actions label {
+  margin: 6px 0;
 }
 
 .section {
@@ -3016,11 +3110,6 @@ a.appointment {
     align-items: stretch;
     flex-direction: column;
     gap: 16px;
-  }
-
-  .appointment > .appointment-actions,
-  .appointment > .staff-actions {
-    justify-content: flex-start;
   }
 
   .appointment-actions > *,

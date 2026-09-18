@@ -5,6 +5,7 @@ import { cancelOwnAppointment, deleteOwnAppointment } from "@/app/[locale]/actio
 import { ActionForm } from "@/components/ActionForm";
 import { ConfirmActionForm } from "@/components/ConfirmActionForm";
 import { isFutureAppointment } from "@/lib/appointment-types";
+import { clientBookingDateBounds } from "@/lib/calendar-scheduling";
 import { findAppointmentForClient } from "@/lib/db/repositories";
 import { appointmentStatusLabel, formatDateTime, formatTime } from "@/lib/presentation";
 import { getProtectedCopy } from "@/lib/protected-content";
@@ -23,7 +24,10 @@ export default async function AppointmentDetail({
   const copy = getProtectedCopy(locale).appointments;
 
   const active = row.status === "REQUESTED" || row.status === "CONFIRMED";
-  const canReschedule = active && isFutureAppointment(row.startsAt);
+  const { earliest } = clientBookingDateBounds();
+  const canReschedule =
+    active && isFutureAppointment(row.startsAt) && row.startsAt.getTime() >= earliest.getTime();
+  const canCancel = canReschedule;
 
   return (
     <main className="private-shell">
@@ -44,7 +48,7 @@ export default async function AppointmentDetail({
               {copy.reschedule}
             </Link>
           )}
-          {active && (
+          {canCancel && (
             <ConfirmActionForm
               locale={locale}
               triggerLabel={copy.ownCancel}

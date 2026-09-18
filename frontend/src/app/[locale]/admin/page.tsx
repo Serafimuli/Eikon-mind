@@ -58,8 +58,8 @@ export default async function StaffDashboard({
               : copy.staffDashboard.therapistTitle}
           </h1>
         </div>
-        <Link className="button" href={`/${locale}/admin/appointments/new`}>
-          {copy.staffDashboard.addAvailability}
+        <Link className="button" href={`/${locale}/admin/appointments`}>
+          {copy.staffDashboard.openCalendar}
         </Link>
       </div>
       <div className="card-grid">

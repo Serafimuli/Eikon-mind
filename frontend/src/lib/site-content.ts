@@ -1736,6 +1736,7 @@ roPages["politica-de-confidentialitate"] = {
     {
       title: "5. Destinatari și furnizori",
       paragraphs: [
+        "Google Calendar este sursa disponibilității: aplicația verifică doar intervalele ocupate și sincronizează modificările evenimentelor create de aplicație.",
         "Datele sunt accesibile numai terapeutului și personalului autorizat, în măsura necesară. Cloudflare furnizează găzduire, securitate, Turnstile și baza de date D1; Resend furnizează emailurile tranzacționale; Google este un furnizor separat pentru autentificarea opțională cu Google și pentru Calendar.",
         "Calendarul Google primește numai un identificator opac de eveniment, intervalul orar și titlul generic «Reserved time»; nu primește nume, email, servicii, note clinice sau detalii de terapie. Google pentru autentificare își prelucrează propriile date conform politicilor sale; noi primim doar datele de profil necesare creării contului și identificatorul contului ales.",
       ],
@@ -1808,6 +1809,7 @@ enPages["politica-de-confidentialitate"] = {
     {
       title: "5. Recipients and providers",
       paragraphs: [
+        "Google Calendar is the availability source: the application queries only busy time and synchronizes changes to application-created events.",
         "Data is available only to the therapist and authorised staff where necessary. Cloudflare provides hosting, security, Turnstile, and D1; Resend provides transactional email; Google is a separate provider for optional Google sign-in and Calendar.",
         "Google Calendar receives only an opaque event identifier, time range, and the generic title “Reserved time”; it receives no name, email, service, clinical note, or therapy detail. Google processes its own sign-in service under its own policies; we receive only the profile data needed to create an account and the selected account identifier.",
       ],
