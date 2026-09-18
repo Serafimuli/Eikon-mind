@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAuth } from "@/lib/auth";
-import { createClientAppointmentRequest, rescheduleClientAppointment } from "@/lib/calendar-appointments";
+import {
+  createClientAppointmentRequest,
+  rescheduleClientAppointment,
+} from "@/lib/calendar-appointments";
 import { findUserById } from "@/lib/db/repositories";
 import { getApplicationOrigin } from "@/lib/platform-env";
 import { bookingRequestSchema } from "@/lib/validation";
@@ -31,7 +34,11 @@ export async function POST(request: Request) {
   if (!body.success) return json({ error: "Invalid booking request" }, 400);
   try {
     if (body.data.rescheduleFromAppointmentId) {
-      const appointment = await rescheduleClientAppointment(user.id, body.data.rescheduleFromAppointmentId, new Date(body.data.startsAt));
+      const appointment = await rescheduleClientAppointment(
+        user.id,
+        body.data.rescheduleFromAppointmentId,
+        new Date(body.data.startsAt),
+      );
       return json({ appointmentId: appointment.id }, 201);
     }
 

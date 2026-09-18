@@ -9,7 +9,12 @@ export default async function Book({ params }: { params: Promise<{ locale: Local
   const bounds = clientBookingDateBounds();
   return (
     <main className="private-shell">
-      <BookingCalendar locale={locale} minDate={bucharestDate(bounds.earliest)} maxDate={bucharestDate(bounds.latest)} verified={user.emailVerified} />
+      <BookingCalendar
+        locale={locale}
+        minDate={bucharestDate(bounds.earliest)}
+        maxDate={bucharestDate(bounds.latest)}
+        verified={user.emailVerified}
+      />
     </main>
   );
 }
