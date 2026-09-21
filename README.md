@@ -1,122 +1,71 @@
-# Eikon Mind on Cloudflare Workers
+# Eikon Mind
 
-This repository deploys the existing Next.js App Router application with OpenNext and Wrangler. Terraform manages Cloudflare account/zone infrastructure; Wrangler builds OpenNext, applies D1 migrations, binds account-level secrets, and uploads/promotes Worker versions. No deployment has been performed by this repository.
+Eikon Mind is a bilingual Romanian and English website and appointment platform for a psychology practice. It combines a public information site with authenticated client and staff areas, privacy-conscious scheduling, and Cloudflare-hosted operations.
 
-## Architecture and security assessment
+The application is built with Next.js App Router, OpenNext for Cloudflare, Cloudflare D1, Better Auth, Google Calendar, Resend, and Terraform.
 
-```text
-Browser --HTTPS/Turnstile--> Cloudflare Custom Domain or workers.dev --> OpenNext Worker
-                                                                  |-- D1 (EU jurisdiction, no replicas)
-                                                                  |-- Secrets Store bindings
-                                                                  |-- Resend Free API (hard-capped)
-                                                                  `-- Google Calendar API (authoritative availability, generic events)
+## What is implemented
 
-Scheduled maintenance Worker ------------------------------------`-- D1 retention + Calendar reconciliation/watch renewal
-```
+- Public Romanian and English service, practitioner, contact, booking, legal, and blog pages.
+- Email/password and Google sign-in, email verification, password reset, and account management.
+- Server-enforced USER, THERAPIST, and ADMIN roles; verified clients can book, while staff access requires verified email and TOTP.
+- Google Calendar as the availability authority for client booking, staff scheduling, busy blocks, confirmations, moves, cancellations, synchronization, and watch renewal.
+- Localized transactional email templates, with generic appointment messages that avoid clinical content.
+- Authenticated, localized PDF exports of a user's reduced account and appointment data.
+- D1 data minimization, encrypted two-factor material, durable rate limiting, security events, retention jobs, and Cloudflare security headers.
+- Terraform-managed D1, Secrets Store, Turnstile, and narrowly scoped zone controls; GitHub Actions deployment workflows for development and production.
 
-The application stores the minimum account and scheduling data needed for an appointment: name, verified email, authentication records, role, availability time, appointment time/status, and an opaque Calendar event reference. It does **not** store appointment notes, clinical notes, medical history, diagnoses, or therapy details. Old free-text appointment notes are removed in `0001_production_security.sql`.
+## Architecture at a glance
 
-Controls implemented here include:
+    Browser
+      -> Cloudflare Turnstile and OpenNext application Worker
+         -> D1: accounts, access control, appointments, opaque Calendar metadata
+         -> Secrets Store: auth, Turnstile, Resend, and Google credentials
+         -> Resend: transactional delivery
+         -> Google Calendar: availability and managed appointment events
 
-- D1 with `jurisdiction = "eu"` and disabled read replication.
-- `USER`, `THERAPIST`, and `ADMIN` server-side roles; clients cannot submit roles.
-- verified email, 12-character minimum passwords, reset-session revocation, Turnstile on authentication, TOTP plus backup codes before staff promotion, and account-level TOTP lockouts.
-- versioned scrypt password hashes using a unique 128-bit salt (`N=16384`, `r=8`, `p=5`, 64-byte output), encrypted TOTP/backup-code material, and multi-key Better Auth signing-key rotation.
-- HTTPS redirect, TLS 1.2 minimum, Free-plan-compatible path rate limiting for sensitive POST endpoints, host-only secure Better Auth cookies in production, no-store private responses, CSP nonce, HSTS (without preload), `nosniff`, frame denial, referrer, and permissions policies.
-- server-validated weekday booking claims, Google FreeBusy availability, two-way Calendar reconciliation, recipient-validated generic email, privacy-minimal security events, retention/de-identification jobs, and no application logging of personal or health data.
-- server-rendered account security pages cover email verification, password reset, role-aware post-login routing, staff TOTP challenges, and one-time backup-code enrolment; role changes revoke existing sessions.
+    Scheduled maintenance Worker
+      -> Calendar synchronization and watch renewal
+      -> retention and deletion tasks
 
-Important limitations: D1 EU jurisdiction constrains D1 storage/replicas; it does not by itself constrain global Worker execution. Cloudflare Regional Services and Customer Metadata Boundary require an entitled Data Localization Suite contract and are deliberately not used by this free-tier deployment. Resend and Google are separate processors/recipients and require legal review. These measures reduce risk; they do not by themselves make the controller GDPR compliant.
+See [Architecture](docs/architecture.md) for the data flow, route boundaries, and endpoint contracts.
 
 ## Repository layout
 
 | Path | Purpose |
 | --- | --- |
-| `frontend/` | Existing Next.js/OpenNext application and D1 migrations |
-| `frontend/drizzle/0001_production_security.sql` through `0003_security_hardening.sql` | Data minimisation, legacy-auth consistency, durable rate limits, Better Auth 1.7 compatibility, audit events, and idempotent integration jobs |
-| `frontend/workers/maintenance.ts` | Retention and Calendar-outbox scheduled Worker |
-| `frontend/scripts/render-wrangler-config.mjs` | Renders ignored, non-secret Wrangler configs from Terraform outputs |
-| `infra/terraform/modules/application` | Reusable Cloudflare D1/Turnstile/zone-controls module |
-| `infra/terraform/env/dev` | HCP Terraform dev root and lock file |
-| `infra/terraform/env/production` | HCP Terraform production root and lock file |
-| `.github/workflows` | PR validation/plan, approved dev deploy, and manual production deploy |
+| [frontend/](frontend/) | Next.js/OpenNext application, migrations, Workers, scripts, and tests |
+| [frontend/drizzle/](frontend/drizzle/) | D1 migrations 0000 through 0006, including security, Calendar, email quota, visibility, and profile-image changes |
+| [frontend/workers/maintenance.ts](frontend/workers/maintenance.ts) | Fifteen-minute Calendar and retention Worker |
+| [infra/terraform/](infra/terraform/) | Reusable Cloudflare module and development/production Terraform roots |
+| [.github/workflows/](.github/workflows/) | Pull-request validation plus development and production deployment workflows |
+| [docs/](docs/) | Architecture, development, operations, and historical compliance documentation |
+| [DESIGN.md](DESIGN.md) | Implemented Eikon Mind UI design and accessibility guide |
 
-## Terraform ownership
+## Documentation
 
-Terraform is pinned to `cloudflare/cloudflare` `~> 5.23.0`; the generated provider locks are committed in each environment root. It manages only:
+- [Architecture](docs/architecture.md) — application areas, security boundaries, data model, integration flow, and APIs.
+- [Development](docs/development.md) — local setup, environment variables, migrations, validation, and troubleshooting.
+- [Operations](docs/operations.md) — Terraform ownership, secrets, delivery workflows, retention, monitoring, rollback, and rotation.
+- [Design guide](DESIGN.md) — current visual system, responsive behavior, components, and content ownership.
+- [GDPR audit, 14 September 2026](docs/compliance/gdpr-audit-2026-09-14.md) — retained historical legal-review snapshot; it is not a renewed assessment.
 
-- one D1 database per environment, protected from destroy;
-- an account Secrets Store per environment account, protected from destroy;
-- one managed Turnstile widget restricted to the configured hostname;
-- `always_use_https`, `min_tls_version`, and one Cloudflare Free-plan-compatible `http_ratelimit` zone rule for Better Auth and `/api/appointments/book` paths when an environment has a Cloudflare zone.
+## Quick start
 
-Terraform does not create, transfer, or broadly modify DNS. Zoned environments use a Worker Custom Domain, for which Cloudflare creates the hostname's DNS record and certificate. A zone-less development environment uses `workers.dev` instead: set the account subdomain in Workers & Pages and configure `hostname` as `<worker-name>.<account-subdomain>.workers.dev`; omit `cloudflare_zone_id`. A Cloudflare ruleset phase is authoritative: before applying to an existing zone, import/reconcile the existing **`http_ratelimit` phase** ruleset with the Cloudflare provider and review the plan so existing rules are not removed. Other WAF phases are intentionally outside this module.
+Prerequisites: Node.js 22, pnpm 10, and a local development configuration. Cloudflare/Wrangler, Terraform, and Playwright are installed through the project workflow when required.
 
-The Free zone plan permits one rate-limit rule using URI paths and IP counting, with fixed 10-second counting and mitigation periods. It does not permit matching the HTTP method or using the `matches` regular-expression operator. The rule therefore counts all requests to the application's POST-only sensitive paths and blocks an IP for 10 seconds after more than 10 matching requests in 10 seconds. Better Auth's durable database rate limits and Turnstile remain the authoritative application controls.
-
-Cloudflare Secrets Store is currently limited to one store per account. Therefore true dev/production store isolation requires separate Cloudflare accounts (recommended). Do not configure both roots with the same account unless a shared store and namespacing have been formally accepted as a risk.
-
-Resend domain onboarding, Google OAuth client consent, HCP Terraform workspace protection, and secrets-store values are not Terraform resources in this implementation. They require the provider dashboards, Wrangler, GitHub Actions, or a manual operator procedure. Cloudflare Email Sending and the paid Data Localization Suite are not used.
-
-## Free-tier operating envelope
-
-This application is intentionally fail-closed at free-plan limits. Do not enable a paid Cloudflare Workers plan, a paid Resend subscription, Resend pay-as-you-go, or paid HCP Terraform features. Exceeding a provider allowance must degrade or stop the affected operation; it must never trigger paid overage or an automatic upgrade.
-
-| Service | Free-only use in this repository |
-| --- | --- |
-| Cloudflare Workers | Two Workers (application and maintenance), one Cron Trigger, no paid-only binding, and native crypto for password hashing. Workers Free currently allows 100,000 dynamic requests/day, 10 ms CPU/request or Cron invocation, 50 subrequests/request, a 3 MiB compressed Worker, 20,000 static assets/version, and five Cron Triggers/account. |
-| Cloudflare D1 | One database per environment. Workers Free currently hard-stops above 5 million rows read/day, 100,000 rows written/day, or 5 GB total storage instead of billing overage. |
-| Cloudflare Turnstile and zone WAF | One managed widget and one Free-plan-compatible rate-limit rule per environment account/zone. No commercial bot, regex, method-match, Regional Services, or Data Localization feature is configured. |
-| Resend | A Free account only, with pay-as-you-go disabled. The provider hard limit is 100 transactional emails/day and 3,000/month; `email_quota_usage` atomically enforces the same UTC limits before every deployed send. Use separate Free accounts for development and production so their quotas cannot combine. |
-| Google Calendar API | Standard Calendar API only. The 15-minute maintenance trigger processes at most ten job attempts/run, bounding Calendar traffic to at most 2,880 requests/day (OAuth + insert + conflict update per attempt), well below the documented free daily threshold. Do not request paid quota. |
-| HCP Terraform | Free organization only; the two roots manage far fewer than the current 500-resource Free limit. Do not enable paid governance features. |
-
-Provider limits and terms can change. Before each production release, re-check [Cloudflare Workers limits](https://developers.cloudflare.com/workers/platform/limits/), [Cloudflare Workers/D1 pricing](https://developers.cloudflare.com/workers/platform/pricing/), [Cloudflare Email Service pricing](https://developers.cloudflare.com/email-service/platform/pricing/), [Resend pricing](https://resend.com/pricing), [Google Calendar quotas](https://developers.google.com/workspace/calendar/api/guides/quota), and [HCP Terraform plans](https://developer.hashicorp.com/terraform/cloud-docs/overview). Keep the accounts themselves on their named Free plans; repository configuration cannot downgrade an externally upgraded account.
-
-## First-time setup
-
-1. Create separate Cloudflare dev and production accounts where possible and leave both on Workers Free. For development without a domain, set the dev account's Workers & Pages subdomain to `eikon-dev` and use `eikon-mind-dev.eikon-dev.workers.dev`; do not configure a zone ID. Production still requires an active Free zone and an unused Custom Domain hostname; do not move the customer zone into Terraform.
-2. Create a Free HCP Terraform organization and workspaces named `eikon-mind-dev` and `eikon-mind-production`; keep the organization below 500 managed resources. Set the repository variable `HCP_TERRAFORM_ORGANIZATION` to the real organization name; production supplies it through `TF_CLOUD_ORGANIZATION` instead of committing a placeholder or tenant name. Protect owner identities with MFA and restrict workspace access to the minimum number of operators available on the Free plan.
-
-   The workflows set each workspace's Terraform working directory to its matching `infra/terraform/env/<environment>` path. That makes HCP upload this repository's complete Terraform configuration when executing CLI-driven remote runs, including the checked-in shared local module.
-3. Configure protected HCP workspace variables from the matching `terraform.tfvars.example`. In `eikon-mind-dev`, omit `cloudflare_zone_id`, set `hostname` to `eikon-mind-dev.eikon-dev.workers.dev`, and use `onboarding@resend.dev` only for the email associated with the development Resend account. Production retention settings must be positive, controller/DPO-approved values; the Terraform check rejects missing/zero values and an empty external approval reference.
-4. Store `TF_API_TOKEN`, `CLOUDFLARE_TERRAFORM_API_TOKEN`, and `CLOUDFLARE_DEPLOY_API_TOKEN` in the GitHub `development` environment. The deployment workflows write the Cloudflare Terraform credential to their matching remote HCP workspace as a sensitive `CLOUDFLARE_API_TOKEN` environment variable through the HCP API; the credential is not inherited from the local GitHub process. Review every plan; D1 and Secrets Store have `prevent_destroy`.
-5. Protect `refs/tags/release-*` with an active repository tag ruleset. Configure required reviewers on the GitHub `production` environment and require them to inspect the production plan job summary or its one-day plan artifact before approving the apply job.
-
-   For the initial development setup, merge the implementation to `main`. Its first run applies Terraform, detects that Secrets Store is empty, and publishes `deployment.json` as a one-day, non-secret artifact without deploying a Worker.
-
-6. Download the bootstrap artifact and populate Secrets Store as described below. Then run **Actions → Deploy development** with `operation=deploy` on `main`; later pushes to `main` deploy automatically when every required secret name exists. Never commit `.wrangler/generated` or `deployment.json`.
-
-   ```sh
-   cd frontend
-   node scripts/render-wrangler-config.mjs dev ../deployment.json
-   ```
-
-7. Create separate **Resend Free** accounts for development and production and keep pay-as-you-go disabled. Production must verify a sending domain and use a restricted API key. A no-domain development environment may use `onboarding@resend.dev`, but Resend permits that sender to deliver only to the email address on the development Resend account; store its API key as `RESEND_API_KEY`. Cloudflare Email Sending must remain unconfigured because arbitrary recipients require Workers Paid. Application code derives customer recipients from authenticated server-side records, validates every address, and atomically stops at 100 sends/day or 3,000/month.
-8. Create a dedicated Google OAuth client and refresh token with the full Calendar scope needed for FreeBusy, event writes, incremental event reads, and event watches. Give it access only to the single therapist calendar. Calendar events are generic `Reserved time` events with an opaque ID and no client name, email, service, notes, or clinical data. Configure the Calendar API webhook callback at `https://<hostname>/api/calendar/webhook`; the application registers and renews the watch channel after deployment.
-9. Populate the Secrets Store interactively—never use `--value` in shell history and never put values in Terraform, `.tfvars`, GitHub secrets, or Git. For each secret use Wrangler's prompt-only command:
-
-   ```sh
-   pnpm exec wrangler secrets-store secret create <STORE_ID> --name <SECRET_NAME> --scopes workers --remote
-   ```
-
-   Required names are `BETTER_AUTH_SECRETS`, `TURNSTILE_SECRET`, `RESEND_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, and `GOOGLE_CALENDAR_ID`. Better Auth uses its native comma-separated rotation format, for example `2:<new-random-32+-character-key>,1:<previous-key>`; the highest version signs new material while retained versions continue to verify existing sessions and encrypted 2FA data. Versions must be unique positive integers. The Turnstile widget secret is sensitive Terraform state: restrict HCP access and copy it only once into Secrets Store through the prompt.
-10. Run the D1 migration and deploy through the approved workflow. After a verified user has enrolled TOTP, bootstrap exactly one first administrator:
-
-   ```sh
-   pnpm exec wrangler d1 migrations apply eikon-mind-dev --remote --config .wrangler/generated/dev/wrangler.jsonc
-   node scripts/bootstrap-first-admin.mjs .wrangler/generated/dev/wrangler.jsonc <verified-totp-user-id>
-   ```
-
-   The command is conditional: it refuses to create a second first admin, an unverified user, or a user without TOTP. Further staff changes happen only in `/admin/staff` and require a verified, TOTP-enrolled user.
-
-## Local development
-
-Copy `frontend/.dev.vars.example` to an ignored `frontend/.dev.vars` and supply development/test values. Use a separate local D1 database; never connect local development to production. The example contains Cloudflare's documented always-pass Turnstile test pair and must never be deployed.
-
-```sh
+~~~powershell
 cd frontend
 pnpm install --frozen-lockfile
+Copy-Item .dev.vars.example .dev.vars
+pnpm dev
+~~~
+
+Populate only local or test credentials in .dev.vars. Do not point local development at production D1, Secrets Store, Google Calendar, or Resend resources. The supplied Turnstile test credentials are local-only and are rejected outside APP_ENV=local.
+
+Run the standard validation set from frontend:
+
+~~~sh
 pnpm format:check
 pnpm lint
 pnpm typecheck
@@ -124,67 +73,16 @@ pnpm test:unit
 pnpm security:audit
 pnpm cf:build
 pnpm test:e2e
-```
+~~~
 
-`pnpm test:e2e` applies migrations only to Wrangler's local D1 emulator, resets only fixed `e2e.*@example.invalid` fixture identities, and runs desktop/mobile Chromium accessibility checks plus authenticated client and therapist/2FA journeys. It refuses non-local bindings or non-test Turnstile credentials. Unit tests cover salted password verification and its CPU budget, role isolation, valid state transitions, strict request parsing, Bucharest DST behavior, header injection, redirect safety, and migration policies.
+The end-to-end command applies migrations only to Wrangler's local emulator, creates only fixed test fixtures, and verifies the documented Turnstile test configuration. More detail is in [Development](docs/development.md).
 
-Next.js 16 deprecates `middleware.ts` in favor of Node.js `proxy.ts`. OpenNext Cloudflare 1.20.2 still rejects Proxy builds, so the small header/CSP entry point remains Edge middleware until upstream support lands; authoritative authentication and authorization checks remain in Server Components, Actions, and Route Handlers.
+## Delivery and operational boundaries
 
-ESLint 9.39.5 is the final 9.x release and is retained temporarily because the `eslint-plugin-import`, `eslint-plugin-jsx-a11y`, and `eslint-plugin-react` versions supplied by the current Next.js config do not yet declare ESLint 10 compatibility. Upgrade that toolchain together once those peers support ESLint 10; forcing the major today produces an unsupported, non-terminating lint run.
+Terraform provisions Cloudflare infrastructure but never stores secret values. The Wrangler configuration renderer turns Terraform's non-secret deployment output into ignored local configuration files; it binds secret *names* from the account Secrets Store.
 
-## GitHub configuration and least privilege
+Development deploys from main after infrastructure is ready and required Secret Store bindings exist. Production is manually dispatched from an allowed main-line commit SHA or protected release tag, creates a saved Terraform plan, waits for protected-environment review, then applies that exact plan and deploys both Workers. The detailed sequence and recovery guidance are in [Operations](docs/operations.md).
 
-Keep these secrets at repository/environment scope, never in source code:
+The code implements technical safeguards, not a legal determination. D1 EU jurisdiction limits D1 storage and replicas but does not guarantee EU/EEA-only processing. Cloudflare, Resend, and Google remain separate processors or recipients that require controller review of contracts, transfers, retention, notices, and operational procedures. Do not add clinical notes, diagnoses, therapy documents, or other special-category fields without separate legal, security, retention, and access-control review.
 
-| GitHub secret/configuration | Used for | Minimum Cloudflare scope |
-| --- | --- | --- |
-| `TF_API_TOKEN` | HCP Terraform authentication | HCP workspace run/plan/apply only |
-| `CLOUDFLARE_TERRAFORM_API_TOKEN` | Terraform plan/apply | D1 Write; Secrets Store Write; Turnstile Sites Write; add Zone Settings Write and Zone WAF Write only for zoned environments |
-| `CLOUDFLARE_DEPLOY_API_TOKEN` | D1 migration and Worker versions/Custom Domains/triggers | Workers Scripts Write; D1 Write; **Account Secrets Store Edit**; add Workers Routes Write only for a Custom Domain |
-| HCP workspace variables | account/zone/hostname/sender/retention | non-secret values only; restrict workspace read access anyway |
-| Cloudflare Secrets Store | application credentials and signing material | not stored in GitHub |
-
-Use distinct Terraform, deploy, and secrets-rotation Cloudflare tokens. The rotation operator token requires only `Secrets Store Write` (and `Turnstile Sites Write` when rotating a widget); it must not receive Workers/D1/zone permissions. Restrict all tokens to their corresponding account and zone and set expiry/review dates.
-
-Configure GitHub `development` and `production` environments with required reviewers and an active tag ruleset for `refs/tags/release-*`. The production workflow accepts only a full commit SHA that is an ancestor of `main`, or a release tag covered by that active ruleset. It validates the application before generating a saved remote plan, publishes the plan for review, and lets the protected production job apply only that plan. It then uploads both Worker versions before migrating D1, promotes them, attaches triggers, and runs application, asset, header, auth guard, database, and maintenance-trigger smoke checks. On the first development `main` run, Terraform provisions infrastructure, checks the seven Secrets Store names, and ends successfully with a one-day non-secret artifact when any are missing. Add the missing values with the prompt-only commands, then dispatch `operation=deploy`; later pushes deploy and smoke-test the `workers.dev` application automatically. All third-party actions are pinned to immutable commit SHAs; Dependabot should keep those pins current. PR checks include formatting, lint, type checking, behavioral tests, dependency audit/review, responsive Playwright journeys, Terraform validation, CodeQL, Gitleaks, and a CycloneDX SBOM artifact.
-
-## Deployment, rollback, backup, and rotation
-
-The production deployment order is: application validation/build → saved remote Terraform plan → human plan review/environment approval → repeatable application build → apply that saved plan → render config → Worker version upload → D1 migration → version promotion/triggers → application/database/maintenance smoke tests. Migrations must remain expand/contract and backward-compatible with both the old and uploaded Worker versions during a rollout. Do not use a code rollback to undo a schema/data migration.
-
-- Code rollback: identify the known-good Worker version and run `pnpm exec wrangler rollback <version-id> --config <generated-config>`. Roll back the maintenance Worker independently if necessary.
-- D1 recovery: D1 Time Travel is the short operational recovery baseline (plan availability/retention depends on Cloudflare plan). A restore overwrites the target database, so it is an incident-response/DPO-approved action, not routine application rollback.
-- Longer backup: export D1 deliberately, encrypt it, and store it only in approved EU-controlled storage with access logging and a documented restoration test. Example: `pnpm exec wrangler d1 export eikon-mind-production --remote --output approved-encrypted-transfer.sql`. Do not put exports in GitHub Actions artifacts unless the storage, retention, encryption, and access review are explicitly approved.
-- Secret rotation: add a new Secrets Store secret value using the prompt-only command; update the binding/config only if the name changes; upload and promote a Worker version; smoke-test; revoke the former credential at Google, Resend, or Cloudflare. For Better Auth, prepend a new higher `version:key` while retaining the previous key, deploy and validate authentication/2FA, allow the agreed session lifetime to elapse (or deliberately revoke sessions), then remove the retired version in a later deployment. Never reuse a version number. Rotate Turnstile through Cloudflare and update `TURNSTILE_SECRET` immediately.
-
-## GDPR and security checklist for the controller
-
-Before production, a responsible human must validate and document all of the following:
-
-- controller/processor roles, Cloudflare, Resend, and Google DPAs, subprocessor list, transfer assessment, and whether the lack of paid Data Localization features is acceptable;
-- lawful basis, purpose limitation, transparency notices, cookie text, and any consent requirements with qualified legal counsel;
-- a DPIA/assessment of necessity, especially because appointment data can reveal a relationship with a therapy practice;
-- approved retention values, legal preservation exceptions, data-subject access/erasure/export workflow, identity verification, and deletion evidence;
-- staff access approval/revocation, TOTP/backup-code custody, administrator separation, training, and periodic access review;
-- incident/breach response, monitoring runbook, secure logging policy, support procedure, and restoration exercise;
-- Google Calendar data minimization and OAuth consent-screen/legal review; no clinical data in Calendar or email;
-- production security review of CSP compatibility, rate-limit thresholds, Turnstile hostname restrictions, email sender/domain restriction, and every Terraform plan.
-
-Do not add clinical notes or health fields to D1 as a convenience. Any proposal to collect special-category data requires a separate legal, security, retention, and access-control review.
-
-### Retention behavior requiring controller/DPO approval
-
-The scheduled maintenance Worker applies the following strict older-than rules. A record exactly on a cutoff is retained until a later run. The production `retention_approval_reference` must point to an external approval record that covers both these rules and the configured day values; do not put names, signatures, or other personal data in Git or Terraform state.
-
-| Data | Deletion rule |
-| --- | --- |
-| `CANCELLED` appointments | Delete when `updated_at < now - RETENTION_CANCELLED_APPOINTMENT_DAYS`. |
-| `REQUESTED`, `CONFIRMED`, and `COMPLETED` appointments | Delete when `starts_at < now - RETENTION_APPOINTMENT_DAYS`. A forgotten past `CONFIRMED` appointment therefore cannot remain indefinitely. |
-| Legacy availability slots | Delete when `ends_at < now - RETENTION_APPOINTMENT_DAYS`, but only after no appointment references the slot. New availability is never stored in this table. |
-| Managed Calendar references | Delete after their appointment has been deleted; busy blocks are removed when the therapist cancels them. |
-| Calendar synchronization state | Retain only the opaque cursor/channel metadata needed to reconcile the configured calendar. |
-| Security events | Delete when `created_at < now - RETENTION_AUDIT_EVENT_DAYS`. |
-| Expired verification/session and stale rate-limit records | Delete after expiry, or after one day for rate-limit records. |
-| Users with approved account-deletion requests | Delete when the request is older than `RETENTION_DEIDENTIFIED_RECORD_DAYS`; database cascades/restrictions then apply. |
-
-Any legal preservation exception requires an approved operational hold that prevents this maintenance job from deleting the affected records; the current Worker has no per-record legal-hold flag. The controller/DPO must approve this limitation or require a hold mechanism before production rollout.
+Provider capabilities, limits, and terms change independently of this repository. Consult the current official Cloudflare, Google, Resend, and HCP Terraform documentation before an operational or production decision.
