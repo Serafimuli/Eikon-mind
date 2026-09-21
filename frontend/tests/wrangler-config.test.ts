@@ -46,28 +46,40 @@ async function render(environment: "dev" | "production", deployment: Record<stri
       },
     );
     assert.equal(exitCode, 0, "Wrangler config renderer must succeed");
-    return JSON.parse(await readFile(join(configDirectory, "wrangler.jsonc"), "utf8"));
+    return {
+      application: JSON.parse(await readFile(join(configDirectory, "wrangler.jsonc"), "utf8")),
+      maintenance: JSON.parse(
+        await readFile(join(configDirectory, "wrangler-maintenance.jsonc"), "utf8"),
+      ),
+    };
   } finally {
     await rm(directory, { force: true, recursive: true });
   }
 }
 
 test("zone-less dev uses workers.dev and does not create a custom-domain route", async () => {
-  const config = await render("dev", { ...baseDeployment, environment: "dev" });
+  const { application } = await render("dev", { ...baseDeployment, environment: "dev" });
 
-  assert.equal(config.workers_dev, true);
-  assert.equal(config.routes, undefined);
-  assert.equal(config.vars.BETTER_AUTH_URL, "https://eikon-mind-test.eikon-dev.workers.dev");
+  assert.equal(application.workers_dev, true);
+  assert.equal(application.routes, undefined);
+  assert.equal(application.alias, undefined);
+  assert.equal(application.vars.BETTER_AUTH_URL, "https://eikon-mind-test.eikon-dev.workers.dev");
 });
 
 test("zoned environments retain custom-domain routing", async () => {
-  const config = await render("production", {
+  const { application } = await render("production", {
     ...baseDeployment,
     environment: "production",
     hostname: "app.example.com",
     zone_id: "00000000000000000000000000000000",
   });
 
-  assert.equal(config.workers_dev, false);
-  assert.deepEqual(config.routes, [{ pattern: "app.example.com", custom_domain: true }]);
+  assert.equal(application.workers_dev, false);
+  assert.deepEqual(application.routes, [{ pattern: "app.example.com", custom_domain: true }]);
+});
+
+test("maintenance Worker aliases the Next server-only marker to a no-op module", async () => {
+  const { maintenance } = await render("dev", { ...baseDeployment, environment: "dev" });
+
+  assert.deepEqual(maintenance.alias, { "server-only": "../../../workers/server-only.ts" });
 });

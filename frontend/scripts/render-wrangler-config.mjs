@@ -101,6 +101,10 @@ const maintenanceConfig = {
   ...common,
   name: `${deployment.worker_name}-maintenance`,
   main: `${root}workers/maintenance.ts`,
+  // Next resolves this marker to an empty module for server builds. The
+  // standalone maintenance Worker bypasses Next's compiler, so mirror that
+  // server-side behavior for Wrangler's bundle.
+  alias: { "server-only": `${root}workers/server-only.ts` },
   workers_dev: false,
   triggers: { crons: ["*/15 * * * *"] },
 };
