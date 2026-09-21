@@ -14,6 +14,7 @@ import {
   securityEmail,
   sendTransactionalEmail,
 } from "@/lib/integrations/email";
+import { emailLocaleFromContext, emailLocaleFromRequest } from "@/lib/integrations/email-locale";
 import { defer, getApplicationOrigin, getRuntimeEnv } from "@/lib/platform-env";
 import { sessions } from "@/lib/db/schema";
 import * as schema from "@/lib/db/schema";
@@ -147,16 +148,18 @@ export const getAuth = async () => {
       // server-side emailVerified checks in lib/session.ts.
       requireEmailVerification: false,
       revokeSessionsOnPasswordReset: true,
-      sendResetPassword: async ({ user, url }) => {
-        const message = securityEmail("reset", url);
+      sendResetPassword: async ({ user, url }, request) => {
+        const message = securityEmail("reset", url, emailLocaleFromRequest(request));
         defer(sendTransactionalEmail(env, user.email, message), "password reset email");
       },
+      resetPasswordTokenExpiresIn: 3600,
     },
     emailVerification: {
       sendOnSignUp: true,
       autoSignInAfterVerification: true,
-      sendVerificationEmail: async ({ user, url }) => {
-        const message = securityEmail("verify", url);
+      expiresIn: 3600,
+      sendVerificationEmail: async ({ user, url }, request) => {
+        const message = securityEmail("verify", url, emailLocaleFromRequest(request), user.name);
         defer(sendTransactionalEmail(env, user.email, message), "verification email");
       },
     },
@@ -253,7 +256,7 @@ export const getAuth = async () => {
           // Better Auth updates a credential account only after it has hashed
           // and accepted a new password. Query only the destination address;
           // the password hash and all other account material stay untouched.
-          after: async (account) => {
+          after: async (account, context) => {
             if (account.providerId !== "credential") return;
             const [recipient] = await getDb()
               .select({ email: schema.users.email })
@@ -263,7 +266,11 @@ export const getAuth = async () => {
             if (!recipient) return;
 
             defer(
-              sendTransactionalEmail(env, recipient.email, passwordChangedEmail()),
+              sendTransactionalEmail(
+                env,
+                recipient.email,
+                passwordChangedEmail(emailLocaleFromContext(context)),
+              ),
               "password updated email",
             );
           },

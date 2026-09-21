@@ -293,7 +293,11 @@ async function sendClientNotification(
     .limit(1);
   if (row?.emailVerified) {
     defer(
-      sendTransactionalEmail(getRuntimeEnv(), row.email, appointmentEmail(kind)),
+      sendTransactionalEmail(
+        getRuntimeEnv(),
+        row.email,
+        appointmentEmail(kind, "en", getApplicationOrigin()),
+      ),
       "calendar appointment email",
     );
   }

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { EMAIL_LOCALE_HEADER } from "@/lib/integrations/email-locale";
 import type { Locale } from "@/lib/site-content";
 
 type CalendarSlot = { startsAt: string; endsAt: string };
@@ -74,7 +75,10 @@ export function BookingCalendar({
     try {
       const response = await fetch("/api/appointments/book", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          [EMAIL_LOCALE_HEADER]: locale,
+        },
         body: JSON.stringify({ startsAt: selected, rescheduleFromAppointmentId }),
       });
       const body = (await response.json().catch(() => ({}))) as { appointmentId?: string };

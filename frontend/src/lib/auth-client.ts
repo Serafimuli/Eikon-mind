@@ -2,9 +2,16 @@
 
 import { createAuthClient } from "better-auth/react";
 import { twoFactorClient } from "better-auth/client/plugins";
+import { EMAIL_LOCALE_HEADER } from "@/lib/integrations/email-locale";
 import type { Route } from "next";
 
 export const authClient = createAuthClient({ plugins: [twoFactorClient()] });
+
+export function authFetchOptions(locale: string, headers: Record<string, string> = {}) {
+  return {
+    headers: { ...headers, [EMAIL_LOCALE_HEADER]: locale },
+  };
+}
 
 export function googleAuthContinuationURL(locale: string, returnTo?: string | null) {
   const query = new URLSearchParams();

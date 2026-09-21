@@ -6,7 +6,7 @@ import { useState } from "react";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { useTurnstileChallenge } from "@/hooks/useTurnstileChallenge";
-import { authClient, resolveAuthDestination } from "@/lib/auth-client";
+import { authClient, authFetchOptions, resolveAuthDestination } from "@/lib/auth-client";
 import { securityCopy, type Locale } from "@/lib/site-content";
 
 export function LoginForm({ locale }: { locale: Locale }) {
@@ -26,7 +26,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
       email: String(form.get("email")),
       password: String(form.get("password")),
       callbackURL: `/${locale}/client`,
-      fetchOptions: { headers: { "x-captcha-response": captcha.token } },
+      fetchOptions: authFetchOptions(locale, { "x-captcha-response": captcha.token }),
     });
     setBusy(false);
     if (result.error) {

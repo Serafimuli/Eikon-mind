@@ -5,6 +5,7 @@ import { getD1, getDb } from "@/lib/db";
 import { appointments, users } from "@/lib/db/schema";
 import { DomainError } from "@/lib/errors";
 import { appointmentEmail, sendTransactionalEmail } from "@/lib/integrations/email";
+import { DEFAULT_EMAIL_LOCALE, type EmailLocale } from "@/lib/integrations/email-locale";
 import {
   CalendarConflictError,
   assertGoogleCalendarFree,
@@ -14,7 +15,7 @@ import {
   updateManagedGoogleEvent,
   type ManagedItemKind,
 } from "@/lib/integrations/calendar-google";
-import { defer, getRuntimeEnv } from "@/lib/platform-env";
+import { defer, getApplicationOrigin, getRuntimeEnv } from "@/lib/platform-env";
 import { CLIENT_SLOT_MINUTES, isClientSlot } from "@/lib/calendar-scheduling";
 
 type ActiveAppointmentStatus = "REQUESTED" | "CONFIRMED";
@@ -61,7 +62,11 @@ async function configuredTherapistId() {
   return result.results[0].id;
 }
 
-async function notifyClient(appointmentId: string, kind: "confirmed" | "cancelled" | "updated") {
+async function notifyClient(
+  appointmentId: string,
+  kind: "confirmed" | "cancelled" | "updated",
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE,
+) {
   const [recipient] = await getDb()
     .select({ email: users.email, emailVerified: users.emailVerified })
     .from(appointments)
@@ -70,7 +75,11 @@ async function notifyClient(appointmentId: string, kind: "confirmed" | "cancelle
     .limit(1);
   if (recipient?.emailVerified) {
     defer(
-      sendTransactionalEmail(getRuntimeEnv(), recipient.email, appointmentEmail(kind)),
+      sendTransactionalEmail(
+        getRuntimeEnv(),
+        recipient.email,
+        appointmentEmail(kind, locale, getApplicationOrigin()),
+      ),
       "appointment email",
     );
   }
@@ -185,7 +194,12 @@ export async function createClientAppointmentRequest(clientId: string, startsAt:
   });
 }
 
-export async function createTherapistAppointment(clientId: string, startsAt: Date, endsAt: Date) {
+export async function createTherapistAppointment(
+  clientId: string,
+  startsAt: Date,
+  endsAt: Date,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE,
+) {
   const client = await getDb().query.users.findFirst({
     columns: { id: true, role: true, emailVerified: true },
     where: eq(users.id, clientId),
@@ -200,7 +214,7 @@ export async function createTherapistAppointment(clientId: string, startsAt: Dat
     status: "CONFIRMED",
     enforceClientSlot: false,
   });
-  await notifyClient(appointment.id, "confirmed");
+  await notifyClient(appointment.id, "confirmed", locale);
   return appointment;
 }
 
@@ -245,7 +259,10 @@ async function findManagedItem(itemId: string) {
   return row;
 }
 
-export async function approveTherapistAppointment(appointmentId: string) {
+export async function approveTherapistAppointment(
+  appointmentId: string,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE,
+) {
   const item = await getD1()
     .prepare(
       `SELECT i.id, i.appointment_id, i.event_id, i.kind, i.etag, i.starts_at, i.ends_at,
@@ -278,10 +295,15 @@ export async function approveTherapistAppointment(appointmentId: string) {
   } catch (error) {
     calendarFailure(error);
   }
-  await notifyClient(appointmentId, "confirmed");
+  await notifyClient(appointmentId, "confirmed", locale);
 }
 
-export async function moveTherapistCalendarItem(itemId: string, startsAt: Date, endsAt: Date) {
+export async function moveTherapistCalendarItem(
+  itemId: string,
+  startsAt: Date,
+  endsAt: Date,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE,
+) {
   if (startsAt <= new Date() || endsAt <= startsAt)
     throw new DomainError("Choose a valid future period", "INVALID_INPUT");
   const item = await findManagedItem(itemId);
@@ -311,10 +333,13 @@ export async function moveTherapistCalendarItem(itemId: string, startsAt: Date, 
   } catch (error) {
     calendarFailure(error);
   }
-  if (item.appointment_id) await notifyClient(item.appointment_id, "updated");
+  if (item.appointment_id) await notifyClient(item.appointment_id, "updated", locale);
 }
 
-export async function cancelTherapistCalendarItem(itemId: string) {
+export async function cancelTherapistCalendarItem(
+  itemId: string,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE,
+) {
   const item = await findManagedItem(itemId);
   try {
     await deleteManagedGoogleEvent(getRuntimeEnv(), item.event_id, item.etag);
@@ -331,13 +356,17 @@ export async function cancelTherapistCalendarItem(itemId: string) {
         .bind(now, now, item.appointment_id),
       getD1().prepare("DELETE FROM calendar_managed_item WHERE id = ?").bind(itemId),
     ]);
-    await notifyClient(item.appointment_id, "cancelled");
+    await notifyClient(item.appointment_id, "cancelled", locale);
   } else {
     await getD1().prepare("DELETE FROM calendar_managed_item WHERE id = ?").bind(itemId).run();
   }
 }
 
-export async function cancelClientAppointment(clientId: string, appointmentId: string) {
+export async function cancelClientAppointment(
+  clientId: string,
+  appointmentId: string,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE,
+) {
   const appointment = await getDb().query.appointments.findFirst({
     where: and(
       eq(appointments.id, appointmentId),
@@ -354,13 +383,14 @@ export async function cancelClientAppointment(clientId: string, appointmentId: s
     .bind(appointmentId)
     .first<{ id: string }>();
   if (!item) throw new DomainError("Appointment calendar reference not found", "CONFLICT");
-  await cancelTherapistCalendarItem(item.id);
+  await cancelTherapistCalendarItem(item.id, locale);
 }
 
 export async function rescheduleClientAppointment(
   clientId: string,
   appointmentId: string,
   startsAt: Date,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE,
 ) {
   const existing = await getDb().query.appointments.findFirst({
     where: and(
@@ -380,14 +410,14 @@ export async function rescheduleClientAppointment(
     .first<{ id: string }>();
   if (!oldItem) throw new DomainError("Appointment calendar reference not found", "CONFLICT");
   try {
-    await cancelTherapistCalendarItem(oldItem.id);
+    await cancelTherapistCalendarItem(oldItem.id, locale);
   } catch (error) {
     const replacementItem = await getD1()
       .prepare("SELECT id FROM calendar_managed_item WHERE appointment_id = ?")
       .bind(replacement.id)
       .first<{ id: string }>();
     if (replacementItem)
-      await cancelTherapistCalendarItem(replacementItem.id).catch(() => undefined);
+      await cancelTherapistCalendarItem(replacementItem.id, locale).catch(() => undefined);
     throw error;
   }
   return replacement;

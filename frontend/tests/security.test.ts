@@ -170,7 +170,7 @@ test("a failed replacement leaves the original appointment in place", async () =
   );
   assert.match(calendarSource, /const replacement = await createClientAppointmentRequest/);
   assert.match(calendarSource, /const oldItem = await getD1/);
-  assert.match(calendarSource, /await cancelTherapistCalendarItem\(oldItem\.id\)/);
+  assert.match(calendarSource, /await cancelTherapistCalendarItem\(oldItem\.id, locale\)/);
   assert.match(routeSource, /startsAt/);
   assert.match(routeSource, /409/);
 });
@@ -186,7 +186,10 @@ test("calendar appointments use generic client notifications without a legacy ou
   );
   assert.match(calendarSource, /notifyClient/);
   assert.doesNotMatch(calendarSource, /integration_job|calendar_event_reference/);
-  assert.match(emailSource, /A new appointment request is available\. Sign in to review it\./);
+  assert.match(
+    emailSource,
+    /A new appointment request is available\. Sign in to Eikon Mind to review it\./,
+  );
   assert.doesNotMatch(
     emailSource.match(/if \(kind === "requested"\)[\s\S]*?\n  }/)?.[0] ?? "",
     /client|service|health|clinical|startsAt|endsAt/i,

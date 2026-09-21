@@ -5,4 +5,5 @@ export {
   appointmentEmail,
   passwordChangedEmail,
   securityEmail,
+  securityOperationsEmail,
 } from "@/lib/integrations/email-content";

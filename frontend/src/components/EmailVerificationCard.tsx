@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { useTurnstileChallenge } from "@/hooks/useTurnstileChallenge";
-import { authClient } from "@/lib/auth-client";
+import { authClient, authFetchOptions } from "@/lib/auth-client";
 import type { Locale } from "@/lib/site-content";
 
 export function EmailVerificationCard({
@@ -37,7 +37,7 @@ export function EmailVerificationCard({
     const result = await authClient.sendVerificationEmail({
       email,
       callbackURL: `/${locale}/client/profile`,
-      fetchOptions: { headers: { "x-captcha-response": captcha.token } },
+      fetchOptions: authFetchOptions(locale, { "x-captcha-response": captcha.token }),
     });
     setBusy(false);
     if (result.error) {

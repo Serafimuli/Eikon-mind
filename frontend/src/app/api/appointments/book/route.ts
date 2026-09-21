@@ -4,6 +4,7 @@ import {
   createClientAppointmentRequest,
   rescheduleClientAppointment,
 } from "@/lib/calendar-appointments";
+import { emailLocaleFromRequest } from "@/lib/integrations/email-locale";
 import { findUserById } from "@/lib/db/repositories";
 import { getApplicationOrigin } from "@/lib/platform-env";
 import { bookingRequestSchema } from "@/lib/validation";
@@ -33,11 +34,13 @@ export async function POST(request: Request) {
   const body = bookingRequestSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) return json({ error: "Invalid booking request" }, 400);
   try {
+    const locale = emailLocaleFromRequest(request);
     if (body.data.rescheduleFromAppointmentId) {
       const appointment = await rescheduleClientAppointment(
         user.id,
         body.data.rescheduleFromAppointmentId,
         new Date(body.data.startsAt),
+        locale,
       );
       return json({ appointmentId: appointment.id }, 201);
     }

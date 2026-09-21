@@ -2,7 +2,7 @@ import "server-only";
 
 import { getDb } from "@/lib/db";
 import { securityEvents } from "@/lib/db/schema";
-import { sendOperationsEmail } from "@/lib/integrations/email";
+import { securityOperationsEmail, sendOperationsEmail } from "@/lib/integrations/email";
 import { defer, getRuntimeEnv } from "@/lib/platform-env";
 
 export type SecurityEventType =
@@ -46,9 +46,9 @@ export async function recordSecurityEvent(input: SecurityEventInput) {
 }
 
 export function alertCriticalSecurityEvent(eventType: SecurityEventType) {
-  const message = `A critical ${eventType} event was recorded. Review the privacy-minimized security audit.`;
+  const message = securityOperationsEmail(eventType);
   defer(
-    sendOperationsEmail(getRuntimeEnv(), `Eikon Mind security alert: ${eventType}`, message),
+    sendOperationsEmail(getRuntimeEnv(), message.subject, message.body),
     "security operations email",
   );
 }

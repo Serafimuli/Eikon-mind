@@ -74,7 +74,7 @@ async function requireCalendarTherapist(locale: "ro" | "en") {
 export async function approveCalendarAppointment(localeInput: string, appointmentIdInput: string) {
   const locale = parseLocale(localeInput);
   await requireCalendarTherapist(locale);
-  await approveTherapistAppointment(resourceIdSchema.parse(appointmentIdInput));
+  await approveTherapistAppointment(resourceIdSchema.parse(appointmentIdInput), locale);
   refreshAppointmentViews(locale);
 }
 
@@ -89,6 +89,7 @@ export async function moveCalendarItem(
     resourceIdSchema.parse(itemIdInput),
     calendarTime(formData.get("startsAt")),
     calendarTime(formData.get("endsAt")),
+    locale,
   );
   refreshAppointmentViews(locale);
 }
@@ -96,7 +97,7 @@ export async function moveCalendarItem(
 export async function cancelCalendarItem(localeInput: string, itemIdInput: string) {
   const locale = parseLocale(localeInput);
   await requireCalendarTherapist(locale);
-  await cancelTherapistCalendarItem(resourceIdSchema.parse(itemIdInput));
+  await cancelTherapistCalendarItem(resourceIdSchema.parse(itemIdInput), locale);
   refreshAppointmentViews(locale);
 }
 
@@ -107,6 +108,7 @@ export async function createCalendarAppointment(localeInput: string, formData: F
     betterAuthUserIdSchema.parse(String(formData.get("clientId") ?? "")),
     calendarTime(formData.get("startsAt")),
     calendarTime(formData.get("endsAt")),
+    locale,
   );
   refreshAppointmentViews(locale);
 }
@@ -131,14 +133,14 @@ export async function updateAppointmentStatus(
   const status = appointmentStatusSchema.parse(statusInput);
   await requireCalendarTherapist(locale);
   if (status === "CONFIRMED") {
-    await approveTherapistAppointment(appointmentId);
+    await approveTherapistAppointment(appointmentId, locale);
   } else if (status === "CANCELLED") {
     const item = await getD1()
       .prepare("SELECT id FROM calendar_managed_item WHERE appointment_id = ?")
       .bind(appointmentId)
       .first<{ id: string }>();
     if (!item) throw new DomainError("Appointment calendar reference not found", "NOT_FOUND");
-    await cancelTherapistCalendarItem(item.id);
+    await cancelTherapistCalendarItem(item.id, locale);
   } else {
     throw new DomainError(
       "Complete appointments are inferred from their calendar time",
@@ -152,7 +154,7 @@ export async function cancelOwnAppointment(localeInput: string, appointmentIdInp
   const locale = parseLocale(localeInput);
   const appointmentId = resourceIdSchema.parse(appointmentIdInput);
   const user = await requireClient(locale);
-  await cancelClientAppointment(user.id, appointmentId);
+  await cancelClientAppointment(user.id, appointmentId, locale);
   refreshAppointmentViews(locale);
 }
 
@@ -178,7 +180,7 @@ export async function deleteOwnAppointment(
     (appointment.status === "REQUESTED" || appointment.status === "CONFIRMED") &&
     appointment.startsAt.getTime() >= Date.now() + 24 * 60 * 60 * 1000
   ) {
-    await cancelClientAppointment(user.id, appointmentId);
+    await cancelClientAppointment(user.id, appointmentId, locale);
   }
   await getDb()
     .update(appointments)

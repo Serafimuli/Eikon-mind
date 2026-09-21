@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { useTurnstileChallenge } from "@/hooks/useTurnstileChallenge";
-import { authClient } from "@/lib/auth-client";
+import { authClient, authFetchOptions } from "@/lib/auth-client";
 import type { Locale } from "@/lib/site-content";
 
 export function ResetPasswordForm({
@@ -41,7 +41,7 @@ export function ResetPasswordForm({
     const result = await authClient.requestPasswordReset({
       email,
       redirectTo: `/${locale}/reset-password`,
-      fetchOptions: { headers: { "x-captcha-response": captcha.token } },
+      fetchOptions: authFetchOptions(locale, { "x-captcha-response": captcha.token }),
     });
     setBusy(false);
     if (result.error) {
@@ -63,6 +63,7 @@ export function ResetPasswordForm({
     const result = await authClient.resetPassword({
       newPassword: password,
       token,
+      fetchOptions: authFetchOptions(locale),
     });
     setBusy(false);
     if (result.error)

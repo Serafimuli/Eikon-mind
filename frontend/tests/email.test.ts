@@ -5,7 +5,13 @@ import {
   FREE_EMAIL_MONTHLY_LIMIT,
   sendTransactionalEmail,
 } from "../src/lib/integrations/email-delivery";
-import { passwordChangedEmail, securityEmail } from "../src/lib/integrations/email-content";
+import {
+  appointmentEmail,
+  passwordChangedEmail,
+  securityEmail,
+} from "../src/lib/integrations/email-content";
+import { parseEmailLocale } from "../src/lib/integrations/email-locale";
+import { createBrandedEmail } from "../src/lib/integrations/email-message";
 
 type PreparedCall = { sql: string; bindings: unknown[] };
 
@@ -129,4 +135,73 @@ test("security notices are Eikon Mind branded and password-change notices carry 
   assert.match(passwordChange.subject, /Eikon Mind/);
   assert.doesNotMatch(passwordChange.body, /password=|token=|https?:\/\//i);
   assert.doesNotMatch(passwordChange.body, /correct horse|new password/i);
+});
+
+test("verification email is localized, welcoming, centered, and privacy-aware", () => {
+  const verification = securityEmail(
+    "verify",
+    "https://eikon-mind.example/en/verify?token=one-time",
+    "en",
+    "Ada Lovelace",
+  );
+  const romanianVerification = securityEmail(
+    "verify",
+    "https://eikon-mind.example/ro/verify?token=one-time",
+    "ro",
+    "Ada Lovelace",
+  );
+  const rendered = createBrandedEmail(
+    "noreply@example.com",
+    "ada@example.com",
+    verification,
+    "https://eikon-mind.example/assets/logo.png",
+    "https://eikon-mind.example",
+  );
+
+  assert.equal(verification.locale, "en");
+  assert.equal(verification.align, "center");
+  assert.match(verification.body, /Welcome, Ada\./);
+  assert.match(verification.body, /Do not forward it or share it/);
+  assert.match(verification.body, /expires after one hour/);
+  assert.match(rendered.html, /<html lang="en">/);
+  assert.match(rendered.html, /text-align:center/);
+  assert.match(rendered.text, /Privacy and data-processing notice/);
+  assert.match(rendered.text, /Terms and conditions/);
+  assert.match(rendered.text, /\/en\/politica-de-confidentialitate/);
+  assert.match(rendered.text, /\/en\/termeni-si-conditii/);
+  assert.equal(romanianVerification.action?.label, "Verifică adresa de email");
+  assert.match(romanianVerification.body, /Nu îl redirecționa și nu îl distribui nimănui/);
+  assert.match(romanianVerification.body, /expiră după o oră/);
+});
+
+test("all appointment email variants remain generic and localized", () => {
+  for (const kind of ["confirmed", "cancelled", "requested", "updated"] as const) {
+    const message = appointmentEmail(kind, "ro", "https://eikon-mind.example");
+    assert.equal(message.locale, "ro");
+    assert.match(message.action?.url ?? "", /\/ro\/client\/appointments$/);
+    assert.doesNotMatch(message.body, /health|clinical|therapy|startsAt|endsAt|client|service/i);
+  }
+
+  assert.equal(parseEmailLocale("ro"), "ro");
+  assert.equal(parseEmailLocale("en"), "en");
+  assert.equal(parseEmailLocale("fr"), "en");
+  assert.equal(parseEmailLocale(undefined), "en");
+});
+
+test("Resend receives the selected locale in the subject and rendered content", async (t) => {
+  const { env } = emailEnvironment();
+  const calls = mockFetch(t, Response.json({ id: "email-id" }));
+
+  await sendTransactionalEmail(
+    env,
+    "client@example.com",
+    appointmentEmail("confirmed", "ro", "https://eikon-mind.example"),
+  );
+
+  const payload = JSON.parse(String(calls[0].init?.body));
+  assert.equal(payload.subject, "Programarea ta Eikon Mind este confirmată");
+  assert.match(payload.text, /Autentifică-te în Eikon Mind/);
+  assert.match(payload.text, /\/ro\/politica-de-confidentialitate/);
+  assert.match(payload.html, /<html lang="ro">/);
+  assert.match(payload.html, /\/ro\/termeni-si-conditii/);
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import { authClient } from "@/lib/auth-client";
+import { authClient, authFetchOptions } from "@/lib/auth-client";
 import type { Locale } from "@/lib/site-content";
 
 type ProfileSettingsProps = {
@@ -97,6 +97,7 @@ export function ProfileSettings({ locale, user, hasCredentialPassword }: Profile
     const result = await authClient.changeEmail({
       newEmail: newEmail.trim(),
       callbackURL: `/${locale}/client/profile`,
+      fetchOptions: authFetchOptions(locale),
     });
     setEmailBusy(false);
     if (result.error) {
@@ -121,6 +122,7 @@ export function ProfileSettings({ locale, user, hasCredentialPassword }: Profile
       currentPassword,
       newPassword,
       revokeOtherSessions: true,
+      fetchOptions: authFetchOptions(locale),
     });
     setPasswordBusy(false);
     if (result.error) {

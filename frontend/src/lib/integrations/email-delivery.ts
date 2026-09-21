@@ -67,7 +67,13 @@ export async function reserveFreeEmailQuota(env: Pick<EmailEnvironment, "DB">, n
 
 async function sendEmail(env: EmailEnvironment, to: string, message: TransactionalEmailMessage) {
   const logoUrl = new URL("/assets/source/eikon-mind-logo.png", env.BETTER_AUTH_URL).toString();
-  const rendered = createBrandedEmail(env.EMAIL_FROM_ADDRESS, to, message, logoUrl);
+  const rendered = createBrandedEmail(
+    env.EMAIL_FROM_ADDRESS,
+    to,
+    message,
+    logoUrl,
+    env.BETTER_AUTH_URL,
+  );
   if (env.FREE_TIER_ONLY !== "true") {
     throw new Error("Email delivery requires FREE_TIER_ONLY=true");
   }
@@ -104,5 +110,5 @@ export function sendTransactionalEmail(
 }
 
 export function sendOperationsEmail(env: EmailEnvironment, subject: string, body: string) {
-  return sendEmail(env, env.OPERATIONS_MAILBOX, { subject, body });
+  return sendEmail(env, env.OPERATIONS_MAILBOX, { subject, body, locale: "en" });
 }
