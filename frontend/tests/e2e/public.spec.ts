@@ -121,6 +121,49 @@ test.describe("mobile touch targets", () => {
   });
 });
 
+test.describe("mobile therapy-session cards", () => {
+  test.beforeEach(async ({}, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium-mobile", "Mobile-only therapy-card layout");
+  });
+
+  test("keeps every duration below the final bullet and inside its card", async ({ page }) => {
+    for (const locale of ["en", "ro"] as const) {
+      await page.goto(`/${locale}`);
+
+      const layout = await page.locator(".session-card").evaluateAll((cards) =>
+        cards.map((card) => {
+          const cardRect = card.getBoundingClientRect();
+          const lastItemRect = card.querySelector("li:last-child")!.getBoundingClientRect();
+          const durationRect = card.querySelector(".session-duration")!.getBoundingClientRect();
+
+          return {
+            cardLeft: cardRect.left,
+            cardRight: cardRect.right,
+            cardBottom: cardRect.bottom,
+            lastItemBottom: lastItemRect.bottom,
+            durationTop: durationRect.top,
+            durationRight: durationRect.right,
+            durationBottom: durationRect.bottom,
+          };
+        }),
+      );
+
+      expect(layout, `/${locale} should render all therapy-session cards`).toHaveLength(3);
+      for (const card of layout) {
+        expect(card.durationTop).toBeGreaterThanOrEqual(card.lastItemBottom);
+        expect(card.durationRight).toBeLessThanOrEqual(card.cardRight);
+        expect(card.durationBottom).toBeLessThanOrEqual(card.cardBottom);
+        expect(card.durationRight).toBeGreaterThanOrEqual(card.cardLeft);
+      }
+
+      const hasHorizontalOverflow = await page.evaluate(
+        () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      );
+      expect(hasHorizontalOverflow, `/${locale} should not overflow horizontally`).toBe(false);
+    }
+  });
+});
+
 test("Google site verification metadata is present only on localized homepages", async ({
   page,
 }) => {

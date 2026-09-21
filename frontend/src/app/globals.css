@@ -1225,6 +1225,8 @@ strong {
 .session-card {
   position: relative;
   min-height: 300px;
+  display: flex;
+  flex-direction: column;
   padding: 32px;
   border-radius: 12px;
   background: var(--surface-dark);
@@ -1248,9 +1250,9 @@ strong {
 }
 
 .session-duration {
-  position: absolute;
-  right: 32px;
-  bottom: 28px;
+  align-self: flex-end;
+  max-width: 100%;
+  margin-top: auto;
   color: var(--accent-teal);
   font-size: 13px;
   font-weight: 500;
@@ -2955,11 +2957,6 @@ a.appointment {
   .session-card {
     min-height: 260px;
     padding: 24px;
-  }
-
-  .session-duration {
-    right: 24px;
-    bottom: 22px;
   }
 
   .blog-strip {
