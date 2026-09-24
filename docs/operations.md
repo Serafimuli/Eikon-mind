@@ -42,6 +42,15 @@ Create the following application secret names in the matching account Secrets St
 
 Use Wrangler's interactive Secret Store flow or an approved operator process. Do not pass application secret values through shell history, Terraform variables, workflow inputs, committed files, or deployment artifacts. GitHub Actions holds only the separately scoped Terraform and deployment tokens required by its workflows. BETTER_AUTH_SECRETS supports versioned key rotation; retain the previous verifier key until the agreed session and two-factor transition window has elapsed.
 
+The Google refresh token must grant offline access to both
+`https://www.googleapis.com/auth/calendar.events` and
+`https://www.googleapis.com/auth/calendar.freebusy`. The first scope permits the application to
+manage its generic appointment events; the second permits privacy-minimized FreeBusy queries
+without reading external event details. The broader
+`https://www.googleapis.com/auth/calendar` scope is compatible but is not the recommended
+least-privilege configuration. A refresh token issued before FreeBusy availability was introduced
+must be re-authorized; refreshing an old token does not add scopes that were not originally granted.
+
 Public configuration also requires the Terraform output for the account, D1 database, Secret Store, Turnstile site key, Worker name, hostname, email sender, operations mailbox, and retention values.
 
 ## Delivery workflows
@@ -106,6 +115,14 @@ For each credential:
 1. Add the replacement value to the appropriate Secrets Store binding through an approved interactive process.
 2. Deploy and smoke-test the affected Worker.
 3. Revoke the previous credential at the relevant provider only after the replacement is confirmed.
+
+For Google Calendar, authorize the configured Calendar account again using the same OAuth client,
+request offline access and explicit consent for the `calendar.events` and `calendar.freebusy` scopes,
+then replace `GOOGLE_REFRESH_TOKEN` in the matching Secrets Store. Deploy both application and
+maintenance Workers and verify that the therapist week displays a known external busy interval and
+that a managed appointment can still be created, moved, and cancelled. Calendar diagnostics record
+only the failed operation, HTTP status, and provider reason; never place tokens, calendar IDs, event
+data, or provider response descriptions in logs.
 
 For Better Auth, add a higher unique versioned signing key while retaining the previous key, deploy and validate authentication and TOTP, wait for the agreed transition period or revoke sessions deliberately, then remove the retired key in a later release. Rotate Turnstile in Cloudflare and update TURNSTILE_SECRET immediately. Keep Terraform, deployment, and Secret Store rotation tokens separate and minimally scoped.
 

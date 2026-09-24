@@ -5,6 +5,11 @@ import { getD1, getDb } from "@/lib/db";
 import { appointments, users } from "@/lib/db/schema";
 import { DomainError } from "@/lib/errors";
 import { appointmentEmail, sendTransactionalEmail } from "@/lib/integrations/email";
+import {
+  assertGoogleCalendarScopes,
+  googleCalendarRequestError,
+  parseGoogleFreeBusyResponse,
+} from "@/lib/integrations/calendar-google-contract";
 import { defer, getApplicationOrigin, getRuntimeEnv } from "@/lib/platform-env";
 import { resolveSecret } from "@/lib/runtime-secret";
 import {
@@ -65,11 +70,6 @@ export class CalendarConflictError extends Error {
   }
 }
 
-function assertSecret(value: string | undefined, name: string) {
-  if (!value) throw new Error(`Missing required ${name} secret`);
-  return value;
-}
-
 async function credentials(env: CalendarEnvironment): Promise<GoogleCredentials> {
   const [clientId, clientSecret, refreshToken, calendarId] = await Promise.all([
     resolveSecret(env.GOOGLE_CLIENT_ID, "GOOGLE_CLIENT_ID"),
@@ -78,6 +78,10 @@ async function credentials(env: CalendarEnvironment): Promise<GoogleCredentials>
     resolveSecret(env.GOOGLE_CALENDAR_ID, "GOOGLE_CALENDAR_ID"),
   ]);
   return { clientId, clientSecret, refreshToken, calendarId };
+}
+
+async function responseJson(response: Response) {
+  return response.json().catch(() => null) as Promise<unknown>;
 }
 
 async function accessToken(input: GoogleCredentials) {
@@ -92,9 +96,20 @@ async function accessToken(input: GoogleCredentials) {
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
   });
-  if (!response.ok) throw new Error("Google OAuth refresh failed");
-  const bodyJson = (await response.json()) as { access_token?: string };
-  return assertSecret(bodyJson.access_token, "Google access token");
+  const bodyJson = (await responseJson(response)) as {
+    access_token?: string;
+    scope?: string;
+  } | null;
+  if (!response.ok) {
+    throw googleCalendarRequestError("oauth-refresh", response.status, bodyJson);
+  }
+  if (!bodyJson?.access_token) {
+    throw googleCalendarRequestError("oauth-refresh", response.status, {
+      error: "missing_access_token",
+    });
+  }
+  assertGoogleCalendarScopes(bodyJson.scope);
+  return bodyJson.access_token;
 }
 
 async function googleRequest(env: CalendarEnvironment, path: string, init: RequestInit = {}) {
@@ -109,7 +124,13 @@ async function googleRequest(env: CalendarEnvironment, path: string, init: Reque
     },
   });
   if (response.status === 412) throw new CalendarConflictError();
-  if (!response.ok) throw new Error(`Google Calendar request failed (${response.status})`);
+  if (!response.ok) {
+    throw googleCalendarRequestError(
+      "calendar-request",
+      response.status,
+      await responseJson(response),
+    );
+  }
   return response;
 }
 
@@ -159,14 +180,11 @@ export async function getBusyIntervals(
       items: [{ id: input.calendarId }],
     }),
   });
-  if (!response.ok) throw new Error("Google Calendar FreeBusy query failed");
-  const body = (await response.json()) as {
-    calendars?: Record<string, { busy?: Array<{ start: string; end: string }> }>;
-  };
-  return (body.calendars?.[input.calendarId]?.busy ?? []).map((item) => ({
-    start: new Date(item.start),
-    end: new Date(item.end),
-  }));
+  const body = await responseJson(response);
+  if (!response.ok) {
+    throw googleCalendarRequestError("freebusy-query", response.status, body);
+  }
+  return parseGoogleFreeBusyResponse(body, input.calendarId);
 }
 
 export async function availableClientSlots(

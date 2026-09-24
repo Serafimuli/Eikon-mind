@@ -12,6 +12,7 @@ import { bucharestDate, bucharestWallTime, overlaps } from "@/lib/calendar-sched
 import { getDb } from "@/lib/db";
 import { appointments, calendarManagedItems, users } from "@/lib/db/schema";
 import { getBusyIntervals } from "@/lib/integrations/calendar-google";
+import { googleCalendarErrorDetails } from "@/lib/integrations/calendar-google-contract";
 import { getRuntimeEnv } from "@/lib/platform-env";
 import { formatTime } from "@/lib/presentation";
 import type { Locale } from "@/lib/site-content";
@@ -109,7 +110,13 @@ export async function TherapistWeekCalendar({
         .where(and(eq(users.role, "USER"), eq(users.emailVerified, true)))
         .orderBy(asc(users.lastName), asc(users.firstName))
     : [];
-  const busy = await getBusyIntervals(getRuntimeEnv(), rangeStart, rangeEnd).catch(() => null);
+  const busy = await getBusyIntervals(getRuntimeEnv(), rangeStart, rangeEnd).catch((error) => {
+    console.error(
+      "Google Calendar busy time load failed",
+      googleCalendarErrorDetails(error, "freebusy-query"),
+    );
+    return null;
+  });
   const externalBusy = (busy ?? []).filter(
     (interval) =>
       !items.some(
@@ -226,6 +233,7 @@ export async function TherapistWeekCalendar({
       <section
         className="week-grid"
         aria-label={locale === "ro" ? "Săptămână calendar" : "Calendar week"}
+        tabIndex={0}
       >
         {days.map((day) => {
           const start = bucharestWallTime(day, 0)!;
