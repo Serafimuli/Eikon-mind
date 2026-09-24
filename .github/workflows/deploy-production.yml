@@ -169,8 +169,36 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
         run: |
-          pnpm exec wrangler versions upload --config .wrangler/generated/production/wrangler.jsonc --tag "$DEPLOYMENT_SHA" --message "production $DEPLOYMENT_SHA"
-          pnpm exec wrangler versions upload --config .wrangler/generated/production/wrangler-maintenance.jsonc --tag "$DEPLOYMENT_SHA" --message "production maintenance $DEPLOYMENT_SHA"
+          upload_version() {
+            local config="$1"
+            local tag="$2"
+            local message="$3"
+            local log_file="$4"
+            local version_file="$5"
+
+            pnpm exec wrangler versions upload --config "$config" --tag "$tag" --message "$message" >"$log_file" 2>&1
+            cat "$log_file"
+            local version_id
+            version_id="$(awk -F': ' '/^Worker Version ID: / { print $2; exit }' "$log_file")"
+            if [ -z "$version_id" ]; then
+              echo "Could not determine the Worker Version ID from $log_file" >&2
+              return 1
+            fi
+            printf '%s' "$version_id" > "$version_file"
+          }
+
+          upload_version \
+            .wrangler/generated/production/wrangler.jsonc \
+            "$DEPLOYMENT_SHA" \
+            "production $DEPLOYMENT_SHA" \
+            "$RUNNER_TEMP/production-worker-upload.log" \
+            "$RUNNER_TEMP/production-worker-version-id"
+          upload_version \
+            .wrangler/generated/production/wrangler-maintenance.jsonc \
+            "$DEPLOYMENT_SHA" \
+            "production maintenance $DEPLOYMENT_SHA" \
+            "$RUNNER_TEMP/production-maintenance-upload.log" \
+            "$RUNNER_TEMP/production-maintenance-version-id"
       - name: Apply backwards-compatible D1 migrations
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
@@ -179,9 +207,11 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_API_TOKEN }}
         run: |
-          pnpm exec wrangler versions deploy --config .wrangler/generated/production/wrangler.jsonc --version-tag "$DEPLOYMENT_SHA" --percentage 100 --message "production $DEPLOYMENT_SHA"
+          application_version_id="$(cat "$RUNNER_TEMP/production-worker-version-id")"
+          maintenance_version_id="$(cat "$RUNNER_TEMP/production-maintenance-version-id")"
+          pnpm exec wrangler versions deploy --config .wrangler/generated/production/wrangler.jsonc --version-id "$application_version_id" --percentage 100 --message "production $DEPLOYMENT_SHA" --yes
           pnpm exec wrangler triggers deploy --config .wrangler/generated/production/wrangler.jsonc
-          pnpm exec wrangler versions deploy --config .wrangler/generated/production/wrangler-maintenance.jsonc --version-tag "$DEPLOYMENT_SHA" --percentage 100 --message "production maintenance $DEPLOYMENT_SHA"
+          pnpm exec wrangler versions deploy --config .wrangler/generated/production/wrangler-maintenance.jsonc --version-id "$maintenance_version_id" --percentage 100 --message "production maintenance $DEPLOYMENT_SHA" --yes
           pnpm exec wrangler triggers deploy --config .wrangler/generated/production/wrangler-maintenance.jsonc
       - name: Production application, database, and maintenance smoke tests
         env:

@@ -108,7 +108,13 @@ jobs:
 
             if pnpm exec wrangler versions upload --config "$config" --tag "$tag" --message "$message" >"$upload_log" 2>&1; then
               cat "$upload_log"
-              pnpm exec wrangler versions deploy --config "$config" --version-tag "$tag" --percentage 100 --message "$message"
+              local version_id
+              version_id="$(awk -F': ' '/^Worker Version ID: / { print $2; exit }' "$upload_log")"
+              if [ -z "$version_id" ]; then
+                echo "Could not determine the Worker Version ID from $upload_log" >&2
+                return 1
+              fi
+              pnpm exec wrangler versions deploy --config "$config" --version-id "$version_id" --percentage 100 --message "$message" --yes
             elif grep -Fq "Worker that does not yet exist" "$upload_log"; then
               cat "$upload_log"
               pnpm exec wrangler deploy --config "$config" --tag "$tag" --message "$message"
