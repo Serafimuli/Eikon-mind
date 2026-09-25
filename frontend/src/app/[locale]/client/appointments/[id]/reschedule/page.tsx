@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { BookingCalendar } from "@/components/BookingCalendar";
-import { isFutureAppointment } from "@/lib/appointment-types";
+import { isAppointmentServiceType, isFutureAppointment } from "@/lib/appointment-types";
 import { bucharestDate, clientBookingDateBounds } from "@/lib/calendar-scheduling";
 import { findAppointmentForClient } from "@/lib/db/repositories";
 import { requireClient } from "@/lib/session";
@@ -32,6 +32,9 @@ export default async function RescheduleAppointment({
         maxDate={bucharestDate(bounds.latest)}
         verified={user.emailVerified}
         rescheduleFromAppointmentId={appointment.id}
+        initialServiceType={
+          isAppointmentServiceType(appointment.serviceCode) ? appointment.serviceCode : undefined
+        }
       />
     </main>
   );

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { cancelOwnAppointment, deleteOwnAppointment } from "@/app/[locale]/actions";
 import { ActionForm } from "@/components/ActionForm";
 import { ConfirmActionForm } from "@/components/ConfirmActionForm";
-import { isFutureAppointment } from "@/lib/appointment-types";
+import { appointmentServiceLabel, isFutureAppointment } from "@/lib/appointment-types";
 import { clientBookingDateBounds } from "@/lib/calendar-scheduling";
 import { findAppointmentForClient } from "@/lib/db/repositories";
 import { appointmentStatusLabel, formatDateTime, formatTime } from "@/lib/presentation";
@@ -37,6 +37,9 @@ export default async function AppointmentDetail({
         <p>{formatDateTime(row.startsAt, locale)}</p>
         <p>
           {copy.ends} {formatTime(row.endsAt, locale)}
+        </p>
+        <p>
+          {copy.serviceType}: {appointmentServiceLabel(row.serviceCode, locale)}
         </p>
         <p>{copy.privacyNote}</p>
         <div className="appointment-actions">

@@ -44,6 +44,9 @@ for (const path of ["/en", "/ro", "/en/login"]) {
 test("all 30 localized public pages render without serious accessibility or layout defects", async ({
   page,
 }) => {
+  // This serial axe sweep is intentionally broader than the focused route tests above.
+  test.setTimeout(120_000);
+
   for (const locale of ["en", "ro"] as const) {
     for (const slug of publicSlugs) {
       const path = `/${locale}${slug ? `/${slug}` : ""}`;

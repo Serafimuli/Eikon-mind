@@ -63,7 +63,8 @@ export const protectedCopy = {
       confirmOwnCancel: "Cancel this appointment and release its future time?",
       ownCancelError: "The appointment could not be cancelled.",
       ends: "Ends",
-      privacyNote: "This record contains no notes or health information.",
+      serviceType: "Service type",
+      privacyNote: "This record may include a service category and contains no clinical notes.",
       reschedule: "Reschedule",
       deleteTitle: "Delete appointment",
       deleteActive:
@@ -98,7 +99,7 @@ export const protectedCopy = {
       currentPassword: "Current password",
       acknowledgement: "Type DELETE to confirm",
       deleteAction: "Permanently delete account",
-      deleteError: "The deletion confirmation is invalid.",
+      deleteError: "The account could not be deleted right now. Please try again shortly.",
       exportTitle: "Download your data",
       exportBody:
         "Download a readable PDF summary of your account data and associated appointments.",
@@ -166,7 +167,9 @@ export const protectedCopy = {
       confirmOwnCancel: "Anulezi această programare și eliberezi intervalul viitor?",
       ownCancelError: "Programarea nu a putut fi anulată.",
       ends: "Se termină",
-      privacyNote: "Această înregistrare nu conține note sau date despre sănătate.",
+      serviceType: "Tipul serviciului",
+      privacyNote:
+        "Această înregistrare poate include categoria serviciului și nu conține note clinice.",
       reschedule: "Reprogramează",
       deleteTitle: "Șterge programarea",
       deleteActive:
@@ -201,7 +204,7 @@ export const protectedCopy = {
       currentPassword: "Parola curentă",
       acknowledgement: "Scrie DELETE pentru confirmare",
       deleteAction: "Șterge definitiv contul",
-      deleteError: "Confirmarea ștergerii nu este validă.",
+      deleteError: "Contul nu a putut fi șters acum. Încearcă din nou în scurt timp.",
       exportTitle: "Descarcă datele tale",
       exportBody:
         "Descarcă un rezumat PDF ușor de citit al datelor de cont și al programărilor asociate contului tău.",

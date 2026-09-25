@@ -3,6 +3,10 @@ import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { getD1, getDb } from "@/lib/db";
 import { appointments, users } from "@/lib/db/schema";
+import {
+  appointmentServiceDescription,
+  type AppointmentServiceType,
+} from "@/lib/appointment-types";
 import { DomainError } from "@/lib/errors";
 import { appointmentEmail, sendTransactionalEmail } from "@/lib/integrations/email";
 import { DEFAULT_EMAIL_LOCALE, type EmailLocale } from "@/lib/integrations/email-locale";
@@ -89,6 +93,7 @@ async function insertAppointment(input: {
   id: string;
   clientId: string;
   therapistId: string;
+  serviceCode: AppointmentServiceType | "STANDARD";
   startsAt: Date;
   endsAt: Date;
   status: ActiveAppointmentStatus;
@@ -99,12 +104,13 @@ async function insertAppointment(input: {
       .prepare(
         `INSERT INTO appointment
          (id, client_id, therapist_id, availability_slot_id, service_code, starts_at, ends_at, status, created_at, updated_at)
-         VALUES (?, ?, ?, NULL, 'STANDARD', ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         input.id,
         input.clientId,
         input.therapistId,
+        input.serviceCode,
         input.startsAt.getTime(),
         input.endsAt.getTime(),
         input.status,
@@ -123,10 +129,12 @@ async function removeUnpublishedAppointment(appointmentId: string) {
 
 async function createManagedAppointment(input: {
   clientId: string;
+  serviceCode: AppointmentServiceType | "STANDARD";
   startsAt: Date;
   endsAt: Date;
   status: ActiveAppointmentStatus;
   enforceClientSlot: boolean;
+  calendarEvent?: { summary: string; description: string };
 }) {
   const now = new Date();
   if (input.enforceClientSlot && !isClientSlot(input.startsAt, now)) {
@@ -159,6 +167,7 @@ async function createManagedAppointment(input: {
       startsAt: input.startsAt,
       endsAt: input.endsAt,
       status: input.status,
+      ...(input.calendarEvent ?? {}),
     });
     createdEventId = event.id;
     await insertManagedItem({
@@ -184,13 +193,30 @@ async function createManagedAppointment(input: {
   return appointment;
 }
 
-export async function createClientAppointmentRequest(clientId: string, startsAt: Date) {
+export async function createClientAppointmentRequest(
+  clientId: string,
+  startsAt: Date,
+  serviceType: AppointmentServiceType,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE,
+) {
+  const client = await getDb().query.users.findFirst({
+    columns: { name: true, role: true, emailVerified: true },
+    where: eq(users.id, clientId),
+  });
+  if (!client || client.role !== "USER" || !client.emailVerified) {
+    throw new DomainError("Choose a verified client account", "INVALID_INPUT");
+  }
   return createManagedAppointment({
     clientId,
+    serviceCode: serviceType,
     startsAt,
     endsAt: new Date(startsAt.getTime() + CLIENT_SLOT_MINUTES * 60_000),
     status: "REQUESTED",
     enforceClientSlot: true,
+    calendarEvent: {
+      summary: client.name,
+      description: appointmentServiceDescription(serviceType, locale),
+    },
   });
 }
 
@@ -209,6 +235,7 @@ export async function createTherapistAppointment(
   }
   const appointment = await createManagedAppointment({
     clientId,
+    serviceCode: "STANDARD",
     startsAt,
     endsAt,
     status: "CONFIRMED",
@@ -241,6 +268,26 @@ export async function createTherapistBusyBlock(startsAt: Date, endsAt: Date) {
     return id;
   } catch (error) {
     calendarFailure(error);
+  }
+}
+
+export async function deleteClientCalendarEvents(clientId: string) {
+  const items = await getD1()
+    .prepare(
+      `SELECT i.id, i.event_id, i.etag
+       FROM calendar_managed_item i
+       JOIN appointment a ON a.id = i.appointment_id
+       WHERE a.client_id = ? AND i.kind = 'APPOINTMENT'`,
+    )
+    .bind(clientId)
+    .all<{ id: string; event_id: string; etag: string | null }>();
+  for (const item of items.results) {
+    try {
+      await deleteManagedGoogleEvent(getRuntimeEnv(), item.event_id, item.etag);
+      await getD1().prepare("DELETE FROM calendar_managed_item WHERE id = ?").bind(item.id).run();
+    } catch (error) {
+      calendarFailure(error);
+    }
   }
 }
 
@@ -390,6 +437,7 @@ export async function rescheduleClientAppointment(
   clientId: string,
   appointmentId: string,
   startsAt: Date,
+  serviceType: AppointmentServiceType,
   locale: EmailLocale = DEFAULT_EMAIL_LOCALE,
 ) {
   const existing = await getDb().query.appointments.findFirst({
@@ -403,7 +451,7 @@ export async function rescheduleClientAppointment(
   if (!isActiveAppointmentStatus(existing.status) || !canClientChange(existing.startsAt)) {
     throw new DomainError("This appointment can no longer be rescheduled online", "CONFLICT");
   }
-  const replacement = await createClientAppointmentRequest(clientId, startsAt);
+  const replacement = await createClientAppointmentRequest(clientId, startsAt, serviceType, locale);
   const oldItem = await getD1()
     .prepare("SELECT id FROM calendar_managed_item WHERE appointment_id = ?")
     .bind(appointmentId)

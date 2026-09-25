@@ -94,6 +94,7 @@ export async function GET(request: Request) {
       .select({
         startsAt: appointments.startsAt,
         endsAt: appointments.endsAt,
+        serviceCode: appointments.serviceCode,
         status: appointments.status,
         cancelledAt: appointments.cancelledAt,
       })

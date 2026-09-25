@@ -1700,7 +1700,7 @@ roPages["politica-de-confidentialitate"] = {
   kind: "legal",
   title: "Informare privind prelucrarea datelor",
   description:
-    "Informare GDPR pentru aplicația Eikon Mind. Ultima actualizare: 14 septembrie 2026.",
+    "Informare GDPR pentru aplicația Eikon Mind. Ultima actualizare: 25 septembrie 2026.",
   sections: [
     {
       title: "1. Operator și domeniul informării",
@@ -1714,7 +1714,7 @@ roPages["politica-de-confidentialitate"] = {
       items: [
         "date de cont: prenume, nume, adresă de email, starea verificării și momentele creării/actualizării contului",
         "date de autentificare: hash-ul parolei, sesiuni, metoda de autentificare, identificatorul furnizorului Google ales de utilizator și materiale 2FA criptate",
-        "date de programare: intervalul ales, statusul, momentele creării/actualizării și legătura tehnică necesară cu terapeutul",
+        "date de programare: intervalul ales, tipul serviciului selectat, starea, momentele creării/actualizării și legătura tehnică necesară cu terapeutul",
         "date de securitate minimizate: evenimente de securitate, chei de limitare a cererilor și date tehnice procesate pentru protejarea aplicației",
       ],
     },
@@ -1736,9 +1736,9 @@ roPages["politica-de-confidentialitate"] = {
     {
       title: "5. Destinatari și furnizori",
       paragraphs: [
-        "Google Calendar este sursa disponibilității: aplicația verifică doar intervalele ocupate și sincronizează modificările evenimentelor create de aplicație.",
+        "Google Calendar este sursa disponibilității: aplicația verifică intervalele ocupate. Pentru programările noi făcute de clienți, Calendar primește și numele clientului în titlul evenimentului și tipul serviciului selectat în descriere.",
         "Datele sunt accesibile numai terapeutului și personalului autorizat, în măsura necesară. Cloudflare furnizează găzduire, securitate, Turnstile și baza de date D1; Resend furnizează emailurile tranzacționale; Google este un furnizor separat pentru autentificarea opțională cu Google și pentru Calendar.",
-        "Calendarul Google primește numai un identificator opac de eveniment, intervalul orar și titlul generic «Reserved time»; nu primește nume, email, servicii, note clinice sau detalii de terapie. Google pentru autentificare își prelucrează propriile date conform politicilor sale; noi primim doar datele de profil necesare creării contului și identificatorul contului ales.",
+        "Evenimentele noi create de clienți includ numele și tipul serviciului selectat; Google prelucrează aceste date ca furnizor Calendar. Evenimentele vechi, programările create de terapeut și blocurile de disponibilitate păstrează titlul generic «Reserved time». Calendarul nu primește adresa de email sau note clinice. Google pentru autentificare își prelucrează propriile date conform politicilor sale; noi primim doar datele de profil necesare creării contului și identificatorul contului ales.",
       ],
     },
     {
@@ -1750,7 +1750,7 @@ roPages["politica-de-confidentialitate"] = {
     {
       title: "7. Perioade de păstrare",
       paragraphs: [
-        "Programările REQUESTED, CONFIRMED și COMPLETED și datele tehnice asociate sunt șterse la 30 de zile după momentul programării. Programările anulate sunt șterse la 14 zile după ultima actualizare. După o cerere de ștergere, accesul și datele de identificare sunt eliminate imediat, iar înregistrarea de-identificată este eliminată la 30 de zile după cerere.",
+        "Programările REQUESTED, CONFIRMED și COMPLETED și datele tehnice asociate sunt șterse la 30 de zile după momentul programării. Programările anulate sunt șterse la 14 zile după ultima actualizare. Evenimentele gestionate din Google Calendar sunt șterse odată cu datele programării; ștergerea este reîncercată dacă Google nu este disponibil. După o cerere de ștergere, accesul și datele de identificare sunt eliminate imediat, iar înregistrarea de-identificată este eliminată la 30 de zile după cerere.",
         "Evenimentele de securitate sunt șterse după 14 zile; sesiunile și verificările expirate sunt șterse la expirare; înregistrările de limitare a cererilor sunt șterse după o zi. Copiile de recuperare pot rămâne temporar conform perioadelor verificate ale furnizorilor.",
       ],
     },
@@ -1764,7 +1764,7 @@ roPages["politica-de-confidentialitate"] = {
     {
       title: "9. Caracter obligatoriu și decizii automate",
       paragraphs: [
-        "Numele și emailul, precum și o metodă de autentificare sunt necesare pentru cont; intervalul orar este necesar pentru programare. Dacă nu le furnizezi, nu putem oferi funcția respectivă. Nu folosim profilare sau decizii automate cu efect juridic ori similar semnificativ.",
+        "Numele și emailul, precum și o metodă de autentificare sunt necesare pentru cont; intervalul orar și tipul serviciului selectat sunt necesare pentru programare. Dacă nu le furnizezi, nu putem oferi funcția respectivă. Nu folosim profilare sau decizii automate cu efect juridic ori similar semnificativ.",
         "Această informare este revizuită înaintea oricărei schimbări care introduce noi scopuri, destinatari, tehnologii de urmărire sau categorii de date.",
       ],
     },
@@ -1773,7 +1773,7 @@ roPages["politica-de-confidentialitate"] = {
 enPages["politica-de-confidentialitate"] = {
   kind: "legal",
   title: "Privacy and data-processing notice",
-  description: "GDPR notice for the Eikon Mind application. Last updated: 14 September 2026.",
+  description: "GDPR notice for the Eikon Mind application. Last updated: 25 September 2026.",
   sections: [
     {
       title: "1. Controller and scope",
@@ -1787,7 +1787,7 @@ enPages["politica-de-confidentialitate"] = {
       items: [
         "account data: first name, last name, email address, verification status, and account creation/update times",
         "authentication data: password hash, sessions, sign-in method, the Google provider identifier selected by the user, and encrypted 2FA material",
-        "booking data: selected time range, status, creation/update times, and the technical link needed to the therapist",
+        "booking data: selected time range and service type, status, creation/update times, and the technical link needed to the therapist",
         "minimised security data: security events, request-rate-limit keys, and technical data processed to protect the application",
       ],
     },
@@ -1809,9 +1809,9 @@ enPages["politica-de-confidentialitate"] = {
     {
       title: "5. Recipients and providers",
       paragraphs: [
-        "Google Calendar is the availability source: the application queries only busy time and synchronizes changes to application-created events.",
+        "Google Calendar is the availability source: the application queries busy time. For new client-booked appointments, Calendar also receives the client name as the event title and the selected service type in the description.",
         "Data is available only to the therapist and authorised staff where necessary. Cloudflare provides hosting, security, Turnstile, and D1; Resend provides transactional email; Google is a separate provider for optional Google sign-in and Calendar.",
-        "Google Calendar receives only an opaque event identifier, time range, and the generic title “Reserved time”; it receives no name, email, service, clinical note, or therapy detail. Google processes its own sign-in service under its own policies; we receive only the profile data needed to create an account and the selected account identifier.",
+        "New client-booked events include the client's name and selected service type; Google processes those details as the Calendar provider. Existing events, therapist-created appointments, and availability blocks keep the generic “Reserved time” title. Calendar does not receive an email address or clinical notes. Google processes its sign-in service under its own policies; we receive only the profile data needed to create an account and the selected account identifier.",
       ],
     },
     {
@@ -1823,7 +1823,7 @@ enPages["politica-de-confidentialitate"] = {
     {
       title: "7. Retention periods",
       paragraphs: [
-        "REQUESTED, CONFIRMED, and COMPLETED appointments and related technical data are deleted 30 days after the appointment time. Cancelled appointments are deleted 14 days after their last update. After an erasure request, access and identifying data are removed immediately, and the de-identified record is removed 30 days after the request.",
+        "REQUESTED, CONFIRMED, and COMPLETED appointments and related technical data are deleted 30 days after the appointment time. Cancelled appointments are deleted 14 days after their last update. Managed Google Calendar events are deleted with the appointment data; deletion is retried if Google is unavailable. After an erasure request, access and identifying data are removed immediately, and the de-identified record is removed 30 days after the request.",
         "Security events are deleted after 14 days; expired sessions and verifications are deleted on expiry; rate-limit records are deleted after one day. Recovery copies may remain temporarily under verified provider retention periods.",
       ],
     },
@@ -1837,7 +1837,7 @@ enPages["politica-de-confidentialitate"] = {
     {
       title: "9. Required information and automated decisions",
       paragraphs: [
-        "Your name, email address, and a sign-in method are necessary for an account; a time range is necessary for a booking. If you do not provide them, we cannot provide that feature. We do not use profiling or automated decisions with legal or similarly significant effects.",
+        "Your name, email address, and a sign-in method are necessary for an account; a time range and selected service type are necessary for a booking. If you do not provide them, we cannot provide that feature. We do not use profiling or automated decisions with legal or similarly significant effects.",
         "We review this notice before introducing new purposes, recipients, tracking technologies, or data categories.",
       ],
     },

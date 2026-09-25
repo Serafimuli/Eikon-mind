@@ -15,6 +15,8 @@ export const E2E_FIXTURES = Object.freeze({
   auditCancelledAppointmentId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
   auditCompletedAppointmentId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
   auditPastAppointmentId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+  calendarAppointmentOneId: "f1111111-1111-4111-8111-111111111111",
+  calendarAppointmentTwoId: "f2222222-2222-4222-8222-222222222222",
   clientEmail: "e2e.client@example.invalid",
   therapistEmail: "e2e.therapist@example.invalid",
   adminEmail: "e2e.admin@example.invalid",
@@ -23,3 +25,12 @@ export const E2E_FIXTURES = Object.freeze({
   therapistBackupCode: "THERA-PIST1",
   adminBackupCode: "ADMIN-TEST1",
 });
+
+export function e2eSlotDate() {
+  const start = new Date(Date.now() + 2 * 86_400_000);
+  start.setUTCHours(8, 0, 0, 0);
+  while (start.getUTCDay() === 0 || start.getUTCDay() === 6) {
+    start.setUTCDate(start.getUTCDate() + 1);
+  }
+  return start.toISOString().slice(0, 10);
+}

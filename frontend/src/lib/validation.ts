@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { APPOINTMENT_STATUSES } from "@/lib/appointment-types";
+import { APPOINTMENT_SERVICE_TYPES, APPOINTMENT_STATUSES } from "@/lib/appointment-types";
 
 export const localeSchema = z.enum(["ro", "en"]);
 // Better Auth's default ID generator creates 32-character alphanumeric IDs.
@@ -8,6 +8,7 @@ export const betterAuthUserIdSchema = z.string().regex(/^[A-Za-z0-9]{32}$/);
 export const resourceIdSchema = z.string().uuid();
 export const roleSchema = z.enum(["USER", "THERAPIST", "ADMIN"]);
 export const appointmentStatusSchema = z.enum(APPOINTMENT_STATUSES);
+export const appointmentServiceTypeSchema = z.enum(APPOINTMENT_SERVICE_TYPES);
 
 const BUCHAREST_TIME_ZONE = "Europe/Bucharest";
 const localDateTimePattern = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/;
@@ -73,6 +74,7 @@ export function parseBucharestLocalDateTime(value: string) {
 export const bookingRequestSchema = z
   .object({
     startsAt: z.string().datetime({ offset: true }),
+    serviceType: appointmentServiceTypeSchema,
     rescheduleFromAppointmentId: resourceIdSchema.optional(),
   })
   .strict();

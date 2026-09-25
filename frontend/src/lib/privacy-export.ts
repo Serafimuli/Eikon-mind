@@ -14,6 +14,7 @@ export type PortableExportInput = {
   appointments: Array<{
     startsAt: Date;
     endsAt: Date;
+    serviceCode: string;
     status: AppointmentStatus;
     cancelledAt: Date | null;
   }>;
@@ -47,6 +48,7 @@ export function createPortableDataExport(input: PortableExportInput): PortableEx
     appointments: input.appointments.map((appointment) => ({
       startsAt: new Date(appointment.startsAt.getTime()),
       endsAt: new Date(appointment.endsAt.getTime()),
+      serviceCode: appointment.serviceCode,
       status: appointment.status,
       cancelledAt: appointment.cancelledAt ? new Date(appointment.cancelledAt.getTime()) : null,
     })),

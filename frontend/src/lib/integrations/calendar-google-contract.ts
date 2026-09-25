@@ -2,6 +2,44 @@ export const GOOGLE_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
 export const GOOGLE_CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 export const GOOGLE_CALENDAR_FREEBUSY_SCOPE = "https://www.googleapis.com/auth/calendar.freebusy";
 
+export const PENDING_EVENT_COLOR = "5";
+export const CONFIRMED_EVENT_COLOR = "10";
+export const MANAGED_PROPERTY = "eikonMindManaged";
+export const MANAGED_KIND_PROPERTY = "eikonMindItemKind";
+export const MANAGED_APPOINTMENT_PROPERTY = "eikonMindAppointmentId";
+
+export function isCalendarTestMockEnabled(env: { APP_ENV?: string; E2E_CALENDAR_MOCK?: string }) {
+  return env.APP_ENV === "local" && env.E2E_CALENDAR_MOCK === "true";
+}
+
+export function managedGoogleEventPayload(input: {
+  kind: "APPOINTMENT" | "BLOCK";
+  appointmentId?: string;
+  startsAt: Date;
+  endsAt: Date;
+  status: "REQUESTED" | "CONFIRMED";
+  summary?: string;
+  description?: string;
+}) {
+  const hasClientDetails = input.kind === "APPOINTMENT" && Boolean(input.summary?.trim());
+  return {
+    summary: hasClientDetails ? input.summary!.trim() : "Reserved time",
+    ...(hasClientDetails && input.description ? { description: input.description } : {}),
+    transparency: "opaque",
+    visibility: "private",
+    colorId: input.status === "REQUESTED" ? PENDING_EVENT_COLOR : CONFIRMED_EVENT_COLOR,
+    start: { dateTime: input.startsAt.toISOString(), timeZone: "Europe/Bucharest" },
+    end: { dateTime: input.endsAt.toISOString(), timeZone: "Europe/Bucharest" },
+    extendedProperties: {
+      private: {
+        [MANAGED_PROPERTY]: "1",
+        [MANAGED_KIND_PROPERTY]: input.kind,
+        ...(input.appointmentId ? { [MANAGED_APPOINTMENT_PROPERTY]: input.appointmentId } : {}),
+      },
+    },
+  };
+}
+
 const EVENT_WRITE_SCOPES = new Set([
   GOOGLE_CALENDAR_SCOPE,
   GOOGLE_CALENDAR_EVENTS_SCOPE,

@@ -4,7 +4,7 @@ import {
   rememberAuthentication,
   restoreAuthentication,
 } from "./auth-helpers";
-import { E2E_FIXTURES } from "./fixtures";
+import { E2E_FIXTURES, e2eSlotDate } from "./fixtures";
 
 let originalAppointmentId = "";
 let replacementAppointmentId = "";
@@ -60,6 +60,14 @@ function appointmentIdFromUrl(page: Page) {
   return new URL(page.url()).pathname.split("/").at(-1) ?? "";
 }
 
+async function selectFixtureDate(page: Page) {
+  const date = e2eSlotDate();
+  await expect(page.locator(".booking-calendar fieldset")).toBeEnabled({ timeout: 20_000 });
+  const dateInput = page.getByLabel("Date");
+  await dateInput.fill(date);
+  await expect(dateInput).toHaveValue(date);
+}
+
 test.describe.serial("role-aware appointment journeys", () => {
   test.beforeEach(({ browserName }, testInfo) => {
     test.skip(browserName !== "chromium" || testInfo.project.name !== "chromium-desktop");
@@ -70,31 +78,41 @@ test.describe.serial("role-aware appointment journeys", () => {
     await expect(page).toHaveURL(/\/en\/client/, { timeout: 20_000 });
 
     await page.goto("/en/client/book");
-    await page.getByLabel("Available time").selectOption(E2E_FIXTURES.slotId);
-    await page.getByRole("button", { name: "Book", exact: true }).click();
+    await selectFixtureDate(page);
+    await page.getByText("11:00", { exact: true }).click();
+    await expect(page.getByRole("button", { name: "Submit request" })).toBeDisabled();
+    const serviceType = page.getByLabel("Service type");
+    await expect(serviceType.locator("option")).toHaveCount(7);
+    await serviceType.selectOption("ADULT");
+    await page.getByRole("button", { name: "Submit request", exact: true }).click();
     await expect(page).toHaveURL(/\/en\/client\/appointments\/[0-9a-f-]+$/, {
       timeout: 30_000,
     });
     originalAppointmentId = appointmentIdFromUrl(page);
     await expect(page.getByText(/Requested/i)).toBeVisible();
+    await expect(page.getByText("Service type: Adult")).toBeVisible();
 
     await page.getByRole("link", { name: "Reschedule", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Reschedule appointment" })).toBeVisible();
-    await page.getByLabel("Available time").selectOption(E2E_FIXTURES.rescheduleSlotId);
-    await page.getByRole("button", { name: "Confirm new time" }).click();
+    await expect(page.getByLabel("Service type")).toHaveValue("ADULT");
+    await page.getByLabel("Service type").selectOption("FAMILY");
+    await selectFixtureDate(page);
+    await page.getByText("13:00", { exact: true }).click();
+    await page.getByRole("button", { name: "Submit new request" }).click();
     await expect(page).toHaveURL(/\/en\/client\/appointments\/[0-9a-f-]+$/, {
       timeout: 30_000,
     });
     replacementAppointmentId = appointmentIdFromUrl(page);
     expect(replacementAppointmentId).not.toBe(originalAppointmentId);
     await expect(page.getByText(/Requested/i)).toBeVisible();
+    await expect(page.getByText("Service type: Family")).toBeVisible();
 
     await page.goto(`/en/client/appointments/${originalAppointmentId}`);
     await expect(page.getByText(/Cancelled/i)).toBeVisible();
+    await expect(page.getByText("Service type: Adult")).toBeVisible();
     await page.goto("/en/client/book");
-    await expect(
-      page.getByLabel("Available time").locator(`option[value="${E2E_FIXTURES.slotId}"]`),
-    ).toHaveCount(1);
+    await selectFixtureDate(page);
+    await expect(page.getByRole("radio", { name: "11:00" })).toHaveCount(1);
   });
 
   test("the assigned therapist sees and confirms the replacement request", async ({ page }) => {
@@ -103,13 +121,14 @@ test.describe.serial("role-aware appointment journeys", () => {
       E2E_FIXTURES.therapistEmail,
       E2E_FIXTURES.therapistBackupCode,
     );
-    await page.goto("/en/admin/appointments");
-    await expect(page.getByRole("heading", { name: "Appointments" })).toBeVisible();
+    await page.goto(`/en/admin/appointments?week=${e2eSlotDate()}`);
+    await expect(page.getByRole("heading", { name: "Appointment calendar" })).toBeVisible();
     const replacement = page.locator(
-      `.appointment[data-appointment-id="${replacementAppointmentId}"]`,
+      `.calendar-management-item[data-appointment-id="${replacementAppointmentId}"]`,
     );
     await expect(replacement).toBeVisible();
-    await replacement.getByRole("button", { name: "Confirm" }).click();
+    await replacement.locator("summary").click();
+    await replacement.getByRole("button", { name: "Approve" }).click();
     await expect(replacement.getByText(/Confirmed/i)).toBeVisible();
   });
 
@@ -130,18 +149,22 @@ test.describe.serial("role-aware appointment journeys", () => {
     const hiddenResponse = await page.goto(`/en/client/appointments/${replacementAppointmentId}`);
     expect(hiddenResponse?.status()).toBe(404);
     await page.goto("/en/client/book");
-    await expect(
-      page.getByLabel("Available time").locator(`option[value="${E2E_FIXTURES.rescheduleSlotId}"]`),
-    ).toHaveCount(1);
+    await selectFixtureDate(page);
+    await expect(page.getByRole("radio", { name: "13:00" })).toHaveCount(1);
   });
 
-  test("staff retain the hidden appointment as cancelled", async ({ page }) => {
+  test("cancelled appointments are removed from the active therapist calendar", async ({
+    page,
+  }) => {
     await completeTwoFactorWhenRequired(
       page,
       E2E_FIXTURES.adminEmail,
       E2E_FIXTURES.adminBackupCode,
     );
-    await page.goto("/en/admin/appointments");
-    await expect(page.getByText(/Cancelled/i)).toHaveCount(3);
+    await page.goto(`/en/admin/appointments?week=${e2eSlotDate()}`);
+    await expect(page.getByRole("heading", { name: "Appointment calendar" })).toBeVisible();
+    await expect(
+      page.locator(`.calendar-management-item[data-appointment-id="${replacementAppointmentId}"]`),
+    ).toHaveCount(0);
   });
 });

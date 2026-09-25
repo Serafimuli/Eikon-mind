@@ -10,6 +10,7 @@ import {
   cancelTherapistCalendarItem,
   createTherapistAppointment,
   createTherapistBusyBlock,
+  deleteClientCalendarEvents,
   moveTherapistCalendarItem,
 } from "@/lib/calendar-appointments";
 import { getAuth } from "@/lib/auth";
@@ -309,6 +310,8 @@ export async function requestAccountDeletion(localeInput: string, formData: Form
   if (!verification.status) {
     throw new DomainError("Account deletion confirmation is invalid", "ACCESS_DENIED");
   }
+
+  await deleteClientCalendarEvents(user.id);
 
   const db = getDb();
   const now = new Date();

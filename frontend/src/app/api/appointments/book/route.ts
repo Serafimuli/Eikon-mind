@@ -40,12 +40,18 @@ export async function POST(request: Request) {
         user.id,
         body.data.rescheduleFromAppointmentId,
         new Date(body.data.startsAt),
+        body.data.serviceType,
         locale,
       );
       return json({ appointmentId: appointment.id }, 201);
     }
 
-    const appointment = await createClientAppointmentRequest(user.id, new Date(body.data.startsAt));
+    const appointment = await createClientAppointmentRequest(
+      user.id,
+      new Date(body.data.startsAt),
+      body.data.serviceType,
+      locale,
+    );
     return json({ appointmentId: appointment.id }, 201);
   } catch {
     // No details about users or availability are exposed to the caller.

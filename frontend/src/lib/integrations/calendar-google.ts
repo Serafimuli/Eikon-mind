@@ -7,8 +7,16 @@ import { DomainError } from "@/lib/errors";
 import { appointmentEmail, sendTransactionalEmail } from "@/lib/integrations/email";
 import {
   assertGoogleCalendarScopes,
+  CONFIRMED_EVENT_COLOR,
+  GoogleCalendarIntegrationError,
   googleCalendarRequestError,
+  isCalendarTestMockEnabled,
+  MANAGED_APPOINTMENT_PROPERTY,
+  MANAGED_KIND_PROPERTY,
+  MANAGED_PROPERTY,
+  managedGoogleEventPayload,
   parseGoogleFreeBusyResponse,
+  PENDING_EVENT_COLOR,
 } from "@/lib/integrations/calendar-google-contract";
 import { defer, getApplicationOrigin, getRuntimeEnv } from "@/lib/platform-env";
 import { resolveSecret } from "@/lib/runtime-secret";
@@ -19,11 +27,6 @@ import {
   type ClientCalendarSlot,
 } from "@/lib/calendar-scheduling";
 
-export const PENDING_EVENT_COLOR = "5";
-export const CONFIRMED_EVENT_COLOR = "10";
-const MANAGED_PROPERTY = "eikonMindManaged";
-const MANAGED_KIND_PROPERTY = "eikonMindItemKind";
-const MANAGED_APPOINTMENT_PROPERTY = "eikonMindAppointmentId";
 const WATCH_RENEWAL_MILLISECONDS = 24 * 60 * 60 * 1000;
 
 export type CalendarEnvironment = Pick<
@@ -39,7 +42,7 @@ export type CalendarEnvironment = Pick<
   | "FREE_TIER_ONLY"
   | "OPERATIONS_MAILBOX"
   | "RESEND_API_KEY"
->;
+> & { E2E_CALENDAR_MOCK?: string };
 
 type GoogleCredentials = {
   clientId: string;
@@ -139,35 +142,12 @@ async function calendarPath(env: CalendarEnvironment) {
   return `/calendars/${encodeURIComponent(calendarId)}`;
 }
 
-function eventPayload(input: {
-  kind: ManagedItemKind;
-  appointmentId?: string;
-  startsAt: Date;
-  endsAt: Date;
-  status: "REQUESTED" | "CONFIRMED";
-}) {
-  return {
-    summary: "Reserved time",
-    transparency: "opaque",
-    visibility: "private",
-    colorId: input.status === "REQUESTED" ? PENDING_EVENT_COLOR : CONFIRMED_EVENT_COLOR,
-    start: { dateTime: input.startsAt.toISOString(), timeZone: "Europe/Bucharest" },
-    end: { dateTime: input.endsAt.toISOString(), timeZone: "Europe/Bucharest" },
-    extendedProperties: {
-      private: {
-        [MANAGED_PROPERTY]: "1",
-        [MANAGED_KIND_PROPERTY]: input.kind,
-        ...(input.appointmentId ? { [MANAGED_APPOINTMENT_PROPERTY]: input.appointmentId } : {}),
-      },
-    },
-  };
-}
-
 export async function getBusyIntervals(
   env: CalendarEnvironment,
   startsAt: Date,
   endsAt: Date,
 ): Promise<BusyInterval[]> {
+  if (isCalendarTestMockEnabled(env)) return [];
   const input = await credentials(env);
   const token = await accessToken(input);
   const response = await fetch("https://www.googleapis.com/calendar/v3/freeBusy", {
@@ -221,12 +201,17 @@ export async function createManagedGoogleEvent(
     startsAt: Date;
     endsAt: Date;
     status: "REQUESTED" | "CONFIRMED";
+    summary?: string;
+    description?: string;
   },
 ) {
+  if (isCalendarTestMockEnabled(env)) {
+    return { id: `e2e-${crypto.randomUUID()}`, etag: '"e2e-mock"' };
+  }
   const base = await calendarPath(env);
   const response = await googleRequest(env, `${base}/events?sendUpdates=none`, {
     method: "POST",
-    body: JSON.stringify(eventPayload(input)),
+    body: JSON.stringify(managedGoogleEventPayload(input)),
   });
   return (await response.json()) as GoogleEventResponse;
 }
@@ -237,6 +222,9 @@ export async function updateManagedGoogleEvent(
   input: Partial<{ startsAt: Date; endsAt: Date; status: "REQUESTED" | "CONFIRMED" }>,
   etag?: string | null,
 ) {
+  if (isCalendarTestMockEnabled(env)) {
+    return { id: eventId, etag: '"e2e-mock"' };
+  }
   const base = await calendarPath(env);
   const body: Record<string, unknown> = {};
   if (input.startsAt)
@@ -262,11 +250,19 @@ export async function deleteManagedGoogleEvent(
   eventId: string,
   etag?: string | null,
 ) {
+  if (isCalendarTestMockEnabled(env)) return;
   const base = await calendarPath(env);
-  await googleRequest(env, `${base}/events/${encodeURIComponent(eventId)}?sendUpdates=none`, {
-    method: "DELETE",
-    headers: etag ? { "if-match": etag } : {},
-  });
+  try {
+    await googleRequest(env, `${base}/events/${encodeURIComponent(eventId)}?sendUpdates=none`, {
+      method: "DELETE",
+      headers: etag ? { "if-match": etag } : {},
+    });
+  } catch (error) {
+    if (error instanceof GoogleCalendarIntegrationError && [404, 410].includes(error.status ?? 0)) {
+      return;
+    }
+    throw error;
+  }
 }
 
 export async function insertManagedItem(input: {

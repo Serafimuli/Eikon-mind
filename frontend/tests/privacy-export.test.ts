@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { PDFDocument } from "pdf-lib";
 import test from "node:test";
 import type { AppointmentStatus } from "../src/lib/appointment-types";
+import { appointmentServiceLabel } from "../src/lib/appointment-types";
 import { appointmentStatusLabel, formatDateTime } from "../src/lib/presentation";
 import { createPortableDataExport, type PortableExportInput } from "../src/lib/privacy-export";
 import {
@@ -34,6 +35,7 @@ function makeExportInput(
     {
       startsAt: timestamp,
       endsAt: new Date("2026-01-15T19:30:00.000Z"),
+      serviceCode: "PROFESSIONAL_TRAINING",
       status: "CONFIRMED",
       cancelledAt: null,
     },
@@ -99,6 +101,7 @@ test("portable export keeps only the reduced account, provider, and appointment 
       {
         startsAt: timestamp,
         endsAt: new Date("2026-01-15T19:30:00.000Z"),
+        serviceCode: "PROFESSIONAL_TRAINING",
         status: "CONFIRMED",
         cancelledAt: null,
       },
@@ -110,9 +113,11 @@ test("portable export keeps only the reduced account, provider, and appointment 
   assert.deepEqual(Object.keys(body.appointments[0]), [
     "startsAt",
     "endsAt",
+    "serviceCode",
     "status",
     "cancelledAt",
   ]);
+  assert.equal(body.appointments[0].serviceCode, "PROFESSIONAL_TRAINING");
   assert.doesNotMatch(
     JSON.stringify(body),
     /password|secret|token|backup|security|therapist|clientId|createdAt|updatedAt|linkedAt|role/i,
@@ -125,6 +130,7 @@ test("localized PDF exports have branded metadata, diacritics, Bucharest dates, 
     {
       startsAt: timestamp,
       endsAt: new Date("2026-01-15T19:30:00.000Z"),
+      serviceCode: "ADDICTION",
       status: "CANCELLED",
       cancelledAt: new Date("2026-01-14T12:00:00.000Z"),
     },
@@ -149,6 +155,8 @@ test("localized PDF exports have branded metadata, diacritics, Bucharest dates, 
   assert.equal(pdf.getPages().length, 1);
   assert.equal(getPrivacyExportCopy("en").verified, "Verified");
   assert.equal(getPrivacyExportCopy("ro").notVerified, "Neverificat");
+  assert.equal(appointmentServiceLabel("ADDICTION", "en"), "Addiction");
+  assert.equal(appointmentServiceLabel("ADDICTION", "ro"), "Dependență");
   assert.equal(appointmentStatusLabel("CANCELLED", "en"), "Cancelled");
   assert.equal(appointmentStatusLabel("CANCELLED", "ro"), "Anulată");
   assert.equal(formatDateTime(timestamp, "en"), "15 Jan 2026, 20:30");
@@ -166,6 +174,7 @@ test("multi-appointment exports paginate without invalid PDF bytes", async () =>
   const appointments = Array.from({ length: 40 }, (_, index) => ({
     startsAt: new Date(timestamp.getTime() + index * 86_400_000),
     endsAt: new Date(timestamp.getTime() + index * 86_400_000 + 3_600_000),
+    serviceCode: index % 2 ? "ADULT" : "PROFESSIONAL_TRAINING",
     status: (index % 2 ? "REQUESTED" : "CONFIRMED") as AppointmentStatus,
     cancelledAt: null,
   }));

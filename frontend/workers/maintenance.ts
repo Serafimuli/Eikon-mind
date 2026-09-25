@@ -17,6 +17,9 @@ type MaintenanceEnv = Pick<
   | "RETENTION_AUDIT_EVENT_DAYS"
 >;
 
+type ExpiringManagedEvent = { id: string; event_id: string; etag: string | null };
+type CalendarEventDeleter = (eventId: string, etag: string | null) => Promise<void>;
+
 function days(value: string, name: string) {
   const result = Number(value);
   if (!Number.isInteger(result) || result <= 0)
@@ -24,7 +27,10 @@ function days(value: string, name: string) {
   return result;
 }
 
-export async function runRetention(env: MaintenanceEnv) {
+export async function runRetention(
+  env: MaintenanceEnv,
+  deleteCalendarEvent?: CalendarEventDeleter,
+) {
   const appointmentDays = days(env.RETENTION_APPOINTMENT_DAYS, "RETENTION_APPOINTMENT_DAYS");
   const cancelledDays = days(
     env.RETENTION_CANCELLED_APPOINTMENT_DAYS,
@@ -41,15 +47,47 @@ export async function runRetention(env: MaintenanceEnv) {
   const cancelledCutoff = now - cancelledDays * 86_400_000;
   const deidentifiedCutoff = now - deidentifiedDays * 86_400_000;
   const auditCutoff = now - auditDays * 86_400_000;
+
+  const expiringAppointments = await env.DB.prepare(
+    `SELECT id FROM appointment
+     WHERE (status = 'CANCELLED' AND updated_at < ?)
+        OR (status IN ('REQUESTED', 'CONFIRMED', 'COMPLETED') AND starts_at < ?)`,
+  )
+    .bind(cancelledCutoff, normalCutoff)
+    .all<{ id: string }>();
+
+  let integration: typeof import("../src/lib/integrations/calendar-google") | undefined;
+  const deleteEvent = async (eventId: string, etag: string | null) => {
+    if (deleteCalendarEvent) return deleteCalendarEvent(eventId, etag);
+    integration ??= await import("../src/lib/integrations/calendar-google");
+    return integration.deleteManagedGoogleEvent(env, eventId, etag);
+  };
+
+  for (const appointment of expiringAppointments.results) {
+    const events = await env.DB.prepare(
+      "SELECT id, event_id, etag FROM calendar_managed_item WHERE appointment_id = ?",
+    )
+      .bind(appointment.id)
+      .all<ExpiringManagedEvent>();
+    let calendarCleanupFailed = false;
+    for (const event of events.results) {
+      try {
+        await deleteEvent(event.event_id, event.etag);
+        await env.DB.prepare("DELETE FROM calendar_managed_item WHERE id = ?").bind(event.id).run();
+      } catch {
+        console.error("expired appointment Calendar cleanup failed; retrying next run");
+        calendarCleanupFailed = true;
+        break;
+      }
+    }
+    if (!calendarCleanupFailed) {
+      await env.DB.prepare("DELETE FROM appointment WHERE id = ?").bind(appointment.id).run();
+    }
+  }
+
   await env.DB.batch([
     env.DB.prepare("DELETE FROM verification WHERE expires_at < ?").bind(now),
     env.DB.prepare("DELETE FROM session WHERE expires_at < ?").bind(now),
-    env.DB.prepare("DELETE FROM appointment WHERE status = 'CANCELLED' AND updated_at < ?").bind(
-      cancelledCutoff,
-    ),
-    env.DB.prepare(
-      "DELETE FROM appointment WHERE status IN ('REQUESTED', 'CONFIRMED', 'COMPLETED') AND starts_at < ?",
-    ).bind(normalCutoff),
     env.DB.prepare(
       `DELETE FROM availability_slot
        WHERE ends_at < ?

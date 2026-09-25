@@ -1,5 +1,6 @@
 import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, PageSizes, rgb, type PDFFont, type PDFImage, type PDFPage } from "pdf-lib";
+import { appointmentServiceLabel } from "@/lib/appointment-types";
 import { appointmentStatusLabel, formatDateTime, formatTime } from "@/lib/presentation";
 import type { PortableExportData } from "@/lib/privacy-export";
 import type { Locale } from "@/lib/site-content";
@@ -27,6 +28,7 @@ type ExportCopy = {
   appointments: string;
   dateTime: string;
   ends: string;
+  serviceType: string;
   status: string;
   cancelledOn: string;
   noAppointments: string;
@@ -56,6 +58,7 @@ export const privacyExportCopy: Record<Locale, ExportCopy> = {
     appointments: "Appointments",
     dateTime: "Date and time",
     ends: "Ends",
+    serviceType: "Service type",
     status: "Status",
     cancelledOn: "Cancelled on",
     noAppointments: "No appointments recorded.",
@@ -87,6 +90,7 @@ export const privacyExportCopy: Record<Locale, ExportCopy> = {
     appointments: "Programări",
     dateTime: "Data și ora",
     ends: "Se termină",
+    serviceType: "Tipul serviciului",
     status: "Stare",
     cancelledOn: "Anulată la",
     noAppointments: "Nu există programări înregistrate.",
@@ -393,16 +397,18 @@ function tableRowValues(appointment: PortableExportData["appointments"][number],
   return [
     formatDateTime(appointment.startsAt, locale),
     formatTime(appointment.endsAt, locale),
+    appointmentServiceLabel(appointment.serviceCode, locale),
     appointmentStatusLabel(appointment.status, locale),
     appointment.cancelledAt ? formatDateTime(appointment.cancelledAt, locale) : "-",
   ].map(cleanText);
 }
 
 const TABLE_COLUMNS = [
-  { key: "dateTime", width: 178 },
-  { key: "ends", width: 70 },
-  { key: "status", width: 95 },
-  { key: "cancelledOn", width: CONTENT_WIDTH - 178 - 70 - 95 },
+  { key: "dateTime", width: 140 },
+  { key: "ends", width: 55 },
+  { key: "serviceType", width: 100 },
+  { key: "status", width: 75 },
+  { key: "cancelledOn", width: CONTENT_WIDTH - 140 - 55 - 100 - 75 },
 ] as const;
 
 function tableRowHeight(values: string[], bodyFont: PDFFont) {
@@ -421,7 +427,7 @@ function drawTableHeader(page: PDFPage, top: number, bodyMediumFont: PDFFont, co
     height,
     color: COLORS.surfaceStrong,
   });
-  const labels = [copy.dateTime, copy.ends, copy.status, copy.cancelledOn];
+  const labels = [copy.dateTime, copy.ends, copy.serviceType, copy.status, copy.cancelledOn];
   let x = MARGIN_X;
   labels.forEach((label, index) => {
     drawWrappedText(
@@ -466,7 +472,7 @@ function drawTableRow(
       x + 7,
       top - 8,
       TABLE_COLUMNS[columnIndex].width - 14,
-      columnIndex === 2 ? bodyMediumFont : bodyFont,
+      columnIndex === 2 || columnIndex === 3 ? bodyMediumFont : bodyFont,
       8.5,
       COLORS.body,
       11.5,

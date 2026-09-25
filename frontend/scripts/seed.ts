@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { symmetricEncrypt, type SecretConfig } from "better-auth/crypto";
 import { hashPassword } from "../src/lib/security/password";
-import { E2E_FIXTURES } from "../tests/e2e/fixtures";
+import { E2E_FIXTURES, e2eSlotDate } from "../tests/e2e/fixtures";
 
 if (!process.argv.includes("--e2e")) {
   throw new Error(
@@ -49,8 +49,7 @@ const secretConfig: SecretConfig = {
 };
 
 const now = Date.now();
-const start = new Date(now + 86_400_000);
-start.setUTCHours(8, 0, 0, 0);
+const start = new Date(`${e2eSlotDate()}T08:00:00.000Z`);
 const slotIds = [
   E2E_FIXTURES.slotId,
   E2E_FIXTURES.rescheduleSlotId,
@@ -109,6 +108,8 @@ const fixtureAppointmentIds = [
   E2E_FIXTURES.auditCancelledAppointmentId,
   E2E_FIXTURES.auditCompletedAppointmentId,
   E2E_FIXTURES.auditPastAppointmentId,
+  E2E_FIXTURES.calendarAppointmentOneId,
+  E2E_FIXTURES.calendarAppointmentTwoId,
 ];
 const auditActiveWindow = slotWindows[3];
 const auditAppointments = [
@@ -118,6 +119,7 @@ const auditAppointments = [
     startsAt: auditActiveWindow.startsAt,
     endsAt: auditActiveWindow.endsAt,
     status: "REQUESTED",
+    serviceCode: "STANDARD",
     cancelledAt: "NULL",
   },
   {
@@ -126,6 +128,7 @@ const auditAppointments = [
     startsAt: new Date(auditActiveWindow.startsAt.getTime() + 4 * 60 * 60_000),
     endsAt: new Date(auditActiveWindow.endsAt.getTime() + 4 * 60 * 60_000),
     status: "CANCELLED",
+    serviceCode: "STANDARD",
     cancelledAt: String(now),
   },
   {
@@ -134,6 +137,7 @@ const auditAppointments = [
     startsAt: new Date(now - 2 * 86_400_000),
     endsAt: new Date(now - 2 * 86_400_000 + 50 * 60_000),
     status: "COMPLETED",
+    serviceCode: "STANDARD",
     cancelledAt: "NULL",
   },
   {
@@ -142,7 +146,26 @@ const auditAppointments = [
     startsAt: new Date(now - 86_400_000),
     endsAt: new Date(now - 86_400_000 + 50 * 60_000),
     status: "CONFIRMED",
+    serviceCode: "STANDARD",
     cancelledAt: "NULL",
+  },
+];
+const calendarAppointments = [
+  {
+    id: E2E_FIXTURES.calendarAppointmentOneId,
+    clientId: E2E_FIXTURES.clientId,
+    startsAt: new Date("2027-03-02T08:00:00.000Z"),
+    endsAt: new Date("2027-03-02T09:00:00.000Z"),
+    status: "REQUESTED",
+    serviceCode: "ADULT",
+  },
+  {
+    id: E2E_FIXTURES.calendarAppointmentTwoId,
+    clientId: E2E_FIXTURES.auditClientId,
+    startsAt: new Date("2027-03-02T08:30:00.000Z"),
+    endsAt: new Date("2027-03-02T09:30:00.000Z"),
+    status: "CONFIRMED",
+    serviceCode: "FAMILY",
   },
 ];
 const statements = [
@@ -174,8 +197,16 @@ const statements = [
       `INSERT INTO availability_slot (id, therapist_id, starts_at, ends_at, state, created_at, updated_at) VALUES (${quote(id)}, ${quote(E2E_FIXTURES.therapistId)}, ${startsAt.getTime()}, ${endsAt.getTime()}, ${id === E2E_FIXTURES.auditSlotId ? "'RESERVED'" : "'OPEN'"}, ${now}, ${now})`,
   ),
   ...auditAppointments.map(
-    ({ id, slotId, startsAt, endsAt, status, cancelledAt }) =>
-      `INSERT INTO appointment (id, client_id, therapist_id, availability_slot_id, service_code, starts_at, ends_at, status, cancelled_at, client_hidden_at, created_at, updated_at) VALUES (${quote(id)}, ${quote(E2E_FIXTURES.clientId)}, ${quote(E2E_FIXTURES.therapistId)}, ${slotId ? quote(slotId) : "NULL"}, 'STANDARD', ${startsAt.getTime()}, ${endsAt.getTime()}, ${quote(status)}, ${cancelledAt}, NULL, ${now}, ${now})`,
+    ({ id, slotId, startsAt, endsAt, status, serviceCode, cancelledAt }) =>
+      `INSERT INTO appointment (id, client_id, therapist_id, availability_slot_id, service_code, starts_at, ends_at, status, cancelled_at, client_hidden_at, created_at, updated_at) VALUES (${quote(id)}, ${quote(E2E_FIXTURES.clientId)}, ${quote(E2E_FIXTURES.therapistId)}, ${slotId ? quote(slotId) : "NULL"}, ${quote(serviceCode)}, ${startsAt.getTime()}, ${endsAt.getTime()}, ${quote(status)}, ${cancelledAt}, NULL, ${now}, ${now})`,
+  ),
+  ...calendarAppointments.map(
+    ({ id, clientId, startsAt, endsAt, status, serviceCode }) =>
+      `INSERT INTO appointment (id, client_id, therapist_id, availability_slot_id, service_code, starts_at, ends_at, status, cancelled_at, client_hidden_at, created_at, updated_at) VALUES (${quote(id)}, ${quote(clientId)}, ${quote(E2E_FIXTURES.therapistId)}, NULL, ${quote(serviceCode)}, ${startsAt.getTime()}, ${endsAt.getTime()}, ${quote(status)}, NULL, NULL, ${now}, ${now})`,
+  ),
+  ...calendarAppointments.map(
+    ({ id, startsAt, endsAt }) =>
+      `INSERT INTO calendar_managed_item (id, appointment_id, event_id, kind, etag, starts_at, ends_at, created_at, updated_at) VALUES (${quote(`managed-${id}`)}, ${quote(id)}, ${quote(`e2e-${id}`)}, 'APPOINTMENT', 'fixture-etag', ${startsAt.getTime()}, ${endsAt.getTime()}, ${now}, ${now})`,
   ),
 ].join(";\n");
 

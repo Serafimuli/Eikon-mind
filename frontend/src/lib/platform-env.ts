@@ -2,8 +2,18 @@ import "server-only";
 
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-export function getRuntimeEnv(): CloudflareEnv {
-  return getCloudflareContext().env as CloudflareEnv;
+export type RuntimeCloudflareEnv = CloudflareEnv & { E2E_CALENDAR_MOCK?: string };
+
+export function getRuntimeEnv(): RuntimeCloudflareEnv {
+  const env = getCloudflareContext().env as CloudflareEnv;
+  if (
+    env.APP_ENV === "local" &&
+    typeof process !== "undefined" &&
+    process.env["E2E_CALENDAR_MOCK"] === "true"
+  ) {
+    return { ...env, E2E_CALENDAR_MOCK: "true" };
+  }
+  return env;
 }
 
 export function getApplicationOrigin() {

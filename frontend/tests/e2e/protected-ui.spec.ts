@@ -157,23 +157,98 @@ test("dashboard totals and administrator context reflect the full fixture", asyn
   await page.goto("/en/client");
   await expect(
     page.getByRole("heading", { name: "Appointments", exact: true }).locator(".."),
-  ).toContainText("4");
+  ).toContainText("5");
   await expect(page.locator(".appointment-list a.appointment")).toHaveCount(3);
 
   await signIn(page, "therapist");
   await page.goto("/en/admin");
   await expect(
     page.getByRole("heading", { name: "Appointments", exact: true }).locator(".."),
-  ).toContainText("4");
+  ).toContainText("6");
   await expect(
     page.getByRole("heading", { name: "Upcoming", exact: true }).locator(".."),
-  ).toContainText("1");
+  ).toContainText("3");
 
   await signIn(page, "admin");
   await page.goto("/en/admin/appointments");
   await expect(
     page.getByRole("heading", { name: "Appointment calendar", exact: true }),
   ).toBeVisible();
+});
+
+test("therapist workweek places overlaps accessibly across locales, themes, and widths", async ({
+  page,
+}) => {
+  await signIn(page, "therapist");
+
+  for (const theme of ["light", "dark"] as const) {
+    await page.evaluate(
+      (selectedTheme) => localStorage.setItem("eikon-theme", selectedTheme),
+      theme,
+    );
+    for (const locale of ["en", "ro"] as const) {
+      for (const viewport of [
+        { width: 1440, height: 1000 },
+        { width: 390, height: 844 },
+      ]) {
+        await page.setViewportSize(viewport);
+        await page.goto(`/${locale}/admin/appointments?week=2027-03-01`);
+        await expect(
+          page.getByRole("heading", {
+            name: locale === "ro" ? "Calendar programări" : "Appointment calendar",
+          }),
+        ).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.classList.contains("dark"))).toBe(
+          theme === "dark",
+        );
+        await expect(page.locator(".calendar-day-heading")).toHaveCount(5);
+        await expect(page.locator(".calendar-event--appointment")).toHaveCount(2);
+        await expectNoOverflow(page);
+
+        const events = page.locator(".calendar-event--appointment");
+        const first = await events.nth(0).boundingBox();
+        const second = await events.nth(1).boundingBox();
+        expect(first).not.toBeNull();
+        expect(second).not.toBeNull();
+        expect(first!.y).toBeLessThan(second!.y);
+        expect(first!.x + first!.width).toBeLessThanOrEqual(second!.x);
+        expect(await events.nth(0).evaluate((element) => getComputedStyle(element).top)).toBe(
+          "64px",
+        );
+        await expect(events.nth(0)).toContainText("E2E Client");
+        await expect(events.nth(1)).toContainText("E2E Audit Client");
+        await expect(events.nth(0)).toContainText(locale === "ro" ? "Adult" : "Adult");
+        await expect(events.nth(1)).toContainText(locale === "ro" ? "Familie" : "Family");
+
+        if (viewport.width < 768) {
+          expect(
+            await page
+              .locator(".calendar-grid-scroll")
+              .evaluate((element) => element.scrollWidth > element.clientWidth),
+          ).toBe(true);
+        }
+
+        const weekendsLink = page.getByRole("link", {
+          name: locale === "ro" ? "Afișează weekendul" : "Show weekends",
+        });
+        await weekendsLink.focus();
+        await expect(weekendsLink).toBeFocused();
+        await page.keyboard.press("Enter");
+        await expect(page).toHaveURL(/weekends=1/);
+        await expect(page.locator(".calendar-day-heading")).toHaveCount(7);
+
+        const firstDetails = page.locator(".calendar-management-item").first();
+        const summary = firstDetails.locator("summary");
+        await summary.focus();
+        await expect(summary).toBeFocused();
+        await page.keyboard.press("Enter");
+        await expect(firstDetails).toHaveAttribute("open", "");
+        await expect(
+          page.getByRole("button", { name: locale === "ro" ? "Aprobă" : "Approve" }),
+        ).toBeVisible();
+      }
+    }
+  }
 });
 
 test("protected actions disclose confirmation and staff eligibility before mutation", async ({
@@ -195,6 +270,7 @@ test("protected actions disclose confirmation and staff eligibility before mutat
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Block time", exact: true })).toBeVisible();
 
+  await signIn(page, "admin");
   await page.goto("/en/admin/staff");
   const auditClient = page.locator(".staff-card", { hasText: E2E_FIXTURES.auditClientEmail });
   await expect(auditClient.getByText("TOTP not enrolled")).toBeVisible();
@@ -211,15 +287,17 @@ test("protected actions disclose confirmation and staff eligibility before mutat
   const roleChangeTarget = page.locator(".staff-card", {
     hasText: E2E_FIXTURES.roleChangeTargetEmail,
   });
-  await roleChangeTarget.getByRole("button", { name: "Make therapist" }).click();
+  await roleChangeTarget.getByRole("button", { name: "Make administrator" }).click();
   await roleChangeTarget.getByRole("button", { name: "Confirm role change" }).click();
-  await expect(roleChangeTarget.locator("form")).toHaveAttribute("aria-busy", "false");
+  await expect(roleChangeTarget.getByText("Administrator", { exact: true })).toBeVisible({
+    timeout: 20_000,
+  });
   await expect(roleChangeTarget.getByText("The staff role could not be changed.")).toHaveCount(0);
   await page.goto("/en/admin/staff");
   await expect(
     page
       .locator(".staff-card", { hasText: E2E_FIXTURES.roleChangeTargetEmail })
-      .getByText("Therapist", { exact: true }),
+      .getByText("Administrator", { exact: true }),
   ).toBeVisible();
 });
 
@@ -246,7 +324,8 @@ test("mobile private navigation is top-aligned, modal, role-aware, and target-si
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/en/admin");
 
-  const musicToggle = page.getByRole("button", { name: "Turn music on" });
+  const musicToggle = page.locator(".music-toggle");
+  await expect(musicToggle).toHaveAccessibleName("Turn music on");
   await expectMinimumTarget(musicToggle);
   await expect(musicToggle).toHaveCSS("position", "fixed");
   await expect(musicToggle).toHaveCSS("right", "16px");

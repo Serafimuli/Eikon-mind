@@ -19,7 +19,8 @@ export default defineConfig({
   webServer: {
     command: "pnpm dev",
     url: `${baseURL}/en`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
+    env: { E2E_CALENDAR_MOCK: "true" },
     timeout: 120_000,
   },
   projects: [

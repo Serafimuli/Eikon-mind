@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { canStaffTransitionAppointment } from "../src/lib/appointment-types";
+import {
+  APPOINTMENT_SERVICE_TYPES,
+  canStaffTransitionAppointment,
+} from "../src/lib/appointment-types";
 import { authDestination } from "../src/lib/auth-routing";
 import { createTextEmail } from "../src/lib/integrations/email-message";
 import { canManageTherapist, isStaff } from "../src/lib/roles";
@@ -30,7 +33,7 @@ test("appointment state transitions are explicit and terminal states stay termin
   assert.equal(canStaffTransitionAppointment("CANCELLED", "CONFIRMED"), false);
 });
 
-test("request validation preserves ID boundaries and accepts only timestamp-based booking input", () => {
+test("request validation preserves ID boundaries and requires a validated service category", () => {
   const betterAuthUserId = "rolechange0000000000000000000000";
   assert.equal(betterAuthUserIdSchema.safeParse(betterAuthUserId).success, true);
   assert.equal(betterAuthUserIdSchema.safeParse("A".repeat(31)).success, false);
@@ -46,12 +49,16 @@ test("request validation preserves ID boundaries and accepts only timestamp-base
   assert.equal(localeSchema.safeParse("ro").success, true);
   assert.equal(localeSchema.safeParse("fr").success, false);
   assert.equal(
-    bookingRequestSchema.safeParse({ startsAt: "2026-09-21T06:00:00.000Z" }).success,
+    bookingRequestSchema.safeParse({
+      startsAt: "2026-09-21T06:00:00.000Z",
+      serviceType: "ADULT",
+    }).success,
     true,
   );
   assert.equal(
     bookingRequestSchema.safeParse({
       startsAt: "2026-09-21T06:00:00.000Z",
+      serviceType: "ADDICTION",
       rescheduleFromAppointmentId: "11111111-1111-4111-8111-111111111111",
     }).success,
     true,
@@ -59,6 +66,7 @@ test("request validation preserves ID boundaries and accepts only timestamp-base
   assert.equal(
     bookingRequestSchema.safeParse({
       startsAt: "2026-09-21T06:00:00.000Z",
+      serviceType: "ADULT",
       rescheduleFromAppointmentId: "not-an-id",
     }).success,
     false,
@@ -67,9 +75,37 @@ test("request validation preserves ID boundaries and accepts only timestamp-base
   assert.equal(bookingRequestSchema.safeParse({ slotId: betterAuthUserId }).success, false);
   assert.equal(bookingRequestSchema.safeParse({ startsAt: "not-a-date" }).success, false);
   assert.equal(
+    bookingRequestSchema.safeParse({ startsAt: "2026-09-21T06:00:00.000Z" }).success,
+    false,
+  );
+  assert.equal(
     bookingRequestSchema.safeParse({
       startsAt: "2026-09-21T06:00:00.000Z",
+      serviceType: "CHILD",
+    }).success,
+    false,
+  );
+  assert.deepEqual(APPOINTMENT_SERVICE_TYPES, [
+    "ADULT",
+    "ADDICTION",
+    "TEEN",
+    "FAMILY",
+    "SENIOR",
+    "PROFESSIONAL_TRAINING",
+  ]);
+  assert.equal(
+    bookingRequestSchema.safeParse({
+      startsAt: "2026-09-21T06:00:00.000Z",
+      serviceType: "ADULT",
       role: "ADMIN",
+    }).success,
+    false,
+  );
+  assert.equal(
+    bookingRequestSchema.safeParse({
+      startsAt: "2026-09-21T06:00:00.000Z",
+      serviceType: "ADULT",
+      clientName: "Attacker supplied name",
     }).success,
     false,
   );
@@ -173,6 +209,40 @@ test("a failed replacement leaves the original appointment in place", async () =
   assert.match(calendarSource, /await cancelTherapistCalendarItem\(oldItem\.id, locale\)/);
   assert.match(routeSource, /startsAt/);
   assert.match(routeSource, /409/);
+});
+
+test("client Calendar titles come from the authenticated account and reschedules pass the chosen service", async () => {
+  const [calendarSource, routeSource] = await Promise.all([
+    readFile(new URL("../src/lib/calendar-appointments.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/api/appointments/book/route.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(calendarSource, /columns: \{ name: true, role: true, emailVerified: true \}/);
+  assert.match(calendarSource, /summary: client\.name/);
+  assert.match(calendarSource, /description: appointmentServiceDescription\(serviceType, locale\)/);
+  assert.match(
+    calendarSource,
+    /replacement = await createClientAppointmentRequest\(clientId, startsAt, serviceType, locale\)/,
+  );
+  assert.match(
+    routeSource,
+    /createClientAppointmentRequest\(\s*user\.id,[\s\S]*body\.data\.serviceType,[\s\S]*locale/s,
+  );
+  assert.match(
+    routeSource,
+    /rescheduleClientAppointment\(\s*user\.id,[\s\S]*body\.data\.serviceType,[\s\S]*locale/s,
+  );
+  assert.doesNotMatch(routeSource, /body\.data\.clientName/);
+});
+
+test("account anonymization deletes managed Calendar events first", async () => {
+  const source = await readFile(new URL("../src/app/[locale]/actions.ts", import.meta.url), "utf8");
+  const accountDeletion = source.slice(
+    source.indexOf("export async function requestAccountDeletion"),
+  );
+  const calendarCleanup = accountDeletion.indexOf("await deleteClientCalendarEvents(user.id)");
+  const anonymization = accountDeletion.indexOf("const anonymizedEmail");
+  assert.ok(calendarCleanup >= 0);
+  assert.ok(anonymization > calendarCleanup);
 });
 
 test("calendar appointments use generic client notifications without a legacy outbox", async () => {
