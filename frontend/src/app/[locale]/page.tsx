@@ -4,11 +4,24 @@ import { PublicFooter } from "@/components/PublicFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { locales, site, type Locale } from "@/lib/site-content";
 
-export const metadata: Metadata = {
-  verification: {
-    google: "PyRAi0SBOviJ6s8Ir1aFiuqk6UgyMTCe2_KFl7MaHyQ",
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: Locale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: site[locale].home.title,
+    description: site[locale].home.lead,
+    alternates: {
+      canonical: `/${locale}`,
+      languages: { ro: "/ro", en: "/en", "x-default": "/" },
+    },
+    verification: {
+      google: "PyRAi0SBOviJ6s8Ir1aFiuqk6UgyMTCe2_KFl7MaHyQ",
+    },
+  };
+}
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));

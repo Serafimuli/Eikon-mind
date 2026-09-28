@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import { TwoFactorChallenge } from "@/components/TwoFactorChallenge";
 import { SiteHeader } from "@/components/SiteHeader";
 import type { Locale } from "@/lib/site-content";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: true },
+};
 
 export const dynamic = "force-dynamic";
 

@@ -1,6 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
 import type { Locale } from "@/lib/site-content";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: true },
+};
 
 export const dynamic = "force-dynamic";
 

@@ -4,7 +4,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/ro/client", "/en/client", "/ro/admin", "/en/admin"],
+      disallow: ["/api/", "/ro/client", "/en/client", "/ro/admin", "/en/admin"],
     },
     sitemap: "https://eikon-mind.ro/sitemap.xml",
   };
