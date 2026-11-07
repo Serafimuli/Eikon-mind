@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import Script from "next/script";
 import { BackToTop } from "@/components/BackToTop";
 import { BackgroundMusic } from "@/components/BackgroundMusic";
@@ -12,21 +11,14 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const requestHeaders = await headers();
-  const nonce = requestHeaders.get("x-nonce") ?? undefined;
-  const locale = requestHeaders.get("x-locale") === "en" ? "en" : "ro";
-  const themeScript =
-    "try{const theme=localStorage.getItem('eikon-theme');if(theme==='dark'){document.documentElement.classList.add('dark')}document.documentElement.style.colorScheme=theme==='dark'?'dark':'light'}catch(e){}";
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang={locale} suppressHydrationWarning data-scroll-behavior="smooth">
+    <html lang="ro" suppressHydrationWarning data-scroll-behavior="smooth">
       <body>
         {children}
         <BackToTop />
         <BackgroundMusic />
-        <Script id="eikon-theme" nonce={nonce} strategy="beforeInteractive">
-          {themeScript}
-        </Script>
+        <Script src="/theme-init.js" strategy="beforeInteractive" />
       </body>
     </html>
   );

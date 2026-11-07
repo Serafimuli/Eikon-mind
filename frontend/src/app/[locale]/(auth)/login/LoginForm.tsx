@@ -1,50 +1,60 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { useTurnstileChallenge } from "@/hooks/useTurnstileChallenge";
 import { authClient, authFetchOptions, resolveAuthDestination } from "@/lib/auth-client";
+import { authDestination } from "@/lib/auth-routing";
+import { localizedInputHandlers } from "@/lib/localized-validation";
 import { securityCopy, type Locale } from "@/lib/site-content";
 
 export function LoginForm({ locale }: { locale: Locale }) {
   const router = useRouter();
   const search = useSearchParams();
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const captcha = useTurnstileChallenge();
   const copy = securityCopy[locale];
+  const validation = localizedInputHandlers(locale);
   const oauthFailed = Boolean(search?.get("oauthError") || search?.get("error"));
 
   const submit = async (form: FormData) => {
     if (!captcha.token) return setError(copy.captchaRequired);
     setBusy(true);
     setError("");
-    const result = await authClient.signIn.email({
-      email: String(form.get("email")),
-      password: String(form.get("password")),
-      callbackURL: `/${locale}/client`,
-      fetchOptions: authFetchOptions(locale, { "x-captcha-response": captcha.token }),
-    });
-    setBusy(false);
-    if (result.error) {
-      captcha.reset();
-      return setError(copy.signInFailed);
-    }
-
-    const returnTo = search?.get("returnTo");
-    if ((result.data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) {
-      router.replace(
-        `/${locale}/two-factor${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`,
-      );
-      return;
-    }
     try {
-      router.replace(await resolveAuthDestination(locale, returnTo));
+      const result = await authClient.signIn.email({
+        email: String(form.get("email")),
+        password: String(form.get("password")),
+        fetchOptions: authFetchOptions(locale, { "x-captcha-response": captcha.token }),
+      });
+      if (result.error) {
+        captcha.reset();
+        return setError(result.error.status >= 500 ? copy.signInUnavailable : copy.signInFailed);
+      }
+
+      const returnTo = search?.get("returnTo");
+      if ((result.data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) {
+        router.replace(
+          `/${locale}/two-factor${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`,
+        );
+        return;
+      }
+      try {
+        router.replace(await resolveAuthDestination(locale, returnTo));
+      } catch {
+        router.replace(authDestination(locale, "USER", returnTo) as Route);
+      }
     } catch {
-      router.replace(`/${locale}/client`);
+      captcha.reset();
+      setError(copy.signInUnavailable);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -54,7 +64,15 @@ export function LoginForm({ locale }: { locale: Locale }) {
       <h1>{locale === "ro" ? "Bine ai revenit" : "Welcome back"}</h1>
       <label>
         Email
-        <input name="email" type="email" autoComplete="email" required />
+        <input
+          name="email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+          {...validation}
+        />
       </label>
       <label>
         {locale === "ro" ? "Parolă" : "Password"}
@@ -64,6 +82,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
           minLength={12}
           autoComplete="current-password"
           required
+          {...validation}
         />
       </label>
       <p className="muted">

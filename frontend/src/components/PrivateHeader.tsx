@@ -15,6 +15,9 @@ export function PrivateHeader({ locale, role }: { locale: Locale; role: Role }) 
   const pathname = usePathname() || `/${locale}/${staff ? "admin" : "client"}`;
   const [menuOpen, setMenuOpen] = useState(false);
   const copy = getProtectedCopy(locale);
+  const switchLocale = locale === "ro" ? "en" : "ro";
+  const currentPath =
+    pathname.replace(/^\/(ro|en)(?=\/|$)/, "") || `/${staff ? "admin" : "client"}`;
   const base = `/${locale}/${staff ? "admin" : "client"}` as Route;
   const route = (path: string) => path as Route;
   const closeMenu = () => setMenuOpen(false);
@@ -79,6 +82,13 @@ export function PrivateHeader({ locale, role }: { locale: Locale; role: Role }) 
             {item.label}
           </Link>
         ))}
+        <Link
+          className="locale-switch"
+          href={`/${switchLocale}${currentPath}` as Route}
+          onClick={closeMenu}
+        >
+          {switchLocale.toUpperCase()}
+        </Link>
         <LogoutButton locale={locale} label={copy.navigation.logout} />
       </nav>
     </HeaderShell>

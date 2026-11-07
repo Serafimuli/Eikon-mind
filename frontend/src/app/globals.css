@@ -1866,6 +1866,17 @@ strong {
   text-align: right;
 }
 
+.profile-card__heading--email {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+}
+
+.profile-card__heading--email .profile-email-value {
+  max-width: 100%;
+  text-align: left;
+}
+
 .profile-form-footer {
   display: flex;
   align-items: center;
@@ -2003,6 +2014,16 @@ strong {
 .private-nav > a {
   min-width: 44px;
   justify-content: center;
+}
+
+.logout-action {
+  display: grid;
+  gap: 8px;
+  max-width: 240px;
+}
+
+.logout-action > .error {
+  margin: 0;
 }
 
 .private-role-badge {
@@ -2945,11 +2966,12 @@ a.appointment {
     color: var(--body-strong);
   }
 
-  .private-nav > form {
+  .private-nav > .logout-action {
+    width: 100%;
     margin-top: 8px;
   }
 
-  .private-nav > form .icon-button {
+  .private-nav > .logout-action > .button {
     width: 100%;
     justify-content: flex-start;
     padding: 0 12px;

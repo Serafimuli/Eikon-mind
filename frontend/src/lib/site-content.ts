@@ -2045,15 +2045,27 @@ export const securityCopy = {
   ro: {
     captchaRequired: "Finalizează verificarea.",
     signInFailed: "Autentificarea nu a reușit.",
+    signInUnavailable:
+      "Serviciul este temporar indisponibil. Emailul a fost păstrat; încearcă din nou.",
     registrationFailed: "Înregistrarea nu a reușit.",
+    registrationUnavailable:
+      "Serviciul este temporar indisponibil. Datele completate au fost păstrate; încearcă din nou.",
     passwordResetFailed: "Nu am putut procesa cererea.",
+    passwordResetUnavailable:
+      "Serviciul este temporar indisponibil. Adresa sau linkul au fost păstrate; încearcă din nou.",
     verificationFailed: "Verificarea nu a reușit.",
   },
   en: {
     captchaRequired: "Complete the verification challenge.",
     signInFailed: "Sign-in failed.",
+    signInUnavailable:
+      "The service is temporarily unavailable. Your email was kept; please try again.",
     registrationFailed: "Registration failed.",
+    registrationUnavailable:
+      "The service is temporarily unavailable. Your details were kept; please try again.",
     passwordResetFailed: "We could not process that request.",
+    passwordResetUnavailable:
+      "The service is temporarily unavailable. Your email or reset link was kept; please try again.",
     verificationFailed: "Verification failed.",
   },
 } as const;

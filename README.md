@@ -28,6 +28,16 @@ The application is built with Next.js App Router, OpenNext for Cloudflare, Cloud
       -> Calendar synchronization and watch renewal
       -> retention and deletion tasks
 
+## Security controls
+
+- D1 with `jurisdiction = "eu"` and disabled read replication.
+- `USER`, `THERAPIST`, and `ADMIN` server-side roles; clients cannot submit roles.
+- verified email, 12-character minimum passwords, reset-session revocation, Turnstile on authentication, TOTP plus backup codes before staff promotion, and account-level TOTP lockouts.
+- versioned scrypt password hashes using a unique 128-bit salt (`N=16384`, `r=8`, `p=5`, 64-byte output), encrypted TOTP/backup-code material, and multi-key Better Auth signing-key rotation.
+- HTTPS redirect, TLS 1.2 minimum, Free-plan-compatible path rate limiting for sensitive POST endpoints, host-only secure Better Auth cookies in production, no-store private responses, Next.js experimental build-time SRI for static pages and CSP nonces for dynamically rendered responses, HSTS (without preload), `nosniff`, frame denial, referrer, and permissions policies.
+- atomic D1 slot claim and state transitions, leased/idempotent Calendar outbox retries, recipient-validated generic email, privacy-minimal security events, retention/de-identification jobs, and no application logging of personal or health data.
+- server-rendered account security pages cover email verification, password reset, role-aware post-login routing, staff TOTP challenges, and one-time backup-code enrolment; role changes revoke existing sessions.
+
 See [Architecture](docs/architecture.md) for the data flow, route boundaries, and endpoint contracts.
 
 ## Repository layout

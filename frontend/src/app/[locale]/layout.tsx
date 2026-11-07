@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { DocumentLanguage } from "@/components/DocumentLanguage";
 import { locales, type Locale } from "@/lib/site-content";
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -25,5 +26,10 @@ export default async function LocaleLayout({
 }) {
   const { locale } = await params;
   if (!locales.includes(locale as Locale)) notFound();
-  return children;
+  return (
+    <>
+      <DocumentLanguage locale={locale as Locale} />
+      {children}
+    </>
+  );
 }

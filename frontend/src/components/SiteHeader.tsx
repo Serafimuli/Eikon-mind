@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useState, type FocusEvent, type MouseEvent } from "react";
 import { site, type Locale } from "@/lib/site-content";
 import { HeaderShell } from "@/components/HeaderShell";
+import { LocaleSwitchLink } from "@/components/LocaleSwitchLink";
 
 const serviceLinks = [
   ["adulti", "Adulți", "Adults"],
@@ -139,15 +140,14 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           {copy.contact}
         </Link>
         <span className="site-nav__spacer" />
-        <Link
-          href={`/${switchLocale}${currentPath === "/" ? "" : currentPath}` as Route}
-          className="locale-switch"
+        <LocaleSwitchLink
+          locale={locale}
+          targetLocale={switchLocale}
+          currentPath={currentPath}
           onClick={closeMenu}
-        >
-          {switchLocale.toUpperCase()}
-        </Link>
-        <Link href={`/${locale}/login`} className="account-link" onClick={closeMenu}>
-          {copy.login}
+        />
+        <Link href={`/${locale}/client/profile`} className="account-link" onClick={closeMenu}>
+          {copy.account}
         </Link>
       </nav>
     </HeaderShell>

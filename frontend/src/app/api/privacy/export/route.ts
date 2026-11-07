@@ -4,12 +4,7 @@ import { getAuth } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { accounts, appointments, users } from "@/lib/db/schema";
 import { isLocale } from "@/lib/auth-routing";
-import { createPortableDataExport } from "@/lib/privacy-export";
-import {
-  createPersonalDataExportPdf,
-  type PersonalDataExportPdfAssets,
-} from "@/lib/privacy-export-pdf";
-import { getApplicationOrigin } from "@/lib/platform-env";
+import { getApplicationOrigin, getRuntimeEnv } from "@/lib/platform-env";
 
 export const dynamic = "force-dynamic";
 
@@ -41,26 +36,59 @@ const PDF_ASSET_PATHS = {
   bodyMediumFont: "/assets/fonts/inter-pdf-500.ttf",
 } as const;
 
-const pdfAssetsByOrigin = new Map<string, Promise<PersonalDataExportPdfAssets>>();
+type PersonalDataExportPdfAssets = {
+  logo: Uint8Array;
+  displayFont: Uint8Array;
+  bodyFont: Uint8Array;
+  bodyMediumFont: Uint8Array;
+};
 
-async function loadPdfAsset(origin: string, path: string) {
-  const response = await fetch(new URL(path, origin));
+type AssetsFetcher = { fetch(request: Request): Promise<Response> };
+
+const pdfAssetsByBinding = new WeakMap<AssetsFetcher, Promise<PersonalDataExportPdfAssets>>();
+let localPdfAssetsPromise: Promise<PersonalDataExportPdfAssets> | undefined;
+
+async function loadPdfAsset(path: string, requestUrl: string) {
+  const env = getRuntimeEnv();
+  const response =
+    env.APP_ENV === "local"
+      ? await fetch(new URL(path, getApplicationOrigin()))
+      : await (env.ASSETS as AssetsFetcher).fetch(new Request(new URL(path, requestUrl)));
   if (!response.ok) throw new Error("Required export asset unavailable");
   return new Uint8Array(await response.arrayBuffer());
 }
 
-function getPdfAssets() {
-  const origin = getApplicationOrigin();
-  const existing = pdfAssetsByOrigin.get(origin);
-  if (existing) return existing;
-
-  const loading = Promise.all(
+function loadPdfAssets(requestUrl: string) {
+  return Promise.all(
     Object.entries(PDF_ASSET_PATHS).map(async ([key, path]) => [
       key,
-      await loadPdfAsset(origin, path),
+      await loadPdfAsset(path, requestUrl),
     ]),
   ).then((entries) => Object.fromEntries(entries) as PersonalDataExportPdfAssets);
-  pdfAssetsByOrigin.set(origin, loading);
+}
+
+function getPdfAssets(requestUrl: string) {
+  const env = getRuntimeEnv();
+  if (env.APP_ENV === "local") {
+    if (localPdfAssetsPromise) return localPdfAssetsPromise;
+
+    const loading = loadPdfAssets(requestUrl);
+    localPdfAssetsPromise = loading;
+    void loading.catch(() => {
+      if (localPdfAssetsPromise === loading) localPdfAssetsPromise = undefined;
+    });
+    return loading;
+  }
+
+  const assets = env.ASSETS as AssetsFetcher;
+  const existing = pdfAssetsByBinding.get(assets);
+  if (existing) return existing;
+
+  const loading = loadPdfAssets(requestUrl);
+  pdfAssetsByBinding.set(assets, loading);
+  void loading.catch(() => {
+    if (pdfAssetsByBinding.get(assets) === loading) pdfAssetsByBinding.delete(assets);
+  });
   return loading;
 }
 
@@ -107,13 +135,17 @@ export async function GET(request: Request) {
   if (!account) return unauthorized();
 
   try {
+    const [{ createPortableDataExport }, { createPersonalDataExportPdf }] = await Promise.all([
+      import("@/lib/privacy-export"),
+      import("@/lib/privacy-export-pdf"),
+    ]);
     const data = createPortableDataExport({
       exportedAt: new Date(),
       account,
       authenticationProviders: providerRows,
       appointments: appointmentRows,
     });
-    const pdf = await createPersonalDataExportPdf(data, locale, await getPdfAssets());
+    const pdf = await createPersonalDataExportPdf(data, locale, await getPdfAssets(request.url));
     const pdfBuffer = new ArrayBuffer(pdf.byteLength);
     new Uint8Array(pdfBuffer).set(pdf);
 

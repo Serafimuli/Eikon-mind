@@ -1,8 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import type { Route } from "next";
 import { type FormEvent, useState } from "react";
 import { authClient, resolveAuthDestination } from "@/lib/auth-client";
+import { authDestination } from "@/lib/auth-routing";
 import type { Locale } from "@/lib/site-content";
 
 export function TwoFactorChallenge({ locale, returnTo }: { locale: Locale; returnTo: string }) {
@@ -27,7 +29,7 @@ export function TwoFactorChallenge({ locale, returnTo }: { locale: Locale; retur
     try {
       router.replace(await resolveAuthDestination(locale, returnTo));
     } catch {
-      router.replace(`/${locale}/client`);
+      router.replace(authDestination(locale, "USER", returnTo) as Route);
     }
   };
 

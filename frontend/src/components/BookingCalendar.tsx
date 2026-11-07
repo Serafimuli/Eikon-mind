@@ -13,6 +13,14 @@ import type { Locale } from "@/lib/site-content";
 
 type CalendarSlot = { startsAt: string; endsAt: string };
 
+function firstWeekdayOnOrAfter(date: string) {
+  const candidate = new Date(`${date}T00:00:00Z`);
+  while (candidate.getUTCDay() === 0 || candidate.getUTCDay() === 6) {
+    candidate.setUTCDate(candidate.getUTCDate() + 1);
+  }
+  return candidate.toISOString().slice(0, 10);
+}
+
 function formatTime(value: string, locale: Locale) {
   return new Date(value).toLocaleTimeString(locale === "ro" ? "ro-RO" : "en-GB", {
     timeZone: "Europe/Bucharest",
@@ -37,7 +45,7 @@ export function BookingCalendar({
   initialServiceType?: AppointmentServiceType;
 }) {
   const router = useRouter();
-  const [date, setDate] = useState(minDate);
+  const [date, setDate] = useState(() => firstWeekdayOnOrAfter(minDate));
   const [slots, setSlots] = useState<CalendarSlot[]>([]);
   const [selected, setSelected] = useState("");
   const [serviceType, setServiceType] = useState<AppointmentServiceType | "">(
@@ -167,11 +175,20 @@ export function BookingCalendar({
             {loading ? (
               <p className="muted">{locale === "ro" ? "Se încarcă…" : "Loading…"}</p>
             ) : slots.length === 0 ? (
-              <p>
-                {locale === "ro"
-                  ? "Nu există ore disponibile în această zi."
-                  : "No times are available on this date."}
-              </p>
+              <div>
+                <p>
+                  {locale === "ro"
+                    ? "Nu există ore disponibile în această zi."
+                    : "No times are available on this date."}
+                </p>
+                <p className="muted">
+                  <Link href={`/${locale}/contact`}>
+                    {locale === "ro"
+                      ? "Contactează-ne pentru informații despre următoarele intervale disponibile."
+                      : "Contact us to ask about upcoming availability."}
+                  </Link>
+                </p>
+              </div>
             ) : (
               <div
                 className="booking-times"
@@ -193,6 +210,21 @@ export function BookingCalendar({
               </div>
             )}
           </fieldset>
+          {!loading && slots.length > 0 && (
+            <div className="muted">
+              <p>
+                {locale === "ro" ? "Cel mai apropiat interval" : "Next available time"}:{" "}
+                {formatTime(slots[0].startsAt, locale)}
+              </p>
+              <button
+                type="button"
+                className="button button--secondary button--small"
+                onClick={() => setSelected(slots[0].startsAt)}
+              >
+                {locale === "ro" ? "Alege acest interval" : "Choose this time"}
+              </button>
+            </div>
+          )}
           <p className="muted">
             <Link href={`/${locale}/politica-de-confidentialitate`}>
               {locale === "ro"

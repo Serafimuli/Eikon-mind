@@ -2,6 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 import { authClient, authFetchOptions } from "@/lib/auth-client";
+import { localizedInputHandlers } from "@/lib/localized-validation";
 import type { Locale } from "@/lib/site-content";
 
 type ProfileSettingsProps = {
@@ -27,6 +28,7 @@ export function ProfileSettings({ locale, user, hasCredentialPassword }: Profile
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordFeedback, setPasswordFeedback] = useState<Feedback>(emptyFeedback);
   const [passwordBusy, setPasswordBusy] = useState(false);
+  const validation = localizedInputHandlers(locale);
 
   const text = {
     account: locale === "ro" ? "Contul tău" : "Your account",
@@ -161,7 +163,7 @@ export function ProfileSettings({ locale, user, hasCredentialPassword }: Profile
 
       <div className="profile-settings-grid">
         <section className="card profile-card" aria-labelledby="profile-email-title">
-          <div className="profile-card__heading">
+          <div className="profile-card__heading profile-card__heading--email">
             <div>
               <p className="eyebrow">{text.currentEmail}</p>
               <h2 id="profile-email-title">{text.emailTitle}</h2>
@@ -178,6 +180,7 @@ export function ProfileSettings({ locale, user, hasCredentialPassword }: Profile
                 onChange={(event) => setNewEmail(event.target.value)}
                 autoComplete="email"
                 required
+                {...validation}
               />
             </label>
             <label>
@@ -188,6 +191,7 @@ export function ProfileSettings({ locale, user, hasCredentialPassword }: Profile
                 onChange={(event) => setConfirmEmail(event.target.value)}
                 autoComplete="email"
                 required
+                {...validation}
               />
             </label>
             <div className="profile-form-footer">
@@ -230,6 +234,7 @@ export function ProfileSettings({ locale, user, hasCredentialPassword }: Profile
                   minLength={12}
                   maxLength={128}
                   required
+                  {...validation}
                 />
               </label>
               <label>
@@ -242,6 +247,7 @@ export function ProfileSettings({ locale, user, hasCredentialPassword }: Profile
                   minLength={12}
                   maxLength={128}
                   required
+                  {...validation}
                 />
               </label>
               <label>
@@ -254,6 +260,7 @@ export function ProfileSettings({ locale, user, hasCredentialPassword }: Profile
                   minLength={12}
                   maxLength={128}
                   required
+                  {...validation}
                 />
               </label>
               <div className="profile-form-footer">

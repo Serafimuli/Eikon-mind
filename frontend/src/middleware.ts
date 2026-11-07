@@ -33,6 +33,7 @@ export function middleware(request: NextRequest) {
   ].join("; ");
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
   const locale = request.nextUrl.pathname.match(/^\/(ro|en)(?:\/|$)/)?.[1] ?? "ro";
   requestHeaders.set("x-locale", locale);
   const response = NextResponse.next({ request: { headers: requestHeaders } });

@@ -6,7 +6,8 @@ import { type FormEvent, useState } from "react";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { useTurnstileChallenge } from "@/hooks/useTurnstileChallenge";
 import { authClient, authFetchOptions } from "@/lib/auth-client";
-import type { Locale } from "@/lib/site-content";
+import { localizedInputHandlers } from "@/lib/localized-validation";
+import { securityCopy, type Locale } from "@/lib/site-content";
 
 export function ResetPasswordForm({
   locale,
@@ -30,6 +31,8 @@ export function ResetPasswordForm({
       : "",
   );
   const [busy, setBusy] = useState(false);
+  const copy = securityCopy[locale];
+  const validation = localizedInputHandlers(locale);
 
   const requestReset = async () => {
     if (!captcha.token)
@@ -38,41 +41,58 @@ export function ResetPasswordForm({
       );
     setBusy(true);
     setError("");
-    const result = await authClient.requestPasswordReset({
-      email,
-      redirectTo: `/${locale}/reset-password`,
-      fetchOptions: authFetchOptions(locale, { "x-captcha-response": captcha.token }),
-    });
-    setBusy(false);
-    if (result.error) {
-      captcha.reset();
-      return setError(
-        locale === "ro" ? "Nu am putut procesa cererea." : "We could not process that request.",
+    setMessage("");
+    try {
+      const result = await authClient.requestPasswordReset({
+        email,
+        redirectTo: `/${locale}/reset-password`,
+        fetchOptions: authFetchOptions(locale, { "x-captcha-response": captcha.token }),
+      });
+      if (result.error) {
+        captcha.reset();
+        return setError(
+          result.error.status >= 500 ? copy.passwordResetUnavailable : copy.passwordResetFailed,
+        );
+      }
+      setMessage(
+        locale === "ro"
+          ? "Dacă adresa există, vei primi un email cu pașii următori."
+          : "If that address exists, you will receive reset instructions.",
       );
+    } catch {
+      captcha.reset();
+      setError(copy.passwordResetUnavailable);
+    } finally {
+      setBusy(false);
     }
-    setMessage(
-      locale === "ro"
-        ? "Dacă adresa există, vei primi un email cu pașii următori."
-        : "If that address exists, you will receive reset instructions.",
-    );
   };
 
   const resetPassword = async () => {
     setBusy(true);
     setError("");
-    const result = await authClient.resetPassword({
-      newPassword: password,
-      token,
-      fetchOptions: authFetchOptions(locale),
-    });
-    setBusy(false);
-    if (result.error)
-      return setError(
-        locale === "ro"
-          ? "Linkul de resetare este invalid sau expirat."
-          : "That reset link is invalid or expired.",
-      );
-    router.replace(`/${locale}/login?reset=complete`);
+    try {
+      const result = await authClient.resetPassword({
+        newPassword: password,
+        token,
+        fetchOptions: authFetchOptions(locale),
+      });
+      if (result.error) {
+        setPassword("");
+        return setError(
+          result.error.status >= 500
+            ? copy.passwordResetUnavailable
+            : locale === "ro"
+              ? "Linkul de resetare este invalid sau expirat."
+              : "That reset link is invalid or expired.",
+        );
+      }
+      router.replace(`/${locale}/login?reset=complete`);
+    } catch {
+      setPassword("");
+      setError(copy.passwordResetUnavailable);
+    } finally {
+      setBusy(false);
+    }
   };
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -110,6 +130,7 @@ export function ResetPasswordForm({
                 autoComplete="new-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                {...validation}
               />
             </label>
             {error && (
@@ -137,6 +158,7 @@ export function ResetPasswordForm({
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                {...validation}
               />
             </label>
             <TurnstileWidget key={captcha.generation} locale={locale} onToken={captcha.setToken} />

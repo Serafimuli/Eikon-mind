@@ -327,7 +327,11 @@ function HomeHero({ locale, content }: { locale: Locale; content: HomeContent })
       <div className="home-hero__media">
         <Picture
           src="/assets/maria-manuela-nita.jpg"
-          alt="Maria-Manuela Niță, psiholog și psihoterapeut"
+          alt={
+            locale === "ro"
+              ? "Maria-Manuela Niță, psiholog și psihoterapeut"
+              : "Maria-Manuela Niță, psychologist and psychotherapist"
+          }
           sizes="(max-width: 720px) 100vw, (max-width: 1100px) 45vw, 600px"
           priority
         />
@@ -380,7 +384,7 @@ export function HomePageContent({ locale, content }: { locale: Locale; content: 
         <div className="about-panel__image">
           <Picture
             src="/assets/despre-mine-eikon-mind.jpg"
-            alt="Maria-Manuela Niță în natură"
+            alt={locale === "ro" ? "Maria-Manuela Niță în natură" : "Maria-Manuela Niță outdoors"}
             sizes="(max-width: 720px) 100vw, 45vw"
           />
         </div>
@@ -414,7 +418,11 @@ export function HomePageContent({ locale, content }: { locale: Locale; content: 
           <div className="feature-panel__image">
             <Picture
               src="/assets/office.jpg"
-              alt="Spațiu luminos de psihoterapie Eikon Mind"
+              alt={
+                locale === "ro"
+                  ? "Spațiu luminos de psihoterapie Eikon Mind"
+                  : "Bright Eikon Mind psychotherapy space"
+              }
               sizes="(max-width: 720px) 100vw, 45vw"
             />
           </div>
@@ -432,14 +440,22 @@ export function HomePageContent({ locale, content }: { locale: Locale; content: 
           <div className="benefits-gallery__large">
             <Picture
               src="/assets/source/cabinet-psiholog.jpg"
-              alt="Cabinet de psihoterapie Eikon Mind"
+              alt={
+                locale === "ro"
+                  ? "Cabinet de psihoterapie Eikon Mind"
+                  : "Eikon Mind psychotherapy room"
+              }
               sizes="(max-width: 720px) 100vw, 40vw"
             />
           </div>
           <div className="benefits-gallery__small">
             <Picture
               src="/assets/eikon-mind-iasi-full.jpg"
-              alt="Detaliu din locația Eikon Mind Iași"
+              alt={
+                locale === "ro"
+                  ? "Detaliu din locația Eikon Mind Iași"
+                  : "Detail of the Eikon Mind location in Iași"
+              }
               sizes="(max-width: 720px) 100vw, 28vw"
             />
           </div>

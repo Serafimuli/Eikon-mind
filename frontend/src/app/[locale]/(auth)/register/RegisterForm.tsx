@@ -7,14 +7,19 @@ import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { useTurnstileChallenge } from "@/hooks/useTurnstileChallenge";
 import { authClient, authFetchOptions } from "@/lib/auth-client";
+import { localizedInputHandlers } from "@/lib/localized-validation";
 import { securityCopy, type Locale } from "@/lib/site-content";
 
 export function RegisterForm({ locale }: { locale: Locale }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [firstNameValue, setFirstNameValue] = useState("");
+  const [lastNameValue, setLastNameValue] = useState("");
+  const [email, setEmail] = useState("");
   const captcha = useTurnstileChallenge();
   const copy = securityCopy[locale];
+  const validation = localizedInputHandlers(locale);
 
   const submit = async (form: FormData) => {
     if (!captcha.token) return setError(copy.captchaRequired);
@@ -22,21 +27,29 @@ export function RegisterForm({ locale }: { locale: Locale }) {
     setError("");
     const firstName = String(form.get("firstName") ?? "").trim();
     const lastName = String(form.get("lastName") ?? "").trim();
-    const result = await authClient.signUp.email({
-      email: String(form.get("email")),
-      password: String(form.get("password")),
-      name: `${firstName} ${lastName}`,
-      callbackURL: `/${locale}/client/profile`,
-      firstName,
-      lastName,
-      fetchOptions: authFetchOptions(locale, { "x-captcha-response": captcha.token }),
-    } as never);
-    setBusy(false);
-    if (result.error) {
+    try {
+      const result = await authClient.signUp.email({
+        email: String(form.get("email")),
+        password: String(form.get("password")),
+        name: `${firstName} ${lastName}`,
+        callbackURL: `/${locale}/client/profile`,
+        firstName,
+        lastName,
+        fetchOptions: authFetchOptions(locale, { "x-captcha-response": captcha.token }),
+      } as never);
+      if (result.error) {
+        captcha.reset();
+        return setError(
+          result.error.status >= 500 ? copy.registrationUnavailable : copy.registrationFailed,
+        );
+      }
+      router.replace(`/${locale}/client/profile`);
+    } catch {
       captcha.reset();
-      return setError(copy.registrationFailed);
+      setError(copy.registrationUnavailable);
+    } finally {
+      setBusy(false);
     }
-    router.replace(`/${locale}/client/profile`);
   };
 
   return (
@@ -45,15 +58,37 @@ export function RegisterForm({ locale }: { locale: Locale }) {
       <h1>{locale === "ro" ? "Creează un cont" : "Create your account"}</h1>
       <label>
         {locale === "ro" ? "Prenume" : "First name"}
-        <input name="firstName" autoComplete="given-name" required />
+        <input
+          name="firstName"
+          autoComplete="given-name"
+          value={firstNameValue}
+          onChange={(event) => setFirstNameValue(event.target.value)}
+          required
+          {...validation}
+        />
       </label>
       <label>
         {locale === "ro" ? "Nume" : "Last name"}
-        <input name="lastName" autoComplete="family-name" required />
+        <input
+          name="lastName"
+          autoComplete="family-name"
+          value={lastNameValue}
+          onChange={(event) => setLastNameValue(event.target.value)}
+          required
+          {...validation}
+        />
       </label>
       <label>
         Email
-        <input name="email" type="email" autoComplete="email" required />
+        <input
+          name="email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+          {...validation}
+        />
       </label>
       <label>
         {locale === "ro" ? "Parolă" : "Password"}
@@ -63,6 +98,7 @@ export function RegisterForm({ locale }: { locale: Locale }) {
           minLength={12}
           autoComplete="new-password"
           required
+          {...validation}
         />
       </label>
       <p className="muted">

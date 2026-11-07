@@ -73,7 +73,7 @@ export function createBrandedEmail(
     message.body,
     ...(action ? ["", `${action.label}: ${action.url}`] : []),
     "",
-    "Eikon Mind · A calm space for meaningful change",
+    "Eikon Mind · eikon-mind.ro",
     footer.transactional,
     `${footer.privacy}: ${footer.privacyUrl}`,
     `${footer.terms}: ${footer.termsUrl}`,
@@ -98,7 +98,7 @@ export function createBrandedEmail(
         ${actionMarkup}
       </section>
       <footer style="padding:18px 32px;border-top:1px solid #e6dfd8;color:#64625d;font-family:Arial,Helvetica,sans-serif;font-size:13px;text-align:center">
-        <p style="margin:0 0 8px">Eikon Mind · A calm space for meaningful change</p>
+        <p style="margin:0 0 8px">Eikon Mind · eikon-mind.ro</p>
         <p style="margin:0 0 8px">${escapeHtml(footer.transactional)}</p>
         <p style="margin:0 0 8px"><a href="${escapeHtml(footer.privacyUrl)}" style="color:#64625d">${escapeHtml(footer.privacy)}</a> · <a href="${escapeHtml(footer.termsUrl)}" style="color:#64625d">${escapeHtml(footer.terms)}</a></p>
         <p style="margin:0">${escapeHtml(footer.contact)}</p>

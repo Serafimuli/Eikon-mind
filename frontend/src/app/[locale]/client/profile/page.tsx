@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
-import Link from "next/link";
 import type { Route } from "next";
 import { EmailVerificationCard } from "@/components/EmailVerificationCard";
+import { PersonalDataExportLink } from "@/components/PersonalDataExportLink";
 import { ProfileSettings } from "@/components/ProfileSettings";
 import { TwoFactorSetup } from "@/components/TwoFactorSetup";
 import { ActionForm } from "@/components/ActionForm";
@@ -82,13 +82,11 @@ export default async function Profile({ params }: { params: Promise<{ locale: Lo
           <p className="eyebrow">GDPR</p>
           <h2 id="data-export-title">{copy.exportTitle}</h2>
           <p>{copy.exportBody}</p>
-          <Link
-            className="button button--secondary"
+          <PersonalDataExportLink
+            locale={locale}
+            label={copy.exportAction}
             href={`/api/privacy/export?locale=${locale}` as Route}
-            prefetch={false}
-          >
-            {copy.exportAction}
-          </Link>
+          />
         </section>
       </div>
     </main>
