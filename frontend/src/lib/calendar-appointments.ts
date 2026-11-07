@@ -15,6 +15,7 @@ import {
   assertGoogleCalendarFree,
   createManagedGoogleEvent,
   deleteManagedGoogleEvent,
+  googleCalendarErrorDetails,
   insertManagedItem,
   updateManagedGoogleEvent,
   type ManagedItemKind,
@@ -51,6 +52,10 @@ function calendarFailure(error: unknown): never {
     throw new DomainError("The calendar changed. Refresh and try again.", "CONFLICT");
   }
   if (error instanceof DomainError) throw error;
+  console.error(
+    "Calendar scheduling operation failed",
+    googleCalendarErrorDetails(error, "calendar-request"),
+  );
   throw new DomainError("The Google Calendar is unavailable. Try again shortly.", "CONFLICT");
 }
 
@@ -71,21 +76,25 @@ async function notifyClient(
   kind: "confirmed" | "cancelled" | "updated",
   locale: EmailLocale = DEFAULT_EMAIL_LOCALE,
 ) {
-  const [recipient] = await getDb()
-    .select({ email: users.email, emailVerified: users.emailVerified })
-    .from(appointments)
-    .innerJoin(users, eq(appointments.clientId, users.id))
-    .where(eq(appointments.id, appointmentId))
-    .limit(1);
-  if (recipient?.emailVerified) {
-    defer(
-      sendTransactionalEmail(
-        getRuntimeEnv(),
-        recipient.email,
-        appointmentEmail(kind, locale, getApplicationOrigin()),
-      ),
-      "appointment email",
-    );
+  try {
+    const [recipient] = await getDb()
+      .select({ email: users.email, emailVerified: users.emailVerified })
+      .from(appointments)
+      .innerJoin(users, eq(appointments.clientId, users.id))
+      .where(eq(appointments.id, appointmentId))
+      .limit(1);
+    if (recipient?.emailVerified) {
+      defer(
+        sendTransactionalEmail(
+          getRuntimeEnv(),
+          recipient.email,
+          appointmentEmail(kind, locale, getApplicationOrigin()),
+        ),
+        "appointment email",
+      );
+    }
+  } catch {
+    console.error("Appointment notification could not be queued");
   }
 }
 
@@ -249,6 +258,7 @@ export async function createTherapistBusyBlock(startsAt: Date, endsAt: Date) {
   if (startsAt <= new Date() || endsAt <= startsAt) {
     throw new DomainError("Choose a valid future busy period", "INVALID_INPUT");
   }
+  let createdEventId: string | undefined;
   try {
     const event = await createManagedGoogleEvent(getRuntimeEnv(), {
       kind: "BLOCK",
@@ -256,6 +266,7 @@ export async function createTherapistBusyBlock(startsAt: Date, endsAt: Date) {
       endsAt,
       status: "CONFIRMED",
     });
+    createdEventId = event.id;
     const id = crypto.randomUUID();
     await insertManagedItem({
       id,
@@ -267,6 +278,14 @@ export async function createTherapistBusyBlock(startsAt: Date, endsAt: Date) {
     });
     return id;
   } catch (error) {
+    if (createdEventId) {
+      await deleteManagedGoogleEvent(getRuntimeEnv(), createdEventId).catch((cleanupError) => {
+        console.error(
+          "Calendar busy block cleanup failed",
+          googleCalendarErrorDetails(cleanupError, "calendar-request"),
+        );
+      });
+    }
     calendarFailure(error);
   }
 }
