@@ -1,5 +1,6 @@
 "use client";
 import { useSyncExternalStore } from "react";
+import type { Locale } from "@/lib/site-content";
 
 const subscribe = (onStoreChange: () => void) => {
   window.addEventListener("eikon-theme-change", onStoreChange);
@@ -7,7 +8,7 @@ const subscribe = (onStoreChange: () => void) => {
 };
 const getSnapshot = () => document.documentElement.classList.contains("dark");
 const getServerSnapshot = () => false;
-export function ThemeToggle() {
+export function ThemeToggle({ locale }: { locale: Locale }) {
   const dark = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const toggle = () => {
     const next = !dark;
@@ -20,7 +21,8 @@ export function ThemeToggle() {
       className="icon-button theme-toggle"
       type="button"
       onClick={toggle}
-      aria-label="Toggle theme"
+      aria-label={locale === "ro" ? "Tema întunecată" : "Dark theme"}
+      aria-pressed={dark}
     >
       {dark ? "☀" : "☾"}
     </button>

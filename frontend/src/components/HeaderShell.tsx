@@ -128,7 +128,7 @@ export function HeaderShell({
         </Link>
         {children}
         <div className="site-header__actions">
-          <ThemeToggle />
+          <ThemeToggle locale={locale} />
           {scheduleAction && (
             <Link className="schedule-button" href={scheduleAction.href} onClick={onClose}>
               {scheduleAction.label}
