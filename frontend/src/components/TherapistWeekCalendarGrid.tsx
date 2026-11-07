@@ -211,14 +211,16 @@ export async function TherapistWeekCalendarGrid({
     locale === "ro"
       ? "Calendarul Google s-a schimbat. Reîmprospătează și încearcă din nou."
       : "Google Calendar changed. Refresh and try again.";
+  const nowDate = bucharestDate(new Date());
+  const todayIsWeekend = [0, 6].includes(new Date(`${nowDate}T12:00:00.000Z`).getUTCDay());
   const weekendQuery = showWeekends ? "&weekends=1" : "";
   const previousHref = `/${locale}/admin/appointments?week=${addDays(firstDay, -7)}${weekendQuery}`;
   const nextHref = `/${locale}/admin/appointments?week=${addDays(firstDay, 7)}${weekendQuery}`;
-  const todayHref = `/${locale}/admin/appointments?week=${bucharestDate(new Date())}${weekendQuery}`;
+  const todayWeekendQuery = showWeekends || todayIsWeekend ? "&weekends=1" : "";
+  const todayHref = `/${locale}/admin/appointments?week=${nowDate}${todayWeekendQuery}`;
   const toggleWeekendsHref = showWeekends
     ? `/${locale}/admin/appointments?week=${firstDay}`
     : `/${locale}/admin/appointments?week=${firstDay}&weekends=1`;
-  const nowDate = bucharestDate(new Date());
 
   return (
     <main className="private-shell therapist-calendar">
