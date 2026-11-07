@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { availableClientSlots } from "@/lib/integrations/calendar-google";
+import { googleCalendarErrorDetails } from "@/lib/integrations/calendar-google-contract";
 import { getRuntimeEnv } from "@/lib/platform-env";
 import { requireClient } from "@/lib/session";
 
@@ -22,7 +23,11 @@ export async function GET(request: Request) {
       },
       { headers: { "Cache-Control": "private, no-store, max-age=0" } },
     );
-  } catch {
+  } catch (error) {
+    console.error(
+      "Google Calendar availability lookup failed",
+      googleCalendarErrorDetails(error, "freebusy-query"),
+    );
     return NextResponse.json({ error: "Calendar unavailable" }, { status: 503 });
   }
 }
