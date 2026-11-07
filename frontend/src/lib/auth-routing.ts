@@ -40,6 +40,14 @@ function isSafeRelativePath(
   }
 }
 
+export function safeAuthReturnPath(locale: string, requestedPath: string | null | undefined) {
+  if (!isLocale(locale)) return null;
+  for (const section of ["client", "admin"] as const) {
+    if (isSafeRelativePath(requestedPath, locale, section)) return requestedPath;
+  }
+  return null;
+}
+
 export function authDestination(locale: string, role: Role, requestedPath?: string | null) {
   const section = role === "USER" ? "client" : "admin";
   if (isSafeRelativePath(requestedPath, locale, section)) return requestedPath as string;

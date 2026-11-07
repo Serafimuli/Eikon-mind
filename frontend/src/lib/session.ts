@@ -3,6 +3,7 @@ import "server-only";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getAuth } from "@/lib/auth";
+import { safeAuthReturnPath } from "@/lib/auth-routing";
 import { findUserById } from "@/lib/db/repositories";
 import { isStaff } from "@/lib/roles";
 
@@ -15,7 +16,12 @@ export async function getCurrentUser() {
 
 export async function requireUser(locale: string) {
   const user = await getCurrentUser();
-  if (!user) redirect(`/${locale}/login?returnTo=${encodeURIComponent(`/${locale}/client/book`)}`);
+  if (!user) {
+    const requestHeaders = await headers();
+    const returnTo = safeAuthReturnPath(locale, requestHeaders.get("x-request-path"));
+    const destination = returnTo ?? `/${locale}/client/book`;
+    redirect(`/${locale}/login?returnTo=${encodeURIComponent(destination)}`);
+  }
   return user;
 }
 
