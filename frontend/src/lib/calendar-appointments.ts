@@ -15,11 +15,11 @@ import {
   assertGoogleCalendarFree,
   createManagedGoogleEvent,
   deleteManagedGoogleEvent,
-  googleCalendarErrorDetails,
   insertManagedItem,
   updateManagedGoogleEvent,
   type ManagedItemKind,
 } from "@/lib/integrations/calendar-google";
+import { googleCalendarErrorDetails } from "@/lib/integrations/calendar-google-contract";
 import { defer, getApplicationOrigin, getRuntimeEnv } from "@/lib/platform-env";
 import { CLIENT_SLOT_MINUTES, isClientSlot } from "@/lib/calendar-scheduling";
 
