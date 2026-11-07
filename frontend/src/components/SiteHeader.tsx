@@ -154,7 +154,7 @@ export function SiteHeader({ locale }: { locale: Locale }) {
             {serviceLinks.map(([slug, roTitle, enTitle]) => (
               <Link href={`/${locale}/${slug}`} key={slug} onClick={closeMenu}>
                 <span>{locale === "ro" ? roTitle : enTitle}</span>
-                <span aria-hidden="true">↗</span>
+                <span aria-hidden="true">→</span>
               </Link>
             ))}
           </div>
