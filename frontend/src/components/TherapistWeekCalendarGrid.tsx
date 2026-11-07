@@ -209,8 +209,8 @@ export async function TherapistWeekCalendarGrid({
   const gridHeight = (hours.endHour - hours.startHour) * HOUR_HEIGHT;
   const error =
     locale === "ro"
-      ? "Calendarul Google s-a schimbat. Reîmprospătează și încearcă din nou."
-      : "Google Calendar changed. Refresh and try again.";
+      ? "Modificarea nu a putut fi salvată în calendar. Datele completate sunt păstrate; verifică disponibilitatea și încearcă din nou."
+      : "The calendar change could not be saved. Your entries are still here; check availability and try again.";
   const nowDate = bucharestDate(new Date());
   const todayIsWeekend = [0, 6].includes(new Date(`${nowDate}T12:00:00.000Z`).getUTCDay());
   const weekendQuery = showWeekends ? "&weekends=1" : "";
@@ -285,6 +285,7 @@ export async function TherapistWeekCalendarGrid({
             locale={locale}
             action={createCalendarAppointment.bind(null, locale)}
             errorMessage={error}
+            preserveValuesOnError
             className="card calendar-create-form"
           >
             <h2>{locale === "ro" ? "Programare confirmată" : "Confirmed appointment"}</h2>
@@ -317,6 +318,7 @@ export async function TherapistWeekCalendarGrid({
             locale={locale}
             action={createCalendarBusyBlock.bind(null, locale)}
             errorMessage={error}
+            preserveValuesOnError
             className="card calendar-create-form"
           >
             <h2>{locale === "ro" ? "Blochează timp" : "Block time"}</h2>
