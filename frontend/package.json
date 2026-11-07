@@ -26,12 +26,12 @@
     "security:audit": "pnpm audit --audit-level high"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "1.7.1",
-    "@opennextjs/cloudflare": "1.20.2",
+    "@better-auth/drizzle-adapter": "1.7.18",
+    "@opennextjs/cloudflare": "1.20.16",
     "@pdf-lib/fontkit": "1.1.1",
-    "better-auth": "1.7.1",
+    "better-auth": "1.7.18",
     "drizzle-orm": "0.45.2",
-    "next": "16.3.3",
+    "next": "16.4.5",
     "pdf-lib": "1.17.1",
     "qrcode.react": "^4.2.0",
     "react": "19.2.8",
@@ -42,17 +42,17 @@
     "@axe-core/playwright": "4.13.0",
     "@cloudflare/workers-types": "5.20260827.1",
     "@playwright/test": "1.62.1",
-    "@tailwindcss/postcss": "4.3.3",
+    "@tailwindcss/postcss": "4.3.4",
     "@types/node": "22.19.17",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.5",
-    "eslint-config-next": "16.3.3",
+    "eslint-config-next": "16.4.5",
     "oxfmt": "0.65.0",
-    "tailwindcss": "4.3.3",
+    "tailwindcss": "4.3.4",
     "tsx": "4.23.12",
     "typescript": "5.9.3",
-    "wrangler": "4.126.0"
+    "wrangler": "4.158.0"
   }
 }
