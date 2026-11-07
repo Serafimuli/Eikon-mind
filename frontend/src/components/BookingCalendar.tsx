@@ -51,9 +51,9 @@ export function BookingCalendar({
   const [serviceType, setServiceType] = useState<AppointmentServiceType | "">(
     initialServiceType ?? "",
   );
-  const [availabilityStatus, setAvailabilityStatus] = useState<"loading" | "loaded" | "unavailable">(
-    "loading",
-  );
+  const [availabilityStatus, setAvailabilityStatus] = useState<
+    "loading" | "loaded" | "unavailable"
+  >("loading");
   const [availabilityRetry, setAvailabilityRetry] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
