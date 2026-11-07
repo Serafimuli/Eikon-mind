@@ -212,7 +212,7 @@ function ContactPage({ locale, page }: { locale: Locale; page: PageContent }) {
               src="/assets/source/contacts-4.webp"
               alt={
                 locale === "ro"
-                  ? "O familie întinsă împreună și zâmbind"
+                  ? "O familie stă întinsă împreună și zâmbește"
                   : "A family lying together and smiling"
               }
               sizes="(max-width: 720px) 100vw, 40vw"
