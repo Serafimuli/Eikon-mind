@@ -51,6 +51,15 @@ without reading external event details. The broader
 least-privilege configuration. A refresh token issued before FreeBusy availability was introduced
 must be re-authorized; refreshing an old token does not add scopes that were not originally granted.
 
+To verify a grant, authorize the intended Google account with the same OAuth client and a registered
+redirect URI, requesting offline access and the two required scopes above. Inspect the `scope` field
+returned by Google's token endpoint and confirm the granted scopes include event-write and FreeBusy
+access; do not infer a grant from the scopes requested on the consent screen. Store the returned
+refresh token directly through the approved Secret Store process, and never print or share token
+values. In Google Calendar, confirm the authorized account can access the calendar referenced by
+`GOOGLE_CALENDAR_ID` and can create events on it. See Google's [Calendar scope guide](https://developers.google.com/workspace/calendar/api/auth)
+and [OAuth scope verification guide](https://developers.google.com/identity/protocols/oauth2).
+
 Public configuration also requires the Terraform output for the account, D1 database, Secret Store, Turnstile site key, Worker name, hostname, email sender, operations mailbox, and retention values.
 
 ## Delivery workflows
