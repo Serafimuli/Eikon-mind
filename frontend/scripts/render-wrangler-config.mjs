@@ -85,6 +85,16 @@ const usesWorkersDev = environment === "dev" && !deployment.zone_id;
 const applicationConfig = {
   $schema: `${root}node_modules/wrangler/config-schema.json`,
   ...common,
+  ...(environment === "dev"
+    ? {
+        observability: {
+          enabled: true,
+          head_sampling_rate: 1,
+          // Auth recovery tokens can appear in request query strings.
+          redact_query_string: true,
+        },
+      }
+    : {}),
   name: deployment.worker_name,
   main: `${root}.open-next/worker.js`,
   ...(usesWorkersDev

@@ -104,6 +104,8 @@ Retention uses strict older-than comparisons, so an item at a cutoff survives un
 
 The delivery smoke script checks the public origin, security headers, asset serving, public Turnstile configuration, anonymous authentication state, protected-route redirect behavior, D1 connectivity, and maintenance cron presence. Monitor GitHub Actions outcomes, Cloudflare Worker health, D1 errors, Calendar synchronization failures, and the privacy-minimized security-event records through approved operational tools.
 
+The development application Worker enables Workers Logs with full sampling and redacts query strings so recovery tokens cannot persist in request URLs. Application error logs are limited to sanitized stages, error types, operation names, HTTP statuses, and provider reasons. Use these logs and the Ray ID/time from an affected request to investigate Worker failures; keep query-string redaction enabled.
+
 For code-only rollback, select a known-good Worker version and use the Wrangler rollback command with the generated configuration. Roll the application and maintenance Workers independently when necessary. A code rollback must not be used to reverse a D1 migration or restore deleted data.
 
 D1 recovery, including Time Travel or an encrypted export/restore process, is an incident-response action because it can overwrite current data. Follow approved controller/DPO and restoration procedures; do not place database exports in source control or ordinary CI artifacts.
