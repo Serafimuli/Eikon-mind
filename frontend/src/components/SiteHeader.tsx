@@ -73,7 +73,13 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   };
 
   const handleServicesKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Escape" || !servicesExpanded) return;
+    if (
+      event.key !== "Escape" ||
+      !servicesExpanded ||
+      window.matchMedia("(max-width: 767px)").matches
+    ) {
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     setServicesOpen(false);
