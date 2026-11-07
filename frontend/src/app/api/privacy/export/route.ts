@@ -134,18 +134,23 @@ export async function GET(request: Request) {
   const account = accountRows[0];
   if (!account) return unauthorized();
 
+  let failureStage = "load-pdf-generator";
   try {
     const [{ createPortableDataExport }, { createPersonalDataExportPdf }] = await Promise.all([
       import("@/lib/privacy-export"),
       import("@/lib/privacy-export-pdf"),
     ]);
+    failureStage = "prepare-export-data";
     const data = createPortableDataExport({
       exportedAt: new Date(),
       account,
       authenticationProviders: providerRows,
       appointments: appointmentRows,
     });
-    const pdf = await createPersonalDataExportPdf(data, locale, await getPdfAssets(request.url));
+    failureStage = "load-pdf-assets";
+    const assets = await getPdfAssets(request.url);
+    failureStage = "render-pdf";
+    const pdf = await createPersonalDataExportPdf(data, locale, assets);
     const pdfBuffer = new ArrayBuffer(pdf.byteLength);
     new Uint8Array(pdfBuffer).set(pdf);
 
@@ -157,8 +162,11 @@ export async function GET(request: Request) {
         "Content-Type": "application/pdf",
       },
     });
-  } catch {
-    console.error("Personal data export generation failed");
+  } catch (error) {
+    console.error("Personal data export generation failed", {
+      stage: failureStage,
+      errorType: error instanceof Error ? error.name : "unknown_error",
+    });
     return exportUnavailable();
   }
 }
