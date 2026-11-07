@@ -11,8 +11,13 @@ export default async function PublicLayout({
   const { locale } = await params;
   return (
     <>
+      <a className="skip-link" href="#main-content">
+        {locale === "ro" ? "Sari la conținutul principal" : "Skip to main content"}
+      </a>
       <SiteHeader locale={locale as Locale} />
-      <main>{children}</main>
+      <main id="main-content" tabIndex={-1}>
+        {children}
+      </main>
       <PublicFooter locale={locale as Locale} />
     </>
   );
