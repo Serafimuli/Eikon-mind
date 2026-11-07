@@ -77,6 +77,7 @@ export function PublicFooter({ locale }: { locale: Locale }) {
                 key={social.label}
               >
                 <span aria-hidden="true">{social.glyph}</span>
+                <span>{social.label}</span>
               </a>
             ))}
           </div>

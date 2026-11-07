@@ -1734,16 +1734,19 @@ strong {
 
 .public-footer__socials {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .public-footer__socials a {
-  width: 44px;
+  min-width: 44px;
   height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   margin: 0;
+  padding: 0 12px;
   border: 1px solid var(--hairline);
   border-radius: 50%;
   color: var(--on-dark);
