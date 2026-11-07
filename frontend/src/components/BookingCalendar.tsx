@@ -60,7 +60,6 @@ export function BookingCalendar({
 
   useEffect(() => {
     const controller = new AbortController();
-    setAvailabilityStatus("loading");
     fetch(`/api/calendar/availability?date=${encodeURIComponent(date)}`, {
       signal: controller.signal,
     })
