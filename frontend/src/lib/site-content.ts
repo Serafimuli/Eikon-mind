@@ -724,7 +724,7 @@ const roPages: Record<PublicSlug, PageContent> = {
     description:
       "Alege o întâlnire potrivită pentru tine. Pentru rezervare vei fi direcționat către contul tău securizat.",
     image: assets.cabinet,
-    imageAlt: "Cabinet de psihoterapie",
+    imageAlt: "Femeie întinsă cu capul sprijinit pe o pernă",
     cta: "Continuă în spațiul securizat",
     sections: [
       {
@@ -740,7 +740,7 @@ const roPages: Record<PublicSlug, PageContent> = {
     title: "Începe parcursul tău spre schimbare – Stabilim o întâlnire?",
     description: "Sunt aici pentru a te însoți în călătoria ta spre echilibru și bine.",
     image: assets.contact,
-    imageAlt: "Colț luminos din cabinetul Eikon Mind",
+    imageAlt: "Femeie așezată într-un fotoliu, într-un spațiu de consiliere",
     cta: "Programează o întâlnire",
     contact: {
       phone: "+40 744 897 013",
@@ -1366,7 +1366,7 @@ const enPages: Record<PublicSlug, PageContent> = {
     description:
       "Choose a meeting that suits you. To make a reservation, you will be taken to your secure account.",
     image: assets.cabinet,
-    imageAlt: "Psychotherapy room",
+    imageAlt: "A woman resting her head on a cushion",
     cta: "Continue to secure booking",
     sections: [
       {
@@ -1382,7 +1382,7 @@ const enPages: Record<PublicSlug, PageContent> = {
     title: "Begin your path towards change – shall we meet?",
     description: "I am here to accompany you on your journey towards balance and wellbeing.",
     image: assets.contact,
-    imageAlt: "Bright corner of the Eikon Mind office",
+    imageAlt: "A woman seated in an armchair in a counselling space",
     cta: "Book a session",
     contact: {
       phone: "+40 744 897 013",

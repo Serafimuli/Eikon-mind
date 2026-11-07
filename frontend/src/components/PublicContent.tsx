@@ -212,8 +212,8 @@ function ContactPage({ locale, page }: { locale: Locale; page: PageContent }) {
               src="/assets/source/contacts-4.webp"
               alt={
                 locale === "ro"
-                  ? "Detaliu din cabinetul Eikon Mind"
-                  : "Detail from the Eikon Mind office"
+                  ? "O familie întinsă împreună și zâmbind"
+                  : "A family lying together and smiling"
               }
               sizes="(max-width: 720px) 100vw, 40vw"
             />
