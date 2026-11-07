@@ -51,12 +51,16 @@ export function BookingCalendar({
   const [serviceType, setServiceType] = useState<AppointmentServiceType | "">(
     initialServiceType ?? "",
   );
-  const [loading, setLoading] = useState(true);
+  const [availabilityStatus, setAvailabilityStatus] = useState<"loading" | "loaded" | "unavailable">(
+    "loading",
+  );
+  const [availabilityRetry, setAvailabilityRetry] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
+    setAvailabilityStatus("loading");
     fetch(`/api/calendar/availability?date=${encodeURIComponent(date)}`, {
       signal: controller.signal,
     })
@@ -64,26 +68,30 @@ export function BookingCalendar({
         if (!response.ok) throw new Error("availability");
         return response.json() as Promise<{ slots: CalendarSlot[] }>;
       })
-      .then((body) => setSlots(body.slots))
+      .then((body) => {
+        if (controller.signal.aborted) return;
+        setSlots(body.slots);
+        setAvailabilityStatus("loaded");
+      })
       .catch((reason: unknown) => {
         if ((reason as { name?: string }).name !== "AbortError") {
           setSlots([]);
-          setError(
-            locale === "ro"
-              ? "Disponibilitatea nu poate fi încărcată acum. Încearcă din nou."
-              : "Availability cannot be loaded right now. Try again.",
-          );
+          setAvailabilityStatus("unavailable");
         }
-      })
-      .finally(() => setLoading(false));
+      });
     return () => controller.abort();
-  }, [date, locale]);
+  }, [date, availabilityRetry]);
 
   function changeDate(nextDate: string) {
     setSelected("");
     setError("");
-    setLoading(true);
+    setAvailabilityStatus("loading");
     setDate(nextDate);
+  }
+
+  function retryAvailability() {
+    setAvailabilityStatus("loading");
+    setAvailabilityRetry((attempt) => attempt + 1);
   }
 
   async function book() {
@@ -170,10 +178,25 @@ export function BookingCalendar({
               ? "Programările online sunt disponibile luni–vineri, între 09:00 și 19:00, cu cel puțin 24 de ore înainte."
               : "Online booking is available Monday–Friday, 09:00–19:00, at least 24 hours in advance."}
           </p>
-          <fieldset disabled={loading || busy}>
+          <fieldset disabled={availabilityStatus === "loading" || busy}>
             <legend>{locale === "ro" ? "Ore disponibile" : "Available times"}</legend>
-            {loading ? (
+            {availabilityStatus === "loading" ? (
               <p className="muted">{locale === "ro" ? "Se încarcă…" : "Loading…"}</p>
+            ) : availabilityStatus === "unavailable" ? (
+              <div>
+                <p className="error">
+                  {locale === "ro"
+                    ? "Disponibilitatea nu poate fi încărcată acum. Nu știm dacă există intervale libere."
+                    : "Availability cannot be loaded right now. We cannot tell whether any times are free."}
+                </p>
+                <button
+                  type="button"
+                  className="button button--secondary button--small"
+                  onClick={retryAvailability}
+                >
+                  {locale === "ro" ? "Încearcă din nou" : "Try again"}
+                </button>
+              </div>
             ) : slots.length === 0 ? (
               <div>
                 <p>
@@ -210,7 +233,7 @@ export function BookingCalendar({
               </div>
             )}
           </fieldset>
-          {!loading && slots.length > 0 && (
+          {availabilityStatus === "loaded" && slots.length > 0 && (
             <div className="muted">
               <p>
                 {locale === "ro" ? "Cel mai apropiat interval" : "Next available time"}:{" "}
