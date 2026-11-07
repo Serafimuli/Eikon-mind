@@ -164,7 +164,7 @@ test("production smoke checks pass against representative HTTP and Cloudflare re
       return new Response(null, {
         status: 307,
         headers: {
-          location: "https://production.example/en/login?returnTo=%2Fen%2Fclient%2Fbook",
+          location: "https://production.example/en/login?returnTo=%2Fen%2Fclient",
         },
       });
     }

@@ -65,7 +65,7 @@ assert.ok(
 const redirect = new URL(protectedPage.headers.get("location") ?? "", origin);
 assert.equal(redirect.origin, origin, "authentication redirect must stay on the production origin");
 assert.equal(redirect.pathname, "/en/login");
-assert.equal(redirect.searchParams.get("returnTo"), "/en/client/book");
+assert.equal(redirect.searchParams.get("returnTo"), "/en/client");
 
 const schedules = await fetch(
   `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/workers/scripts/${encodeURIComponent(maintenanceWorkerName)}/schedules`,
