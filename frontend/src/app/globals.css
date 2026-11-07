@@ -754,6 +754,8 @@ strong {
 }
 
 .locale-switch {
+  min-width: 44px;
+  justify-content: center;
   color: var(--primary) !important;
   font-size: 12px !important;
   letter-spacing: 1.5px;
