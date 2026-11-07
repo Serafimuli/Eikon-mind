@@ -757,7 +757,7 @@ const roPages: Record<PublicSlug, PageContent> = {
       },
       { title: "Locația", paragraphs: ["Strada Vasile Lupu nr. 83, Iași, România"] },
       {
-        title: "Pune o Întrebare",
+        title: "Pune o întrebare",
         paragraphs: [
           "Pentru orice întrebare despre servicii, programări sau colaborări, mă poți contacta direct. Îți voi răspunde cât mai curând posibil.",
         ],
