@@ -1377,6 +1377,18 @@ strong {
   margin-bottom: 0;
 }
 
+.content-section ul {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.content-section li {
+  padding-left: 0.25rem;
+}
+
 .content-note {
   margin: 20px 0 0;
   padding-top: 16px;
