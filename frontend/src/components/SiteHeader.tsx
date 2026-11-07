@@ -3,7 +3,14 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useState, type FocusEvent, type MouseEvent } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  type FocusEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
 import { site, type Locale } from "@/lib/site-content";
 import { HeaderShell } from "@/components/HeaderShell";
 import { LocaleSwitchLink } from "@/components/LocaleSwitchLink";
@@ -23,6 +30,8 @@ export function SiteHeader({ locale }: { locale: Locale }) {
   const [servicesOpen, setServicesOpen] = useState(false);
   const [servicesHovered, setServicesHovered] = useState(false);
   const [servicesFocused, setServicesFocused] = useState(false);
+  const servicesTriggerRef = useRef<HTMLButtonElement>(null);
+  const suppressServicesFocusRef = useRef(false);
   const copy = site[locale].nav;
   const switchLocale = locale === "ro" ? "en" : "ro";
   const currentPath = pathname.replace(/^\/(ro|en)(?=\/|$)/, "") || "/";
@@ -52,6 +61,30 @@ export function SiteHeader({ locale }: { locale: Locale }) {
     if (!event.relatedTarget || !event.currentTarget.contains(event.relatedTarget as Node)) {
       setServicesFocused(false);
       setServicesOpen(false);
+    }
+  };
+
+  const handleServicesFocus = () => {
+    if (suppressServicesFocusRef.current) {
+      suppressServicesFocusRef.current = false;
+      return;
+    }
+    setServicesFocused(true);
+  };
+
+  const handleServicesKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Escape" || !servicesExpanded) return;
+    event.preventDefault();
+    event.stopPropagation();
+    setServicesOpen(false);
+    setServicesHovered(false);
+    setServicesFocused(false);
+
+    if (document.activeElement !== servicesTriggerRef.current) {
+      suppressServicesFocusRef.current = true;
+      servicesTriggerRef.current?.focus();
+    } else {
+      suppressServicesFocusRef.current = false;
     }
   };
 
@@ -93,10 +126,12 @@ export function SiteHeader({ locale }: { locale: Locale }) {
           className="service-menu"
           onPointerEnter={handleServicesPointerEnter}
           onPointerLeave={handleServicesPointerLeave}
-          onFocus={() => setServicesFocused(true)}
+          onFocus={handleServicesFocus}
           onBlur={handleServicesBlur}
+          onKeyDown={handleServicesKeyDown}
         >
           <button
+            ref={servicesTriggerRef}
             type="button"
             className="service-menu__trigger"
             aria-expanded={servicesExpanded}
